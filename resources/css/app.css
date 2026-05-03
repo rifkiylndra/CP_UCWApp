@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.tsx';
+@source '../**/*.ts';
+
+/* Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@theme {
+    /* ── Typography ── */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* ── UCW Color Palette (Espresso Brown Design System) ── */
+    --color-ucw-bg:           #F5F3F0;
+    --color-ucw-bg-warm:      #EFEBE6;
+    --color-ucw-dark:         #2D1A0E;
+    --color-ucw-dark-hover:   #3D2A1A;
+    --color-ucw-medium:       #5C3D2E;
+    --color-ucw-border:       #E8E2DB;
+    --color-ucw-border-dark:  #D4C9BC;
+    --color-ucw-text:         #1A1208;
+    --color-ucw-text-muted:   #8B7B6B;
+    --color-ucw-text-light:   #B8A898;
+
+    /* ── Status Colors ── */
+    --color-ucw-green:        #4CAF50;
+    --color-ucw-green-bg:     #E8F5E9;
+    --color-ucw-green-text:   #2E7D32;
+    --color-ucw-red:          #EF5350;
+    --color-ucw-red-bg:       #FFEBEE;
+    --color-ucw-red-text:     #C62828;
+    --color-ucw-amber:        #FFC107;
+    --color-ucw-amber-bg:     #FFF8E1;
+
+    /* ── Spacing & Radius ── */
+    --radius-ucw-card:        0.75rem;
+    --radius-ucw-modal:       1rem;
+    --radius-ucw-btn:         0.625rem;
+}
+
+/* ── Base Reset ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: var(--color-ucw-bg);
+    color: var(--color-ucw-text);
+    margin: 0;
+    padding: 0;
+}
+
+/* ── Scrollbar Styling ── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--color-ucw-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--color-ucw-border-dark);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ucw-text-muted);
+}
