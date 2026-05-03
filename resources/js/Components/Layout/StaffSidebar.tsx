@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import type { StaffUser } from '@/types/staff';
+import { route } from 'ziggy-js';
 
 interface Props {
     user: StaffUser;

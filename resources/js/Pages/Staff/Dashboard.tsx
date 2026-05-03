@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import StaffLayout from '@/Layouts/StaffLayout';
 import KanbanCard from '@/Components/UI/KanbanCard';
+import OrderDetailModal from '@/Components/Modals/OrderDetailModal';
+import CashPaymentModal from '@/Components/Modals/CashPaymentModal';
 import type { StaffUser, KanbanOrder, KanbanColumn } from '@/types/staff';
 
 interface Props {
@@ -208,18 +210,36 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
 
             </div>
 
-            {/* ── Placeholders for Modals (akan dibuat di FILE 3) ── */}
-            {isDetailModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white p-8 rounded-2xl text-center shadow-xl">
-                        <h3 className="font-bold text-xl mb-4">Order Detail Modal Placeholder</h3>
-                        <p className="text-gray-500 mb-6">Detail untuk order #{selectedOrder?.orderId}</p>
-                        <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2 bg-black text-white rounded-xl">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* ── Modals ── */}
+            <OrderDetailModal 
+                order={selectedOrder}
+                isOpen={isDetailModalOpen}
+                onClose={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedOrder(null);
+                }}
+                onUpdateStatus={handleUpdateStatus}
+                onOpenPaymentModal={() => {
+                    setIsDetailModalOpen(false);
+                    setIsPaymentModalOpen(true);
+                }}
+            />
+
+            <CashPaymentModal 
+                order={selectedOrder}
+                isOpen={isPaymentModalOpen}
+                onClose={() => {
+                    setIsPaymentModalOpen(false);
+                    setSelectedOrder(null);
+                }}
+                onMarkPaid={(orderId) => {
+                    handleUpdateStatus(orderId, 'processing'); // Setelah dibayar, masuk antrean
+                }}
+                onPaymentFailed={(orderId) => {
+                    // Logic batal
+                    console.log('Payment failed for', orderId);
+                }}
+            />
             
             <style>{`
                 /* Styling custom scrollbar untuk list kanban agar rapi */

@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Staff\StaffAuthController;
+use App\Http\Controllers\Staff\StaffDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,9 +60,14 @@ Route::prefix('order')->name('customer.')->group(function () {
 
 /* ── Staff Dashboard Routes ── */
 Route::prefix('staff')->name('staff.')->group(function () {
-    Route::get('/login', fn () => Inertia::render('Staff/Login'))->name('login');
-    Route::get('/dashboard', fn () => Inertia::render('Staff/Dashboard'))->name('dashboard');
-    Route::get('/transactions', fn () => Inertia::render('Staff/Transactions'))->name('transactions');
+    // Auth Routes
+    Route::get('/login', [StaffAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [StaffAuthController::class, 'login'])->name('login.post');
+    Route::post('/logout', [StaffAuthController::class, 'logout'])->name('logout');
+
+    // Dashboard & Operations (Idealnya ditambahkan middleware auth nanti)
+    Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/transactions', [StaffDashboardController::class, 'transactions'])->name('transactions');
 });
 
 /* ── Admin Dashboard Routes ── */
