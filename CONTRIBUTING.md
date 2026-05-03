@@ -1,48 +1,140 @@
 # Panduan Kontribusi (Contributing Guide)
 
-Terima kasih telah berkontribusi pada pengembangan **CP_UCWApp**! Dokumen ini berisi aturan dan standar yang harus diikuti oleh tim (UI/UX, Frontend, dan Backend) agar kolaborasi berjalan lancar.
+Selamat datang di tim pengembangan **UCW App**! Dokumen ini dibuat agar kolaborasi tim kita (UI/UX, Frontend, dan Backend) dapat berjalan lancar, rapi, dan minim konflik. Mohon baca dan ikuti panduan ini dengan saksama.
 
-## 🌿 Git Branching Strategy
+---
 
-Kita menggunakan alur kerja berbasis fitur (*feature branch workflow*).
+## 1. Cara Clone Repository
 
-1. **`main`**: Branch utama, harus selalu *stable* dan siap rilis. Tidak boleh *commit* langsung ke `main`.
-2. **`dev`**: Branch integrasi untuk pengujian bersama. Semua PR fitur mengarah ke branch ini.
-3. **Branch Fitur/Bugfix**: Dibuat dari `dev`. Penamaan branch harus mengikuti format:
-   - `feature/nama-fitur` (contoh: `feature/cart-ui`)
-   - `bugfix/nama-bug` (contoh: `bugfix/payment-error`)
-   - `hotfix/nama-hotfix` (untuk perbaikan mendesak di `main`)
+Untuk mulai berkontribusi, hal pertama yang harus dilakukan adalah melakukan clone repository ini ke komputer lokal kamu.
 
-## ✍️ Standar Commit Message (Conventional Commits)
+```bash
+# Clone repository ke komputer lokal
+git clone https://github.com/organisasi-kamu/CP_UCWApp.git
 
-Gunakan format berikut saat melakukan commit:
-`<tipe>: <deskripsi singkat>`
+# Masuk ke folder project
+cd CP_UCWApp
+```
 
-**Tipe yang diizinkan:**
-- `feat`: Menambahkan fitur baru
-- `fix`: Memperbaiki bug
-- `ui`: Perubahan tampilan / styling Tailwind (khusus Frontend/UI)
-- `refactor`: Refactoring kode (tanpa menambah fitur / memperbaiki bug)
-- `docs`: Update dokumentasi (README, panduan)
-- `chore`: Update dependencies, konfigurasi, dll.
+---
 
-*Contoh:*
-- `feat: add checkout form layout`
-- `fix: resolve reverb connection timeout`
-- `ui: update espresso color token on dashboard`
+## 2. Cara Setup Environment Local
 
-## 🔁 Pull Request (PR)
+Setelah berhasil clone, lakukan tahapan berikut untuk menyiapkan environment lokal kamu:
 
-1. Buat PR dari branch fitur ke `dev`.
-2. Isi deskripsi PR menggunakan *Template PR* yang sudah disediakan.
-3. PR harus di-review minimal oleh 1 anggota tim lainnya.
-4. **Backend Developer** wajib mereview PR terkait integrasi API.
-5. **Frontend Developer** wajib mereview PR terkait UI/UX consistency.
+### Setup Backend (Laravel)
+```bash
+# Install dependency PHP
+composer install
 
-## 🤝 Pembagian Peran
+# Copy file environment dan buat application key
+cp .env.example .env
+php artisan key:generate
 
-- **UI/UX Designer**: Menyediakan desain Figma, aset, dan mengawasi implementasi UI agar *pixel-perfect*. Jika ada perubahan *flow*, wajib diinformasikan ke FE & BE.
-- **Frontend Developer**: Fokus pada `resources/js/` dan komponen React. Dilarang mengubah struktur database atau business logic di controller tanpa kordinasi.
-- **Backend Developer**: Fokus pada `app/`, `database/`, dan `routes/`. Memastikan semua endpoints, real-time Reverb, dan AI Service berjalan baik dan terdokumentasi.
+# Lakukan migrasi database beserta data dummy
+php artisan migrate --seed
+```
 
-Jika ada kebuntuan (blocker), segera diskusikan di grup proyek!
+### Setup Frontend (React & Tailwind)
+```bash
+# Install dependency NPM
+npm install
+
+# Build aset frontend (untuk development)
+npm run dev
+```
+
+### Menjalankan Aplikasi
+```bash
+# Jalankan server lokal Laravel (jalan di terminal 1)
+php artisan serve
+
+# Jalankan Vite untuk hot-reloading Frontend (jalan di terminal 2)
+npm run dev
+
+# Jalankan server Websocket Reverb untuk real-time (jalan di terminal 3)
+php artisan reverb:start
+```
+*(Pastikan Microservice AI FastAPI juga berjalan di port 8000 secara terpisah).*
+
+---
+
+## 3. Branch Naming Convention
+
+Kita tidak boleh bekerja langsung di branch `main` atau `develop`. Selalu buat branch baru dari `develop`. Penamaan branch harus mengikuti format berikut:
+
+- **Frontend Fitur Baru**   : `feature/frontend-[nama-fitur]`
+  *(Contoh: `feature/frontend-cart-ui`)*
+- **Backend Fitur Baru**    : `feature/backend-[nama-fitur]`
+  *(Contoh: `feature/backend-payment-api`)*
+- **Perbaikan Bug**         : `fix/[nama-bug]`
+  *(Contoh: `fix/login-error`)*
+
+**Cara membuat branch baru:**
+```bash
+# Pastikan kamu berada di branch develop dan sudah up-to-date
+git checkout develop
+git pull origin develop
+
+# Buat branch baru dan langsung pindah ke branch tersebut
+git checkout -b feature/frontend-nama-fitur
+```
+
+---
+
+## 4. Commit Message Convention
+
+Kita menggunakan standar **Conventional Commits** agar riwayat (history) project rapi dan mudah dibaca. Format dasarnya adalah: `tipe: deskripsi singkat`.
+
+Gunakan tipe berikut sesuai dengan perubahan yang kamu lakukan:
+- `feat`: Menambahkan fitur baru (Frontend atau Backend).
+- `fix`: Memperbaiki bug atau error.
+- `chore`: Perubahan pada setup, konfigurasi, atau update dependency.
+- `docs`: Mengubah atau menambahkan dokumentasi (seperti file README).
+- `style`: Perubahan khusus pada styling/UI (Tailwind CSS, margin, padding) yang tidak mengubah logika.
+- `refactor`: Menulis ulang atau merapikan kode tanpa mengubah fungsionalitasnya.
+
+*Contoh yang benar:*
+- `feat: menambahkan halaman checkout untuk customer`
+- `fix: memperbaiki error CORS saat panggil AI endpoint`
+- `style: menyesuaikan warna tombol espresso sesuai desain Figma`
+
+---
+
+## 5. Cara Membuat Pull Request (PR)
+
+Setelah pekerjaanmu selesai di branch lokal, saatnya menggabungkan kode ke branch `develop` melalui Pull Request.
+
+1. **Push branch kamu ke GitHub:**
+   ```bash
+   git push origin nama-branch-kamu
+   ```
+2. Buka repository GitHub, kamu akan melihat tombol **"Compare & pull request"**. Klik tombol tersebut.
+3. Pastikan *base branch* adalah `develop` dan *compare branch* adalah branch kamu.
+4. Isi judul dan deskripsi PR. Gunakan **PR Template** yang sudah disediakan (beri centang pada bagian yang relevan).
+5. Tambahkan rekan tim kamu sebagai **Reviewer**.
+
+---
+
+## 6. Code Review Process
+
+Setiap Pull Request **wajib direview** oleh minimal 1 anggota tim lainnya sebelum bisa digabungkan (*merge*).
+
+- **Untuk Frontend**: Pastikan UI sudah sesuai desain Figma (pixel-perfect) dan responsif.
+- **Untuk Backend**: Pastikan API response sesuai format standar dan tidak ada *query* database yang berpotensi lambat.
+- Jika ada perbaikan yang diminta (*Requested Changes*), perbaiki kode di lokal, commit lagi, lalu push ke branch yang sama. PR akan otomatis ter-update.
+- Jika kode sudah disetujui, reviewer akan memberikan status **Approved**.
+
+---
+
+## 7. Aturan Merge ke Develop dan Main
+
+1. **Ke branch `develop`**:
+   - Merge ke `develop` HANYA boleh dilakukan setelah PR mendapatkan status **Approved** dari rekan tim.
+   - Pihak yang melakukan merge adalah pembuat PR itu sendiri atau reviewer.
+   - Sangat disarankan menggunakan opsi **Squash and merge** agar riwayat commit di `develop` tetap bersih.
+
+2. **Ke branch `main`**:
+   - Branch `main` merepresentasikan aplikasi versi *production* (siap rilis).
+   - Merge ke `main` HANYA dilakukan pada saat *sprint review* atau saat aplikasi sudah diuji secara menyeluruh di `develop`.
+   - Proses merge ke `main` harus dilakukan dan disepakati bersama oleh seluruh anggota tim.
