@@ -2,38 +2,38 @@
 
 ## Phase 0: Project Setup
 - [x] Analisis Figma selesai (26 halaman, 3 section)
-- [ ] Scaffold Laravel 11 project
-- [ ] Install & konfigurasi Inertia.js v2
-- [ ] Install React 18 + TypeScript
-- [ ] Install & konfigurasi Tailwind CSS
-- [ ] Install Laravel Echo + Pusher
-- [ ] Setup base layout & routing
+- [x] Scaffold Laravel 11 project
+- [x] Install & konfigurasi Inertia.js v2
+- [x] Install React 18 + TypeScript
+- [x] Install & konfigurasi Tailwind CSS
+- [x] Install Laravel Echo + Pusher
+- [x] Setup base layout & routing
 
 ## Phase 1: Customer App (Mobile, width ~448px)
-- [ ] TypeScript types (`types/customer.ts`)
-- [ ] `CustomerLayout.tsx` (wrapper mobile)
-- [ ] **QR Landing Page** — `Pages/Customer/Landing.tsx`
-- [ ] **Digital Menu** — `Pages/Customer/Menu.tsx`
-- [ ] **Your Cart** — `Pages/Customer/Cart.tsx`
-- [ ] **Order Type** — `Pages/Customer/OrderType.tsx`
-- [ ] **Preparation Estimate** — `Pages/Customer/Estimate.tsx`
-- [ ] **Choose Payment** — `Pages/Customer/ChoosePayment.tsx`
-- [ ] **Online Payment** — `Pages/Customer/OnlinePayment.tsx`
-- [ ] **Cash Confirmation** — `Pages/Customer/CashConfirmation.tsx`
-- [ ] **Live Order Status** (Laravel Echo) — `Pages/Customer/OrderStatus.tsx`
-- [ ] **Your Brew is Ready!** — `Pages/Customer/OrderReady.tsx`
-- [ ] **Share Your Feedback** — `Pages/Customer/Feedback.tsx`
+- [x] TypeScript types (`types/customer.ts`)
+- [x] `CustomerLayout.tsx` (wrapper mobile)
+- [x] **QR Landing Page** — `Pages/Customer/Landing.tsx`
+- [x] **Digital Menu** — `Pages/Customer/Menu.tsx`
+- [x] **Your Cart** — `Pages/Customer/Cart.tsx`
+- [x] **Order Type** — `Pages/Customer/OrderType.tsx`
+- [x] **Preparation Estimate** — `Pages/Customer/Estimate.tsx`
+- [x] **Choose Payment** — `Pages/Customer/ChoosePayment.tsx`
+- [x] **Online Payment** — `Pages/Customer/OnlinePayment.tsx`
+- [x] **Cash Confirmation** — `Pages/Customer/CashConfirmation.tsx`
+- [x] **Live Order Status** (Laravel Echo) — `Pages/Customer/OrderStatus.tsx`
+- [x] **Your Brew is Ready!** — `Pages/Customer/OrderReady.tsx`
+- [x] **Share Your Feedback** — `Pages/Customer/Feedback.tsx`
 
 ## Phase 2: Staff Dashboard (POS Desktop)
-- [ ] TypeScript types (`types/staff.ts`)
-- [ ] `StaffLayout.tsx` (sidebar minimal + topbar)
-- [ ] `StaffSidebar.tsx`
-- [ ] **Staff Login** — `Pages/Staff/Login.tsx`
-- [ ] **Operational Dashboard** (Kanban, Laravel Echo) — `Pages/Staff/Dashboard.tsx`
-- [ ] `KanbanCard.tsx` (order card component)
-- [ ] `OrderDetailModal.tsx` (split view modal)
-- [ ] **Cash Payment Verification** — modal/overlay
-- [ ] **Today's Transactions** — `Pages/Staff/Transactions.tsx`
+- [x] TypeScript types (`types/staff.ts`)
+- [x] `StaffLayout.tsx` (sidebar minimal + topbar)
+- [x] `StaffSidebar.tsx`
+- [x] **Staff Login** — `Pages/Staff/Login.tsx`
+- [x] **Operational Dashboard** (Kanban, Laravel Echo) — `Pages/Staff/Dashboard.tsx`
+- [x] `KanbanCard.tsx` (order card component)
+- [x] `OrderDetailModal.tsx` (split view modal)
+- [x] **Cash Payment Verification** — modal/overlay
+- [x] **Today's Transactions** — `Pages/Staff/Transactions.tsx`
 
 ## Phase 3: Admin Dashboard (Desktop 1280px)
 - [ ] TypeScript types (`types/admin.ts`)
