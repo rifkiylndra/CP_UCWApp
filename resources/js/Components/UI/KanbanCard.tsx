@@ -3,10 +3,11 @@ import type { KanbanOrder, KanbanColumn } from "@/types/staff";
 
 interface Props {
     order: KanbanOrder;
-    columnType: KanbanColumn;
-    onViewDetail: (order: KanbanOrder) => void;
-    onVerifyPayment: (orderId: string) => void;
-    onUpdateStatus: (orderId: string, status: KanbanColumn) => void;
+    columnType?: KanbanColumn;
+    onViewDetail?: (order: KanbanOrder) => void;
+    onVerifyPayment?: (orderId: string) => void;
+    onUpdateStatus?: (orderId: string, status: KanbanColumn) => void;
+    readOnly?: boolean;
 }
 
 export default function KanbanCard({
@@ -15,10 +16,13 @@ export default function KanbanCard({
     onViewDetail,
     onVerifyPayment,
     onUpdateStatus,
+    readOnly = false,
 }: Props) {
     // Helper untuk merender tombol aksi berdasarkan status/kolom
     const renderActions = () => {
-        if (!order.isPaid) {
+        if (readOnly) return null;
+
+        if (!order.isPaid && onVerifyPayment) {
             return (
                 <button
                     onClick={(e) => {
@@ -33,7 +37,7 @@ export default function KanbanCard({
             );
         }
 
-        if (columnType === "incoming") {
+        if (columnType === "incoming" && onUpdateStatus) {
             return (
                 <button
                     onClick={(e) => {
@@ -51,7 +55,7 @@ export default function KanbanCard({
             );
         }
 
-        if (columnType === "processing") {
+        if (columnType === "processing" && onUpdateStatus) {
             return (
                 <div className="flex items-center gap-2 mt-3">
                     <button
@@ -86,8 +90,10 @@ export default function KanbanCard({
 
     return (
         <div
-            onClick={() => onViewDetail(order)}
-            className="p-4 rounded-2xl bg-white cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgb(0,0,0,0.06)] flex flex-col"
+            onClick={() => {
+                if (!readOnly && onViewDetail) onViewDetail(order);
+            }}
+            className={`p-4 rounded-2xl bg-white flex flex-col ${readOnly ? "" : "cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgb(0,0,0,0.06)]"}`}
             style={{ border: "1px solid var(--color-ucw-border)" }}
         >
             {/* ── Header: Order ID & Payment Badge ── */}

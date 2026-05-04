@@ -23,6 +23,7 @@
         "postcss": "^8.5.13",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
+        "recharts": "^3.8.1",
         "typescript": "^6.0.3",
         "ziggy-js": "^2.6.2"
     }

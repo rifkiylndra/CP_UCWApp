@@ -36,19 +36,19 @@
 - [x] **Today's Transactions** — `Pages/Staff/Transactions.tsx`
 
 ## Phase 3: Admin Dashboard (Desktop 1280px)
-- [ ] TypeScript types (`types/admin.ts`)
-- [ ] `AdminLayout.tsx`
-- [ ] `Sidebar.tsx` (admin sidebar)
-- [ ] `TopBar.tsx`
-- [ ] **Admin Login** — `Pages/Admin/Login.tsx`
-- [ ] **Dashboard Overview** — `Pages/Admin/Overview.tsx`
-- [ ] **Live Order (Admin view)** — `Pages/Admin/LiveOrder.tsx`
-- [ ] **AI Analytics Hub** — `Pages/Admin/AIAnalytics.tsx`
-- [ ] **Menu Management** — `Pages/Admin/Menu/Index.tsx`
-- [ ] `AddMenuModal.tsx`
-- [ ] **Staff Directory** — `Pages/Admin/Staff/Index.tsx`
-- [ ] `AddStaffModal.tsx`
-- [ ] **Financial Reports** — `Pages/Admin/Finances.tsx`
+- [x] TypeScript types (`types/admin.ts`)
+- [x] `AdminLayout.tsx`
+- [x] `Sidebar.tsx` (admin sidebar)
+- [x] `TopBar.tsx`
+- [x] **Admin Login** — `Pages/Admin/Login.tsx`
+- [x] **Dashboard Overview** — `Pages/Admin/Overview.tsx`
+- [x] **Live Order (Admin view)** — `Pages/Admin/LiveOrder.tsx`
+- [x] **AI Analytics Hub** — `Pages/Admin/AIAnalytics.tsx`
+- [x] **Menu Management** — `Pages/Admin/Menu/Index.tsx`
+- [x] `AddMenuModal.tsx`
+- [x] **Staff Directory** — `Pages/Admin/Staff/Index.tsx`
+- [x] `AddStaffModal.tsx`
+- [x] **Financial Reports** — `Pages/Admin/Finances.tsx`
 
 ## Shared UI Components
 - [ ] `StatCard.tsx`
