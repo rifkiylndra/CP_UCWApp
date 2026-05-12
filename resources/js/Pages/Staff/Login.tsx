@@ -1,4 +1,4 @@
-import { FormEvent } from 'react';
+import { FormEventHandler } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function StaffLogin() {
@@ -8,9 +8,9 @@ export default function StaffLogin() {
         remember: false as boolean,
     });
 
-    const submit = (e: FormEvent) => {
+    const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('staff.login'));
+        post(route('login.post'));
     };
 
     return (

@@ -43,7 +43,7 @@ Aplikasi ini didukung oleh *AI Microservice* (Python FastAPI) yang menyediakan:
 
 ## 🛠️ Tech Stack
 
-- **Backend (Core)**: Laravel 11
+- **Backend (Core)**: Laravel 12
 - **Frontend**: React 18 + Inertia.js v2 + TypeScript
 - **Styling**: Tailwind CSS v4
 - **Realtime**: Laravel Reverb + Laravel Echo

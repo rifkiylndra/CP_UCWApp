@@ -1,0 +1,224 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ucw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ucw_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: PostgreSQL_P
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ucw-network
+
+  # Redis for caching and queue
+  redis:
+    image: redis:7-alpine
+    container_name: ucw-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ucw-network
+
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ucw-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ucw_app
+      DB_USERNAME: postgres
+      DB_PASSWORD: PostgreSQL_P
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ucw-network
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ucw-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/sites/:/etc/nginx/sites-available/
+      - ./docker/nginx/ssl/:/etc/nginx/ssl/
+    depends_on:
+      - app
+    networks:
+      - ucw-network
+
+  # Node.js for frontend
+  node:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    container_name: ucw-node
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+    networks:
+      - ucw-network
+
+  # Laravel Reverb (WebSocket)
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ucw-reverb
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ucw_app
+      DB_USERNAME: postgres
+      DB_PASSWORD: PostgreSQL_P
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - app
+      - redis
+    networks:
+      - ucw-network
+
+  # Queue Worker
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ucw-queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ucw_app
+      DB_USERNAME: postgres
+      DB_PASSWORD: PostgreSQL_P
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: php artisan queue:work --sleep=3 --tries=3
+    depends_on:
+      - app
+      - redis
+    networks:
+      - ucw-network
+
+  # Scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ucw-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ucw_app
+      DB_USERNAME: postgres
+      DB_PASSWORD: PostgreSQL_P
+    command: |
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+      done"
+    depends_on:
+      - app
+    networks:
+      - ucw-network
+
+  # MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ucw-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - ucw-network
+
+  # PHPMyAdmin (optional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: ucw-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: postgres
+      PMA_PORT: 5432
+      PMA_ARBITRARY: 1
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    networks:
+      - ucw-network
+
+  # FastAPI AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: ucw-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+    networks:
+      - ucw-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  node_modules:
+
+networks:
+  ucw-network:
+    driver: bridge
