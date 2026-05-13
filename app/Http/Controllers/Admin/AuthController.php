@@ -14,9 +14,13 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        // Redirect if already authenticated
-        if (Auth::check() && Auth::user()->isAdmin()) {
-            return redirect()->route('admin.overview');
+        // Redirect if already authenticated as admin
+        if (Auth::check()) {
+            if (Auth::user()->isAdmin()) {
+                return redirect()->route('admin.overview');
+            }
+            // If authenticated as different role, logout first
+            Auth::logout();
         }
 
         return Inertia::render('Admin/Login');

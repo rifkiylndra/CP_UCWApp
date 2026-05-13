@@ -65,10 +65,8 @@ Route::prefix('order')->name('customer.')->group(function () {
 
 /* ── Staff Authentication Routes ── */
 Route::prefix('staff')->name('staff.')->group(function () {
-    Route::middleware('guest')->group(function () {
-        Route::get('/login', [StaffAuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [StaffAuthController::class, 'login'])->name('login.post');
-    });
+    Route::get('/login', [StaffAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [StaffAuthController::class, 'login'])->name('login.post');
 
     Route::middleware(['auth', 'role:staff'])->group(function () {
         Route::post('/logout', [StaffAuthController::class, 'logout'])->name('logout');
@@ -83,10 +81,8 @@ Route::prefix('staff')->name('staff.')->group(function () {
 
 /* ── Admin Authentication Routes ── */
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::middleware('guest')->group(function () {
-        Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
-    });
+    Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
 
     Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');

@@ -17,7 +17,13 @@ class RoleMiddleware
     {
         // Check if user is authenticated
         if (!auth()->check()) {
-            return redirect()->route('login');
+            // Redirect to appropriate login page based on role
+            if ($role === 'staff') {
+                return redirect()->route('staff.login');
+            } elseif ($role === 'admin') {
+                return redirect()->route('admin.login');
+            }
+            return redirect()->route('staff.login');
         }
 
         // Check if user has the required role
@@ -28,3 +34,4 @@ class RoleMiddleware
         return $next($request);
     }
 }
+

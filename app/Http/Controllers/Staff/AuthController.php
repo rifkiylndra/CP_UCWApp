@@ -14,9 +14,13 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        // Redirect if already authenticated
-        if (Auth::check() && Auth::user()->isStaff()) {
-            return redirect()->route('staff.dashboard');
+        // Redirect if already authenticated as staff
+        if (Auth::check()) {
+            if (Auth::user()->isStaff()) {
+                return redirect()->route('staff.dashboard');
+            }
+            // If authenticated as different role, logout first
+            Auth::logout();
         }
 
         return Inertia::render('Staff/Login');
