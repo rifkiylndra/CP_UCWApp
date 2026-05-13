@@ -16,10 +16,11 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
+    "types": ["ziggy-js"],
     "paths": {
       "@/*": ["resources/js/*"]
     }
   },
-  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx"],
+  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "vendor/tightenco/ziggy/src/js/index.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
