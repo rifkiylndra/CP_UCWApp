@@ -8,6 +8,14 @@
 
 ---
 
+## BACKEND PROGRESS (Branch: features/backend-database)
+- [x] Database Schema & Models
+- [x] Backend Services & Events
+- [x] Staff Dashboard Implementation (Backend)
+- [x] Controller Fixes
+
+---
+
 ## ISSUE AKTIF
 
 ### ISSUE #1 — Blade Template Tidak Render (PRIORITY SEKARANG)
