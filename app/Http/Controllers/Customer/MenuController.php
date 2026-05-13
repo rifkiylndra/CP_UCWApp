@@ -13,12 +13,13 @@ class MenuController extends Controller
     /**
      * Display menu page
      */
-    public function index()
+    public function index(string $tableId)
     {
         $categories = Category::with('menus')->get();
         $menus = Menu::where('is_available', true)->get();
 
         return Inertia::render('Customer/Menu', [
+            'tableId' => $tableId,
             'categories' => $categories,
             'menus' => MenuResource::collection($menus),
         ]);
