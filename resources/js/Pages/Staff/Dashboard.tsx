@@ -59,13 +59,18 @@ export default function StaffDashboard({ pendingOrders = [], processingOrders = 
         });
     };
 
+    // Ensure arrays are always arrays
+    const safePendingOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
+    const safeProcessingOrders = Array.isArray(processingOrders) ? processingOrders : [];
+    const safeCompletedOrders = Array.isArray(completedOrders) ? completedOrders : [];
+
     const orders = {
-        pending: pendingOrders,
-        processing: processingOrders,
-        completed: completedOrders,
+        pending: safePendingOrders,
+        processing: safeProcessingOrders,
+        completed: safeCompletedOrders,
     };
 
-    const currentOrders = orders[activeTab];
+    const currentOrders = orders[activeTab] || [];
 
     return (
         <>
