@@ -20,8 +20,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'role',
+        'is_active',
     ];
 
     /**
@@ -44,6 +47,55 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is staff
+     */
+    public function isStaff(): bool
+    {
+        return $this->role === 'staff';
+    }
+
+    /**
+     * Check if user is active
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active === true;
+    }
+
+    /**
+     * Scope to get only active users
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope to get only staff
+     */
+    public function scopeStaff($query)
+    {
+        return $query->where('role', 'staff');
+    }
+
+    /**
+     * Scope to get only admins
+     */
+    public function scopeAdmin($query)
+    {
+        return $query->where('role', 'admin');
     }
 }
