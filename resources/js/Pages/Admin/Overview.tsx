@@ -1,10 +1,14 @@
-import React from 'react';
 import AdminLayout from '@/Components/Layout/AdminLayout';
 import StatCard from '@/Components/UI/StatCard';
-import type { AdminUser } from '@/types/admin';
 
 interface OverviewProps {
-    auth: { user: AdminUser };
+    auth?: {
+        user?: {
+            name: string;
+            username: string;
+            role: string;
+        };
+    };
     stats?: {
         totalOrders: number;
         totalOrdersChange: string;
