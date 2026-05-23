@@ -39,3 +39,9 @@ yarn-error.log
 # OS Generated Files
 .DS_Store
 Thumbs.db
+
+# Python & AI Service
+ai_service/venv/
+venv/
+__pycache__/
+*.pyc

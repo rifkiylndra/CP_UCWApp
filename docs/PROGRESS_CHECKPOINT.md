@@ -74,3 +74,23 @@ Status : [ ] Belum dicek
 - [ ] Admin/Finance.tsx
 - [ ] Admin/Analytics.tsx
 - [ ] Admin/Settings.tsx
+
+## PHASE 4 — AI Module — IN PROGRESS ⏳
+- [x] git checkout feature/ai-module
+- [x] Buat struktur folder ai_service/ dengan sub-folder
+- [x] Copy semua .pkl dan .json dari CP_UCW_app ke saved_models/
+- [x] Buat requirements.txt — pastikan scikit-learn==1.5.1
+- [x] pip install -r requirements.txt
+- [x] Buat config.py + database.py
+- [x] Buat schemas/schemas.py
+- [x] Buat routers/estimation.py
+- [x] Buat routers/sentiment.py
+- [x] Buat routers/menu.py
+- [x] Buat main.py
+- [x] uvicorn main:app --port 8001 berhasil jalan
+- [x] Test /health, /api/estimation/predict, /api/sentiment/analyze
+- [x] Tambah AI_SERVICE_URL=http://localhost:8001 ke .env Laravel
+- [ ] Update AiService.php — sesuaikan format request/response
+- [ ] Test dari Laravel: AnalyticsController → AiService → FastAPI
+- [ ] git add ai_service/ && git commit && git push origin feature/ai-module
+- [ ] Tambahkan WMA training notebook (menu populer) — menyusul

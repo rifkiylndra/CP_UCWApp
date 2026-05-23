@@ -1,0 +1,13 @@
+{
+  "confidence_threshold": 0.6,
+  "rating_mapping": {
+    "4-5": "positif",
+    "3": "netral",
+    "1-2": "negatif"
+  },
+  "conflict_rule": {
+    "positif_vs_low_rating": "rating <= 2",
+    "negatif_vs_high_rating": "rating >= 4",
+    "resolution": "netral jika confidence < threshold, else ai_label"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "fitur": [
+    "jumlah_kopi",
+    "jumlah_non_kopi",
+    "jumlah_makanan",
+    "antrian_dapur"
+  ],
+  "target": "waktu_penyajian",
+  "intercept": 2.5722,
+  "koefisien": {
+    "jumlah_kopi": 2.2226,
+    "jumlah_non_kopi": 1.213,
+    "jumlah_makanan": 1.6658,
+    "antrian_dapur": 1.2093
+  },
+  "buffer_persen": 15,
+  "waktu_minimum": 1.0
+}
