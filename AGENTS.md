@@ -19,7 +19,7 @@ Dokumen ref : CP300-TA2026.08.00X (tersedia di /docs/CP300.pdf)
 
 | Layer      | Teknologi                       |
 | ---------- | ------------------------------- |
-| Backend    | Laravel 11                      |
+| Backend    | Laravel 12                      |
 | Bridge     | Inertia.js v2                   |
 | Frontend   | React 18 (functional component) |
 | Styling    | Tailwind CSS                    |
