@@ -1,0 +1,31 @@
+{
+  "algorithm": "Weighted Moving Average (WMA)",
+  "project": "Capstone CP300 - Unand Co-Workspace",
+  "bobot": "Linear (terbaru = bobot tertinggi)",
+  "default_periode_minggu": 4,
+  "default_limit": 10,
+  "periode_tersedia": [
+    1,
+    2,
+    4,
+    8,
+    12,
+    16,
+    52
+  ],
+  "rumus": "WMA = sum(Wi * Di) / sum(Wi), Wi = [1, 2, ..., n]",
+  "api_endpoint": "/api/menu/populer",
+  "query_params": {
+    "limit": "int (1-50, default=10)",
+    "periode_hari": "int (1-365, default=30)"
+  },
+  "response_fields": [
+    "menu_id",
+    "nama",
+    "skor_wma",
+    "persentase",
+    "total_terjual"
+  ],
+  "data_source": "PostgreSQL: order_details JOIN menus JOIN orders",
+  "catatan": "WMA tidak membutuhkan file .pkl karena bukan model ML yang di-train. Algoritma dijalankan langsung saat endpoint dipanggil. Data training dummy (data_penjualan_menu.csv) hanya untuk validasi logika."
+}
