@@ -5,76 +5,85 @@
 
 import type { OrderStatus, PaymentMethod, MenuItem } from './customer';
 
-export type StaffRole = 'barista' | 'cashier' | 'manager' | 'supervisor';
-
-export type KanbanColumn = 'incoming' | 'processing' | 'completed';
-
 // ── Staff Member ──
-export interface StaffMember {
+export type StaffRole = 'barista' | 'head-barista' | 'cashier' | 'manager';
+
+export interface StaffUser {
     id: string;
     name: string;
     username: string;
     role: StaffRole;
+    position: string;        // Contoh: "HEAD BARISTA"
     avatarUrl?: string;
-    registeredAt: string;
-    isOnDuty: boolean;
-    brewStation?: string;
+    shiftInfo?: string;     // Contoh: "Active Shift: 06.00-14.00"
+    brewStation?: string;   // Contoh: "Brew Station 1"
 }
 
-// ── Order Item (for Staff view) ──
+// ── Kanban Column ──
+export type KanbanColumn = 'incoming' | 'processing' | 'completed';
+
+// ── Order Item (untuk UI Staff) ──
 export interface OrderItem {
+    id: string;
     menuItem: MenuItem;
     quantity: number;
+    milkChoice?: string;    // Customization dari modal detail
+    sweetener?: string;     // Customization dari modal detail
     size?: string;
-    notes?: string;
-    customizations?: Record<string, string>;
+    notes?: string;         // Catatan khusus per item
 }
 
 // ── Kanban Order Card ──
 export interface KanbanOrder {
     id: string;
     orderId: string;
-    tableLabel: string;      // "Table 04" | "Takeaway: Sarah"
+    tableLabel: string;      // "Table 04" atau "Takeaway: Sarah"
     orderType: 'dine-in' | 'takeaway';
     items: OrderItem[];
     totalAmount: number;
     paymentMethod: PaymentMethod;
-    isPaid: boolean;
+    isPaid: boolean;         // Menentukan badge PAID / UNPAID
     status: KanbanColumn;
-    specialRequest?: string;
-    placedAt: string;
-    avgWaitMins: number;
+    placedAt: string;        // Waktu order dibuat
+    avgWaitMins?: number;
+    
+    // Detail khusus untuk Order Detail Modal
     customerName?: string;
-    isPriority?: boolean;
+    customerAvatar?: string;
+    customerBadge?: string;  // Contoh: "Gold Member • 124 pts"
+    specialRequest?: string; // Teks quote di order detail
+    isPriority?: boolean;    // Menentukan badge PRIORITY ORDER
 }
 
 // ── Transaction Record ──
-export interface TransactionRecord {
+export interface DailyTransaction {
     id: string;
+    time: string;            // Contoh: "08:42 AM"
     orderId: string;
-    time: string;
-    customerLabel: string;
+    customerName: string;
     customerAvatar?: string;
-    customerInitials?: string;
+    customerInitial?: string;
     totalPrice: number;
     paymentMethod: PaymentMethod;
-    status: 'completed' | 'refunded' | 'pending';
+    status: 'completed' | 'pending' | 'refunded';
 }
 
-// ── Daily Summary ──
-export interface DailySummary {
+// ── Payment Summary ──
+export interface PaymentSummary {
     date: string;
-    cashTotal: number;
-    digitalTotal: number;
-    loyaltyPoints: number;
     totalRevenue: number;
     totalOrders: number;
+    cashTransactions: number;
+    digitalPayments: number;
+    loyaltyPoints: number;
 }
 
-// ── Staff Page Props ──
+// ── Page Props (Global) ──
 export interface StaffPageProps {
-    staff?: StaffMember;
+    auth: {
+        user: StaffUser;
+    };
     orders?: KanbanOrder[];
-    transactions?: TransactionRecord[];
-    summary?: DailySummary;
+    transactions?: DailyTransaction[];
+    summary?: PaymentSummary;
 }

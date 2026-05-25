@@ -165,8 +165,7 @@ export default function Menu({ tableId, menuItems = DEMO_ITEMS }: Props) {
 
                         {/* Banners */}
                         <div className="mt-6 grid grid-cols-2 gap-4">
-                            <RewardsBanner />
-                            <FastLaneBanner />
+                            
                         </div>
                     </main>
 
@@ -341,11 +340,74 @@ export default function Menu({ tableId, menuItems = DEMO_ITEMS }: Props) {
                             ))
                         )}
 
-                        <div className="mx-5 mt-4"><RewardsBanner /></div>
-                        <div className="mx-5 mt-3 mb-2"><FastLaneBanner /></div>
+                        
                     </div>
+{/* Floating cart CTA */}
+{cartCount > 0 && (
+    <div
+        className="fixed bottom-[78px] left-1/2 -translate-x-1/2 w-full max-w-[480px] px-5 z-40"
+    >
+        <Link
+            href={route('customer.cart', { tableId })}
+            className="w-full flex items-center justify-between px-5 rounded-2xl text-white transition-all active:scale-[0.98]"
+            style={{
+                height: '56px',
+                backgroundColor: 'var(--color-ucw-dark)',
+                boxShadow: '0 8px 24px rgba(45,26,14,0.28)',
+            }}
+        >
+            <div className="flex flex-col">
+                <span
+                    className="font-bold"
+                    style={{ fontSize: '14px' }}
+                >
+                    View Cart
+                </span>
 
+                <span
+                    style={{
+                        fontSize: '11px',
+                        opacity: 0.75,
+                    }}
+                >
+                    {cartCount} item{cartCount > 1 ? 's' : ''}
+                </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+                <span
+                    className="font-bold"
+                    style={{ fontSize: '15px' }}
+                >
+                    {formatIDR(cartTotal)}
+                </span>
+
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </div>
+        </Link>
+    </div>
+)}
                     {/* Bottom nav */}
+                    
+<div
+    className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40"
+    style={{ backgroundColor: 'var(--color-ucw-bg)' }}
+>
+    <BottomNav tableId={tableId} active="menu" />
+</div>
+
+
                     
                 </div>
 
@@ -415,8 +477,10 @@ function MenuCardMobile({ item, qty, onAdd, onRemove, isLast }: {
                 )}
             </div>
             {!isLast && <div className="mt-5" style={{ height: '1px', backgroundColor: 'var(--color-ucw-border)' }} />}
+            
         </div>
     );
+    
 }
 
 /* ─── Desktop card (compact, grid) ─── */
@@ -496,32 +560,7 @@ function EmptyState() {
     );
 }
 
-function RewardsBanner() {
-    return (
-        <div className="rounded-2xl p-5 relative overflow-hidden" style={{ backgroundColor: 'var(--color-ucw-bg-warm)', border: '1px solid var(--color-ucw-border)' }}>
-            <p className="font-black text-base leading-tight mb-1" style={{ color: 'var(--color-ucw-dark)' }}>Member Rewards</p>
-            <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--color-ucw-text-muted)' }}>Collect beans with every cup.<br />Get your 10th on us.</p>
-            <button className="px-4 h-8 rounded-full text-xs font-bold text-white" style={{ backgroundColor: 'var(--color-ucw-dark)' }}>JOIN NOW</button>
-            <div className="absolute right-3 bottom-2 opacity-[0.08] pointer-events-none">
-                <svg width="72" height="72" viewBox="0 0 24 24" fill="var(--color-ucw-dark)">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-            </div>
-        </div>
-    );
-}
 
-function FastLaneBanner() {
-    return (
-        <div className="rounded-2xl p-5 flex items-center gap-4" style={{ backgroundColor: 'white', border: '1px solid var(--color-ucw-border)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="var(--color-ucw-dark)" className="shrink-0">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            <div>
-                <p className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-ucw-dark)' }}>Fast Lane</p>
-                <p className="text-xs" style={{ color: 'var(--color-ucw-text-muted)' }}>Skip the queue. Pre-order and pick up at the bar.</p>
-            </div>
-        </div>
-    );
-}
+
+
 

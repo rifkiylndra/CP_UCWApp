@@ -6,7 +6,7 @@
 
 import { Link } from '@inertiajs/react';
 
-export type NavTab = 'menu' | 'cart' | 'orders' | 'profile';
+export type NavTab = 'menu' | 'cart' | 'orders' ;
 
 interface BottomNavProps {
     tableId:  string;
@@ -84,21 +84,7 @@ export default function BottomNav({ tableId, active, cartCount = 0 }: BottomNavP
                 </svg>
             ),
         },
-        {
-            key:   'profile',
-            label: 'Profile',
-            href:  '#',
-            icon:  (a) => (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor"
-                    strokeWidth={a ? 2.2 : 1.8}
-                    strokeLinecap="round" strokeLinejoin="round"
-                >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                </svg>
-            ),
-        },
+        
     ];
 
     return (

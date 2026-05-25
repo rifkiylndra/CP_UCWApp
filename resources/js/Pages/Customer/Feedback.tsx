@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import TopBar from '@/Components/customer/TopBar';
 
+
 interface Props {
     tableId: string;
     orderId: string;
@@ -158,32 +159,216 @@ export default function Feedback({ tableId, orderId }: Props) {
                 {/* ══════════════════════════════════════════════
                     MOBILE
                 ══════════════════════════════════════════════ */}
-                <div className="md:hidden flex flex-col flex-1" style={{ backgroundColor: 'var(--color-ucw-bg)' }}>
-                    <TopBar tableId={tableId} cartCount={0} />
+                <div className="md:hidden min-h-svh flex flex-col" style={{ backgroundColor: '#FAF9F7' }}>
+    {/* Header */}
+    <div className="flex items-center justify-between px-6 pt-5 pb-5">
+        <button
+            onClick={() => router.visit(route('customer.menu', { tableId }))}
+            className="w-8 h-8 flex items-center justify-center"
+            style={{ color: 'var(--color-ucw-dark)' }}
+        >
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                <line x1="6" y1="1" x2="6" y2="4" />
+                <line x1="10" y1="1" x2="10" y2="4" />
+                <line x1="14" y1="1" x2="14" y2="4" />
+            </svg>
+        </button>
 
-                    <div className="flex flex-col flex-1 pb-10">
-                        {/* Hero */}
-                        <div className="flex flex-col items-center px-6 pt-8 pb-6 text-center gap-4">
-                            <HeroCircle />
-                            <div>
-                                <h1 className="text-[30px] font-black tracking-tight leading-tight" style={{ color: 'var(--color-ucw-text)' }}>
-                                    How was your<br />ritual?
-                                </h1>
-                                <p className="text-[14px] mt-2 leading-relaxed max-w-[260px] mx-auto" style={{ color: 'var(--color-ucw-text-muted)' }}>
-                                    Every drop matters to us. Share your experience.
-                                </p>
-                            </div>
-                            <div className="mt-2"><StarRating value={rating} onChange={setRating} /></div>
-                        </div>
+        <h1 className="font-black text-base" style={{ color: 'var(--color-ucw-dark)' }}>
+            UNAND CO-WORKSPACE
+        </h1>
 
-                        <div className="px-5">
-                            <FormContent />
-                            <div className="rounded-3xl overflow-hidden mt-5" style={{ height: 180 }}>
-                                <img src={COFFEE_PLACEHOLDER} alt="Coffee" className="w-full h-full object-cover" style={{ filter: 'brightness(0.9)' }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <button
+            onClick={() => router.visit(route('customer.cart', { tableId }))}
+            className="w-8 h-8 flex items-center justify-center"
+            style={{ color: 'var(--color-ucw-dark)' }}
+        >
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+        </button>
+    </div>
+
+    <div className="flex-1 px-6 pb-8">
+        {/* Hero image */}
+        <div className="relative rounded-[30px] overflow-hidden mt-8" style={{ height: '193px' }}>
+            <img
+                // src="/images/feedback-coffee.png"
+                src={COFFEE_PLACEHOLDER}
+                alt="Coffee"
+                className="w-full h-full object-cover"
+                style={{ filter: 'brightness(0.68)' }}
+            />
+
+            <div className="absolute inset-0" style={{
+                background: 'linear-gradient(to bottom, rgba(20,12,6,0.05), rgba(20,12,6,0.42))',
+            }} />
+
+            <div className="absolute left-8 right-8 bottom-8">
+                <p className="font-bold uppercase tracking-[0.26em] mb-2 text-white" style={{ fontSize: '12px' }}>
+                    THANK YOU FOR VISITING
+                </p>
+
+                <h2 className="font-black leading-tight text-white" style={{ fontSize: '30px' }}>
+                    How was your brew today?
+                </h2>
+            </div>
+        </div>
+
+        {/* Rating */}
+        <div className="mt-12 text-center">
+            <p className="font-bold mb-5" style={{ fontSize: '16px', color: 'var(--color-ucw-text-muted)' }}>
+                Rate your experience
+            </p>
+
+            <div className="flex justify-center gap-4">
+                {[1, 2, 3, 4, 5].map((star) => {
+                    const filled = star <= rating;
+
+                    return (
+                        <button
+                            key={star}
+                            onClick={() => setRating(star)}
+                            className="transition-transform active:scale-90"
+                            aria-label={`Rate ${star} star`}
+                        >
+                            <span
+                                style={{
+                                    fontSize: '36px',
+                                    lineHeight: 1,
+                                    color: filled ? 'var(--color-ucw-dark)' : '#D8CBC7',
+                                }}
+                            >
+                                ★
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+
+        {/* Thoughts */}
+        <div className="mt-12">
+            <label
+                className="block font-bold uppercase tracking-[0.18em] mb-5"
+                style={{ fontSize: '14px', color: 'var(--color-ucw-dark)' }}
+            >
+                YOUR THOUGHTS
+            </label>
+
+            <div className="relative">
+                <textarea
+                    rows={5}
+                    placeholder="Tell us about the atmosphere, the coffee, or the workspace..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full resize-none rounded-[24px] px-6 py-6 outline-none leading-relaxed"
+                    style={{
+                        minHeight: '168px',
+                        backgroundColor: '#F5F4F3',
+                        color: 'var(--color-ucw-text)',
+                        fontSize: '16px',
+                    }}
+                />
+
+                <svg
+                    className="absolute right-6 bottom-6 opacity-30"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--color-ucw-text-muted)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+            </div>
+        </div>
+
+        {/* Info cards */}
+        <div className="grid grid-cols-2 gap-4 mt-12">
+            <div
+                className="rounded-[22px] px-6 py-6"
+                style={{
+                    backgroundColor: 'white',
+                    boxShadow: '0 18px 40px rgba(0,0,0,0.04)',
+                }}
+            >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-ucw-text-muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect x="4" y="4" width="16" height="18" rx="2" />
+                    <path d="M8 10h8" />
+                    <path d="M8 14h6" />
+                    <path d="M8 18h4" />
+                </svg>
+
+                <p className="font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ fontSize: '10px', color: 'var(--color-ucw-text-muted)' }}>
+                    ORDER #2931
+                </p>
+
+                <p className="font-black leading-snug" style={{ fontSize: '16px', color: 'var(--color-ucw-dark)' }}>
+                    Espresso &<br />Desk A4
+                </p>
+            </div>
+
+            <div
+                className="rounded-[22px] px-6 py-6"
+                style={{ backgroundColor: '#D8ECD2' }}
+            >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E715A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                </svg>
+
+                <p className="font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ fontSize: '10px', color: '#7D8F78' }}>
+                    VISIT TIME
+                </p>
+
+                <p className="font-black leading-snug" style={{ fontSize: '16px', color: '#5B6E56' }}>
+                    10:45 AM<br />Today
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {/* Fixed bottom submit */}
+    {/* Submit section */}
+<div className="mt-12 pb-8">
+    <button
+        onClick={handleSubmit}
+        disabled={rating === 0}
+        className="w-full rounded-full font-bold text-white transition-all active:scale-[0.98]"
+        style={{
+            height: '68px',
+            fontSize: '17px',
+            backgroundColor: rating > 0 ? 'var(--color-ucw-dark)' : '#CFC5C0',
+            boxShadow: rating > 0 ? '0 16px 30px rgba(45,26,14,0.22)' : 'none',
+            cursor: rating > 0 ? 'pointer' : 'not-allowed',
+        }}
+    >
+        Submit Feedback
+    </button>
+
+    <p
+        className="text-center mt-5 leading-relaxed"
+        style={{ fontSize: '11px', color: 'var(--color-ucw-text-muted)' }}
+    >
+        By submitting, you help us refine the Unand<br />
+        experience. We may reach out to you via your<br />
+        registered email.
+    </p>
+</div>
+
+
+</div>
 
                 {/* ══════════════════════════════════════════════
                     DESKTOP — two columns

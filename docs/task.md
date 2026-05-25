@@ -25,30 +25,30 @@
 - [x] **Share Your Feedback** — `Pages/Customer/Feedback.tsx`
 
 ## Phase 2: Staff Dashboard (POS Desktop)
-- [ ] TypeScript types (`types/staff.ts`)
-- [ ] `StaffLayout.tsx` (sidebar minimal + topbar)
-- [ ] `StaffSidebar.tsx`
-- [ ] **Staff Login** — `Pages/Staff/Login.tsx`
-- [ ] **Operational Dashboard** (Kanban, Laravel Echo) — `Pages/Staff/Dashboard.tsx`
-- [ ] `KanbanCard.tsx` (order card component)
-- [ ] `OrderDetailModal.tsx` (split view modal)
-- [ ] **Cash Payment Verification** — modal/overlay
-- [ ] **Today's Transactions** — `Pages/Staff/Transactions.tsx`
+- [x] TypeScript types (`types/staff.ts`)
+- [x] `StaffLayout.tsx` (sidebar minimal + topbar)
+- [x] `StaffSidebar.tsx`
+- [x] **Staff Login** — `Pages/Staff/Login.tsx`
+- [x] **Operational Dashboard** (Kanban, Laravel Echo) — `Pages/Staff/Dashboard.tsx`
+- [x] `KanbanCard.tsx` (order card component)
+- [x] `OrderDetailModal.tsx` (split view modal)
+- [x] **Cash Payment Verification** — modal/overlay
+- [x] **Today's Transactions** — `Pages/Staff/Transactions.tsx`
 
 ## Phase 3: Admin Dashboard (Desktop 1280px)
-- [ ] TypeScript types (`types/admin.ts`)
-- [ ] `AdminLayout.tsx`
-- [ ] `Sidebar.tsx` (admin sidebar)
-- [ ] `TopBar.tsx`
-- [ ] **Admin Login** — `Pages/Admin/Login.tsx`
-- [ ] **Dashboard Overview** — `Pages/Admin/Overview.tsx`
-- [ ] **Live Order (Admin view)** — `Pages/Admin/LiveOrder.tsx`
-- [ ] **AI Analytics Hub** — `Pages/Admin/AIAnalytics.tsx`
-- [ ] **Menu Management** — `Pages/Admin/Menu/Index.tsx`
-- [ ] `AddMenuModal.tsx`
-- [ ] **Staff Directory** — `Pages/Admin/Staff/Index.tsx`
-- [ ] `AddStaffModal.tsx`
-- [ ] **Financial Reports** — `Pages/Admin/Finances.tsx`
+- [x] TypeScript types (`types/admin.ts`)
+- [x] `AdminLayout.tsx`
+- [x] `Sidebar.tsx` (admin sidebar)
+- [x] `TopBar.tsx`
+- [x] **Admin Login** — `Pages/Admin/Login.tsx`
+- [x] **Dashboard Overview** — `Pages/Admin/Overview.tsx`
+- [x] **Live Order (Admin view)** — `Pages/Admin/LiveOrder.tsx`
+- [x] **AI Analytics Hub** — `Pages/Admin/AIAnalytics.tsx`
+- [x] **Menu Management** — `Pages/Admin/Menu/Index.tsx`
+- [x] `AddMenuModal.tsx`
+- [x] **Staff Directory** — `Pages/Admin/Staff/Index.tsx`
+- [x] `AddStaffModal.tsx`
+- [x] **Financial Reports** — `Pages/Admin/Finances.tsx`
 
 ## Shared UI Components
 - [ ] `StatCard.tsx`

@@ -1,6 +1,6 @@
 # Progress Checkpoint — UCW App Frontend
 
-## Last Updated: [2026-05-03 09:20:23]
+## Last Updated: [2026-05-04 21:30:00]
 
 ## Model
 - Model sebelumnya : Claude Sonnet 4.6 — quota habis 2x
@@ -54,23 +54,23 @@ Status : [ ] Belum dicek
 - [x] OrderReady.tsx
 - [x] Feedback.tsx
 
-## PHASE 2 — Staff Dashboard — BELUM DIMULAI ⏳
-- [ ] types/staff.ts
-- [ ] StaffLayout.tsx
-- [ ] Staff/Login.tsx
-- [ ] Staff/Dashboard.tsx
-- [ ] Staff/OrderDetailModal.tsx
-- [ ] Staff/PaymentVerifyModal.tsx
-- [ ] Staff/Transactions.tsx
+## PHASE 2 — Staff Dashboard — SELESAI ✅
+- [x] types/staff.ts
+- [x] StaffLayout.tsx
+- [x] Staff/Login.tsx
+- [x] Staff/Dashboard.tsx
+- [x] Staff/OrderDetailModal.tsx
+- [x] Staff/CashPaymentModal.tsx
+- [x] Staff/Transactions.tsx
 
-## PHASE 3 — Admin Dashboard — BELUM DIMULAI ⏳
-- [ ] types/admin.ts
-- [ ] AdminLayout.tsx
-- [ ] Admin/Login.tsx
-- [ ] Admin/Dashboard.tsx
-- [ ] Admin/Operational.tsx
-- [ ] Admin/Menu.tsx
-- [ ] Admin/Staff.tsx
-- [ ] Admin/Finance.tsx
-- [ ] Admin/Analytics.tsx
+## PHASE 3 — Admin Dashboard — HAMPIR SELESAI 🟡
+- [x] types/admin.ts
+- [x] AdminLayout.tsx
+- [x] Admin/Login.tsx
+- [x] Admin/Overview.tsx (sebelumnya Dashboard)
+- [x] Admin/LiveOrder.tsx (sebelumnya Operational)
+- [x] Admin/Menu/Index.tsx
+- [x] Admin/Staff/Index.tsx
+- [x] Admin/Finances.tsx
+- [x] Admin/AIAnalytics.tsx
 - [ ] Admin/Settings.tsx
