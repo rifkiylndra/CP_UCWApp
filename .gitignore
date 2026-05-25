@@ -41,7 +41,10 @@ yarn-error.log
 Thumbs.db
 
 # Python & AI Service
-ai_service/venv/
-venv/
-__pycache__/
+**/venv/
+**/.venv/
+**/__pycache__/
 *.pyc
+*.pyo
+*.pyd
+.env.python
