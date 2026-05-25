@@ -39,3 +39,8 @@ yarn-error.log
 # OS Generated Files
 .DS_Store
 Thumbs.db
+
+# Virtual Environments
+venv/
+ai-service/venv/
+ai_service/venv/
