@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import type { KanbanOrder, KanbanColumn } from "@/types/staff";
 
 interface Props {
@@ -18,9 +17,17 @@ export default function KanbanCard({
     onUpdateStatus,
     readOnly = false,
 }: Props) {
-    // Helper untuk merender tombol aksi berdasarkan status/kolom
+    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+    const indicatorColor =
+        columnType === "incoming"
+            ? "#C62828"
+            : columnType === "processing"
+              ? "#D99A2B"
+              : "#5E735B";
+
     const renderActions = () => {
-        if (readOnly) return null;
+        if (readOnly || columnType === "completed") return null;
 
         if (!order.isPaid && onVerifyPayment) {
             return (
@@ -29,8 +36,7 @@ export default function KanbanCard({
                         e.stopPropagation();
                         onVerifyPayment(order.id);
                     }}
-                    className="w-full mt-3 py-2.5 rounded-xl text-[12px] font-bold tracking-wide text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                    style={{ backgroundColor: "var(--color-ucw-dark)" }}
+                    className="mt-4 h-[52px] w-full rounded-[18px] bg-[#271310] text-[13px] font-extrabold tracking-[0.08em] text-white transition active:scale-[0.98]"
                 >
                     VERIFY PAYMENT
                 </button>
@@ -44,11 +50,7 @@ export default function KanbanCard({
                         e.stopPropagation();
                         onUpdateStatus(order.id, "processing");
                     }}
-                    className="w-full mt-3 py-2.5 rounded-xl text-[12px] font-bold tracking-wide transition-all active:scale-[0.98]"
-                    style={{
-                        border: "1.5px solid var(--color-ucw-border-dark)",
-                        color: "var(--color-ucw-dark)",
-                    }}
+                    className="mt-4 h-[52px] w-full rounded-[18px] bg-[#271310] text-[13px] font-extrabold tracking-[0.08em] text-white transition active:scale-[0.98]"
                 >
                     START PROCESSING
                 </button>
@@ -57,27 +59,23 @@ export default function KanbanCard({
 
         if (columnType === "processing" && onUpdateStatus) {
             return (
-                <div className="flex items-center gap-2 mt-3">
+                <div className="mt-4 flex items-center gap-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onUpdateStatus(order.id, "incoming");
                         }}
-                        className="flex-1 py-2.5 rounded-xl text-[11px] font-bold tracking-wide transition-all active:scale-[0.98]"
-                        style={{
-                            border: "1.5px solid var(--color-ucw-border)",
-                            color: "var(--color-ucw-text-muted)",
-                        }}
+                        className="h-[48px] flex-1 rounded-[16px] border border-[#D7CDC7] bg-white text-[12px] font-extrabold text-[#5A4A47] transition active:scale-[0.98]"
                     >
                         MOVE BACK
                     </button>
+
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onUpdateStatus(order.id, "completed");
                         }}
-                        className="flex-1 py-2.5 rounded-xl text-[11px] font-bold tracking-wide text-white transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: "var(--color-ucw-green)" }}
+                        className="h-[48px] flex-1 rounded-[16px] bg-[#5E735B] text-[12px] font-extrabold text-white transition active:scale-[0.98]"
                     >
                         COMPLETE
                     </button>
@@ -89,98 +87,59 @@ export default function KanbanCard({
     };
 
     return (
-        <div
+        <article
             onClick={() => {
                 if (!readOnly && onViewDetail) onViewDetail(order);
             }}
-            className={`p-4 rounded-2xl bg-white flex flex-col ${readOnly ? "" : "cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgb(0,0,0,0.06)]"}`}
-            style={{ border: "1px solid var(--color-ucw-border)" }}
+            className={[
+                "relative overflow-hidden rounded-[26px] border border-[#EEEAE7] bg-white p-5 shadow-[0_4px_18px_rgba(39,19,16,0.04)]",
+                readOnly
+                    ? ""
+                    : "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(39,19,16,0.08)]",
+            ].join(" ")}
         >
-            {/* ── Header: Order ID & Payment Badge ── */}
-            <div className="flex items-center justify-between mb-3">
-                <span
-                    className="text-[11px] font-black tracking-widest uppercase"
-                    style={{ color: "var(--color-ucw-text-muted)" }}
-                >
+            <div
+                className="absolute bottom-0 left-0 top-0 w-[5px] rounded-l-[26px]"
+                style={{ backgroundColor: indicatorColor }}
+            />
+
+            <div className="flex items-start justify-between gap-3 pl-1">
+                <span className="text-[12px] font-extrabold uppercase tracking-[0.04em] text-[#8A7B77]">
                     #{order.orderId}
                 </span>
 
-                {/* Payment Badge */}
                 <div
-                    className="px-2 py-0.5 rounded flex items-center gap-1.5"
-                    style={{
-                        backgroundColor: order.isPaid
-                            ? "var(--color-ucw-green-bg)"
-                            : "var(--color-ucw-red-bg)",
-                        color: order.isPaid
-                            ? "var(--color-ucw-green-text)"
-                            : "var(--color-ucw-red-text)",
-                    }}
+                    className={[
+                        "rounded-full px-3 py-1 text-[10px] font-extrabold uppercase",
+                        order.isPaid
+                            ? "bg-[#DCEED8] text-[#4F654D]"
+                            : "bg-[#FFD9D6] text-[#C62828]",
+                    ].join(" ")}
                 >
-                    <div
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                            backgroundColor: order.isPaid
-                                ? "var(--color-ucw-green)"
-                                : "var(--color-ucw-red)",
-                        }}
-                    />
-                    <span className="text-[10px] font-bold tracking-wide uppercase">
-                        {order.isPaid ? "PAID" : "UNPAID"}
-                    </span>
+                    {order.isPaid ? "Paid" : "Unpaid"}
                 </div>
             </div>
 
-            {/* ── Table/Customer Info ── */}
-            <h3
-                className="text-[18px] font-black tracking-tight mb-3"
-                style={{ color: "var(--color-ucw-dark)" }}
-            >
+            <h3 className="mt-1 pl-1 text-[24px] font-extrabold leading-[1.05] tracking-[-0.04em] text-[#271310]">
                 {order.orderType === "dine-in"
                     ? `Table ${order.tableLabel}`
-                    : `TA: ${order.customerName || order.tableLabel}`}
+                    : `Takeaway: ${order.customerName || order.tableLabel}`}
             </h3>
 
-            {/* ── Priority Badge (Optional) ── */}
-            {order.isPriority && (
-                <div
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md mb-3 self-start"
-                    style={{
-                        backgroundColor: "var(--color-ucw-dark)",
-                        color: "white",
-                    }}
-                >
-                    <span className="text-[10px]">🔥</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">
-                        Priority Order
-                    </span>
-                </div>
-            )}
-
-            {/* ── Order Items Summary ── */}
-            <div className="flex flex-col gap-2 mb-4">
+            <div className="mt-5 flex flex-col gap-3 pl-1">
                 {order.items.slice(0, 3).map((item) => (
-                    <div key={item.id} className="flex gap-2">
-                        <span
-                            className="text-[13px] font-bold min-w-[20px]"
-                            style={{ color: "var(--color-ucw-text-muted)" }}
-                        >
-                            {item.quantity}x
-                        </span>
-                        <div className="flex-1">
-                            <p
-                                className="text-[13px] font-medium leading-tight"
-                                style={{ color: "var(--color-ucw-text)" }}
-                            >
+                    <div key={item.id} className="flex items-start gap-2">
+                        <p className="min-w-[26px] text-[15px] font-bold text-[#4E403D]">
+                            {item.quantity}×
+                        </p>
+
+                        <div className="min-w-0 flex-1">
+                            <p className="line-clamp-1 text-[15px] font-semibold text-[#4E403D]">
                                 {item.menuItem.name}
                             </p>
+
                             {(item.milkChoice || item.sweetener) && (
-                                <p
-                                    className="text-[11px] mt-0.5"
-                                    style={{
-                                        color: "var(--color-ucw-text-muted)",
-                                    }}
-                                >
+                                <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-[#8A7B77]">
                                     {[item.milkChoice, item.sweetener]
                                         .filter(Boolean)
                                         .join(", ")}
@@ -189,49 +148,28 @@ export default function KanbanCard({
                         </div>
                     </div>
                 ))}
+
                 {order.items.length > 3 && (
-                    <p
-                        className="text-[12px] font-semibold mt-1"
-                        style={{ color: "var(--color-ucw-text-muted)" }}
-                    >
+                    <p className="text-[12px] font-bold text-[#8A7B77]">
                         +{order.items.length - 3} more items
                     </p>
                 )}
             </div>
 
-            {/* ── Special Request Note ── */}
             {order.specialRequest && (
-                <div
-                    className="p-2.5 rounded-lg mb-2"
-                    style={{
-                        backgroundColor: "var(--color-ucw-bg-warm)",
-                        border: "1px dashed var(--color-ucw-border-dark)",
-                    }}
-                >
-                    <p
-                        className="text-[11px] font-semibold italic text-justify leading-relaxed"
-                        style={{ color: "var(--color-ucw-text-muted)" }}
-                    >
-                        "{order.specialRequest}"
+                <div className="mt-5 rounded-[18px] border border-[#ECE5DF] bg-[#F7F4F1] p-4">
+                    <p className="text-[12px] font-semibold italic leading-relaxed text-[#5A4A47]">
+                        “{order.specialRequest}”
                     </p>
                 </div>
             )}
 
-            <div className="mt-auto">
-                {/* Timer/Wait time Info */}
-                <div
-                    className="flex items-center justify-between text-[11px] font-medium mb-1"
-                    style={{ color: "var(--color-ucw-text-muted)" }}
-                >
-                    <span>Placed at {order.placedAt}</span>
-                    {order.avgWaitMins && (
-                        <span>Wait: {order.avgWaitMins}m</span>
-                    )}
-                </div>
-
-                {/* ── Action Buttons ── */}
-                {renderActions()}
+            <div className="mt-5 flex items-center justify-between pl-1 text-[12px] font-semibold text-[#8A7B77]">
+                <span>{order.placedAt}</span>
+                <span>{totalItems} item{totalItems > 1 ? "s" : ""}</span>
             </div>
-        </div>
+
+            {renderActions()}
+        </article>
     );
 }

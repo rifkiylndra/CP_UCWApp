@@ -25,67 +25,44 @@ export default function OrderDetailModal({ order, isOpen, onClose, onUpdateStatu
     const primaryItem = order.items[0];
 
     const renderActionButtons = () => {
-        if (!order.isPaid) {
-            return (
-                <button
-                    onClick={() => { onClose(); onOpenPaymentModal(); }}
-                    className="w-full py-4 rounded-[14px] text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                    style={{ backgroundColor: 'var(--color-ucw-dark)' }}
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle></svg>
-                    Verify Cash Payment
-                </button>
-            );
-        }
+    if (!order.isPaid) {
+        return (
+            <button
+                onClick={() => {
+                    onClose();
+                    onOpenPaymentModal();
+                }}
+                className="w-full rounded-[14px] bg-[#271310] py-4 text-[15px] font-bold text-white"
+            >
+                Verify Cash Payment
+            </button>
+        );
+    }
 
-        if (order.status === 'incoming') {
-            return (
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => onUpdateStatus(order.id, 'processing')}
-                        className="flex-1 py-4 rounded-[14px] text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: '#E8F2E8', color: '#2E5A2E' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        Accept Order
-                    </button>
-                    <button
-                        onClick={() => onUpdateStatus(order.id, 'processing')}
-                        className="flex-1 py-4 rounded-[14px] text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: '#F3F4F6', color: 'var(--color-ucw-dark)' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        Start Processing
-                    </button>
-                </div>
-            );
-        }
+    if (order.status === "incoming") {
+        return (
+            <button
+                onClick={() => onUpdateStatus(order.id, "processing")}
+                className="w-full rounded-[14px] bg-[#271310] py-4 text-[15px] font-bold text-white"
+            >
+                Start Processing
+            </button>
+        );
+    }
 
-        if (order.status === 'processing') {
-            return (
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => onUpdateStatus(order.id, 'completed')}
-                        className="flex-1 py-4 rounded-[14px] text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: '#F3F4F6', color: 'var(--color-ucw-dark)' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        Mark as Done
-                    </button>
-                    <button
-                        onClick={() => { /* Cancel */ }}
-                        className="flex-1 py-4 rounded-[14px] text-[13px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: 'white', border: '1px solid #FCA5A5', color: '#EF4444' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                        Cancel Order
-                    </button>
-                </div>
-            );
-        }
+    if (order.status === "processing") {
+        return (
+            <button
+                onClick={() => onUpdateStatus(order.id, "completed")}
+                className="w-full rounded-[14px] bg-[#4F654D] py-4 text-[15px] font-bold text-white"
+            >
+                Mark as Done
+            </button>
+        );
+    }
 
-        return null;
-    };
+    return null;
+};
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
