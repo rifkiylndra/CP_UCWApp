@@ -36,7 +36,7 @@ export default function KanbanCard({
                         e.stopPropagation();
                         onVerifyPayment(order.id);
                     }}
-                    className="mt-4 h-[52px] w-full rounded-[18px] bg-[#271310] text-[13px] font-extrabold tracking-[0.08em] text-white transition active:scale-[0.98]"
+                    className="mt-4 h-12 w-full rounded-[16px] bg-[#271310] text-[12px] font-extrabold tracking-[0.06em] text-white transition active:scale-[0.98] lg:h-[52px] lg:rounded-[18px] lg:text-[13px]"
                 >
                     VERIFY PAYMENT
                 </button>
@@ -50,7 +50,7 @@ export default function KanbanCard({
                         e.stopPropagation();
                         onUpdateStatus(order.id, "processing");
                     }}
-                    className="mt-4 h-[52px] w-full rounded-[18px] bg-[#271310] text-[13px] font-extrabold tracking-[0.08em] text-white transition active:scale-[0.98]"
+                    className="mt-4 h-12 w-full rounded-[16px] bg-[#271310] text-[12px] font-extrabold tracking-[0.06em] text-white transition active:scale-[0.98] lg:h-[52px] lg:rounded-[18px] lg:text-[13px]"
                 >
                     START PROCESSING
                 </button>
@@ -59,13 +59,13 @@ export default function KanbanCard({
 
         if (columnType === "processing" && onUpdateStatus) {
             return (
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onUpdateStatus(order.id, "incoming");
                         }}
-                        className="h-[48px] flex-1 rounded-[16px] border border-[#D7CDC7] bg-white text-[12px] font-extrabold text-[#5A4A47] transition active:scale-[0.98]"
+                        className="h-11 rounded-[15px] border border-[#D7CDC7] bg-white text-[11px] font-extrabold text-[#5A4A47] transition active:scale-[0.98] lg:h-12 lg:rounded-[16px] lg:text-[12px]"
                     >
                         MOVE BACK
                     </button>
@@ -75,7 +75,7 @@ export default function KanbanCard({
                             e.stopPropagation();
                             onUpdateStatus(order.id, "completed");
                         }}
-                        className="h-[48px] flex-1 rounded-[16px] bg-[#5E735B] text-[12px] font-extrabold text-white transition active:scale-[0.98]"
+                        className="h-11 rounded-[15px] bg-[#5E735B] text-[11px] font-extrabold text-white transition active:scale-[0.98] lg:h-12 lg:rounded-[16px] lg:text-[12px]"
                     >
                         COMPLETE
                     </button>
@@ -92,25 +92,25 @@ export default function KanbanCard({
                 if (!readOnly && onViewDetail) onViewDetail(order);
             }}
             className={[
-                "relative overflow-hidden rounded-[26px] border border-[#EEEAE7] bg-white p-5 shadow-[0_4px_18px_rgba(39,19,16,0.04)]",
+                "relative w-full shrink-0 overflow-hidden rounded-[22px] border border-[#EEEAE7] bg-white p-4 shadow-[0_4px_18px_rgba(39,19,16,0.04)] lg:rounded-[26px] lg:p-5",
                 readOnly
                     ? ""
                     : "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(39,19,16,0.08)]",
             ].join(" ")}
         >
             <div
-                className="absolute bottom-0 left-0 top-0 w-[5px] rounded-l-[26px]"
+                className="absolute bottom-0 left-0 top-0 w-[4px] rounded-l-[22px] lg:w-[5px] lg:rounded-l-[26px]"
                 style={{ backgroundColor: indicatorColor }}
             />
 
             <div className="flex items-start justify-between gap-3 pl-1">
-                <span className="text-[12px] font-extrabold uppercase tracking-[0.04em] text-[#8A7B77]">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.04em] text-[#8A7B77] lg:text-[12px]">
                     #{order.orderId}
                 </span>
 
                 <div
                     className={[
-                        "rounded-full px-3 py-1 text-[10px] font-extrabold uppercase",
+                        "rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase lg:px-3 lg:text-[10px]",
                         order.isPaid
                             ? "bg-[#DCEED8] text-[#4F654D]"
                             : "bg-[#FFD9D6] text-[#C62828]",
@@ -120,26 +120,26 @@ export default function KanbanCard({
                 </div>
             </div>
 
-            <h3 className="mt-1 pl-1 text-[24px] font-extrabold leading-[1.05] tracking-[-0.04em] text-[#271310]">
+            <h3 className="mt-1 pl-1 text-[21px] font-extrabold leading-[1.05] tracking-[-0.04em] text-[#271310] lg:text-[24px]">
                 {order.orderType === "dine-in"
                     ? `Table ${order.tableLabel}`
                     : `Takeaway: ${order.customerName || order.tableLabel}`}
             </h3>
 
-            <div className="mt-5 flex flex-col gap-3 pl-1">
+            <div className="mt-4 flex flex-col gap-2.5 pl-1 lg:mt-5 lg:gap-3">
                 {order.items.slice(0, 3).map((item) => (
                     <div key={item.id} className="flex items-start gap-2">
-                        <p className="min-w-[26px] text-[15px] font-bold text-[#4E403D]">
+                        <p className="min-w-[24px] text-[14px] font-bold text-[#4E403D] lg:min-w-[26px] lg:text-[15px]">
                             {item.quantity}×
                         </p>
 
                         <div className="min-w-0 flex-1">
-                            <p className="line-clamp-1 text-[15px] font-semibold text-[#4E403D]">
+                            <p className="line-clamp-1 text-[14px] font-semibold text-[#4E403D] lg:text-[15px]">
                                 {item.menuItem.name}
                             </p>
 
                             {(item.milkChoice || item.sweetener) && (
-                                <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-[#8A7B77]">
+                                <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-[#8A7B77] lg:text-[12px]">
                                     {[item.milkChoice, item.sweetener]
                                         .filter(Boolean)
                                         .join(", ")}
@@ -157,16 +157,18 @@ export default function KanbanCard({
             </div>
 
             {order.specialRequest && (
-                <div className="mt-5 rounded-[18px] border border-[#ECE5DF] bg-[#F7F4F1] p-4">
-                    <p className="text-[12px] font-semibold italic leading-relaxed text-[#5A4A47]">
+                <div className="mt-4 rounded-[16px] border border-[#ECE5DF] bg-[#F7F4F1] p-3 lg:mt-5 lg:rounded-[18px] lg:p-4">
+                    <p className="line-clamp-2 text-[11px] font-semibold italic leading-relaxed text-[#5A4A47] lg:text-[12px]">
                         “{order.specialRequest}”
                     </p>
                 </div>
             )}
 
-            <div className="mt-5 flex items-center justify-between pl-1 text-[12px] font-semibold text-[#8A7B77]">
-                <span>{order.placedAt}</span>
-                <span>{totalItems} item{totalItems > 1 ? "s" : ""}</span>
+            <div className="mt-4 flex items-center justify-between gap-3 pl-1 text-[11px] font-semibold text-[#8A7B77] lg:mt-5 lg:text-[12px]">
+                <span className="line-clamp-1">{order.placedAt}</span>
+                <span className="shrink-0">
+                    {totalItems} item{totalItems > 1 ? "s" : ""}
+                </span>
             </div>
 
             {renderActions()}

@@ -31,16 +31,19 @@ export default function CashPaymentModal({
         new Intl.NumberFormat("id-ID").format(value);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 font-['Manrope']">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center font-['Manrope'] lg:items-center lg:p-6">
+            <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={onClose}
+            />
 
-            <div className="relative w-full max-w-[430px] rounded-[28px] bg-white p-8 shadow-2xl">
-                <div className="mb-6 flex items-start justify-between">
+            <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[30px] bg-white p-5 shadow-2xl lg:max-w-[430px] lg:rounded-[28px] lg:p-8">
+                <div className="mb-5 flex items-start justify-between lg:mb-6">
                     <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#5A4A47]">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5A4A47] lg:text-[11px]">
                             Cash Verification
                         </p>
-                        <h2 className="mt-2 text-[28px] font-extrabold text-[#271310]">
+                        <h2 className="mt-2 text-[25px] font-extrabold text-[#271310] lg:text-[28px]">
                             Payment
                         </h2>
                     </div>
@@ -53,11 +56,11 @@ export default function CashPaymentModal({
                     </button>
                 </div>
 
-                <div className="mb-6 rounded-[20px] bg-[#271310] p-6 text-center text-white">
+                <div className="mb-5 rounded-[20px] bg-[#271310] p-5 text-center text-white lg:mb-6 lg:p-6">
                     <p className="mb-2 text-[12px] font-medium text-white/60">
                         Total Pembayaran
                     </p>
-                    <h3 className="text-[38px] font-extrabold">
+                    <h3 className="text-[32px] font-extrabold lg:text-[38px]">
                         Rp {formatRupiah(totalAmount)}
                     </h3>
                 </div>
@@ -75,19 +78,19 @@ export default function CashPaymentModal({
                     />
                 </div>
 
-                <div className="mb-5 grid grid-cols-3 gap-3">
+                <div className="mb-5 grid grid-cols-3 gap-2 lg:gap-3">
                     {[50000, 100000, totalAmount].map((value, index) => (
                         <button
                             key={index}
                             onClick={() => setAmountReceived(String(value))}
-                            className="rounded-2xl bg-[#F4F4F3] px-3 py-3 text-center text-[13px] font-bold text-[#271310]"
+                            className="rounded-2xl bg-[#F4F4F3] px-2 py-3 text-center text-[12px] font-bold text-[#271310] lg:px-3 lg:text-[13px]"
                         >
                             {index === 2 ? "Exact" : `Rp ${formatRupiah(value)}`}
                         </button>
                     ))}
                 </div>
 
-                <div className="mb-6 rounded-2xl bg-[#F4F4F3] p-4">
+                <div className="mb-5 rounded-2xl bg-[#F4F4F3] p-4 lg:mb-6">
                     <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5A4A47]">
                         Kembalian
                     </p>
@@ -102,7 +105,7 @@ export default function CashPaymentModal({
                         onConfirmPayment(order.id);
                         onClose();
                     }}
-                    className="h-13 w-full rounded-2xl bg-[#271310] py-4 text-[15px] font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+                    className="w-full rounded-2xl bg-[#271310] py-4 text-[15px] font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
                 >
                     Confirm Payment
                 </button>

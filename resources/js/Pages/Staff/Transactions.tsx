@@ -1,11 +1,12 @@
 import { Head } from "@inertiajs/react";
 import StaffLayout from "@/Layouts/StaffLayout";
 import type { StaffUser, DailyTransaction } from "@/types/staff";
+import type { ReactNode } from "react";
 import {
     Banknote,
     CreditCard,
     Download,
-    Filter,
+    
     Search,
     Star,
     ChevronLeft,
@@ -18,7 +19,7 @@ interface Props {
     summary: {
         cashTotal: number;
         digitalTotal: number;
-        loyaltyPoints: number;
+        
         totalRevenue: number;
         totalOrders: number;
     };
@@ -47,93 +48,86 @@ export default function Transactions({
             <Head title="Transaction History" />
 
             <div className="font-['Manrope'] text-[#271310]">
-                <div className="mb-10 flex items-start justify-between">
+                <div className="mb-6 flex flex-col gap-5 lg:mb-7 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.35em] text-[#5A4A47]">
+                        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.32em] text-[#5A4A47] lg:text-[12px]">
                             Archive
                         </p>
-                        <h1 className="text-[38px] font-extrabold leading-none tracking-[-0.05em] text-[#271310]">
+                        <h1 className="text-[30px] font-extrabold leading-none tracking-[-0.05em] text-[#271310] lg:text-[34px]">
                             Daily Transactions
                         </h1>
-                        <p className="mt-4 text-[17px] font-medium text-[#5A4A47]">
+                        <p className="mt-3 text-[14px] font-medium text-[#5A4A47] lg:text-[15px]">
                             Reviewing activity for {date}
                         </p>
                     </div>
 
-                    <div className="flex overflow-hidden rounded-[18px] bg-[#F4F4F3]">
-                        <div className="px-5 py-4">
-                            <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#5A4A47]">
+                    <div className="grid grid-cols-2 overflow-hidden rounded-[18px] bg-[#F4F4F3] lg:flex">
+                        <div className="px-4 py-3 lg:px-5">
+                            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#5A4A47]">
                                 Today's Revenue
                             </p>
-                            <p className="mt-1 text-[22px] font-extrabold tracking-[-0.03em] text-[#271310]">
+                            <p className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[20px]">
                                 {formatCurrency(summary.totalRevenue)}
                             </p>
                         </div>
 
-                        <div className="my-4 w-px bg-[#DED8D2]" />
+                        <div className="hidden my-3 w-px bg-[#DED8D2] lg:block" />
 
-                        <div className="px-5 py-4 text-right">
-                            <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#5A4A47]">
+                        <div className="px-4 py-3 text-right lg:px-5">
+                            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#5A4A47]">
                                 Orders
                             </p>
-                            <p className="mt-1 text-[24px] font-extrabold tracking-[-0.03em] text-[#271310]">
+                            <p className="mt-1 text-[20px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[22px]">
                                 {summary.totalOrders}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="mb-14 grid grid-cols-3 gap-6">
+                <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:mb-7 lg:gap-4">
                     <SummaryCard
-                        icon={<Banknote size={23} />}
+                        icon={<Banknote size={20} />}
                         label="Cash Transactions"
                         value={formatCurrency(summary.cashTotal)}
                         variant="light"
                     />
 
                     <SummaryCard
-                        icon={<CreditCard size={23} />}
+                        icon={<CreditCard size={20} />}
                         label="Digital Payments"
                         value={formatCurrency(summary.digitalTotal)}
                         variant="green"
                     />
 
-                    <SummaryCard
-                        icon={<Star size={23} fill="currentColor" />}
-                        label="Loyalty Points Issued"
-                        value={`${summary.loyaltyPoints.toLocaleString("id-ID")} pts`}
-                        variant="dark"
-                    />
+                    
                 </div>
 
-                <section className="rounded-[34px] bg-[#F4F4F3] p-8">
-                    <div className="mb-8 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="relative w-[260px]">
+                <section className="rounded-[26px] bg-[#F4F4F3] p-4 lg:rounded-[30px] lg:p-6">
+                    <div className="mb-5 flex flex-col gap-3 lg:mb-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="relative w-full sm:w-[280px] lg:w-[260px]">
                                 <Search
-                                    size={17}
+                                    size={16}
                                     className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A4A47]"
                                 />
                                 <input
                                     type="text"
                                     placeholder="Search order ID or customer..."
-                                    className="h-11 w-full rounded-[14px] border-none bg-white pl-11 pr-4 text-[14px] font-medium text-[#271310] outline-none placeholder:text-[#9A8F8B]"
+                                    className="h-11 w-full rounded-[14px] border-none bg-white pl-11 pr-4 text-[13px] font-medium text-[#271310] outline-none placeholder:text-[#9A8F8B]"
                                 />
                             </div>
 
-                            <button className="flex h-11 items-center gap-2 rounded-[14px] bg-[#E7E7E6] px-5 text-[14px] font-extrabold text-[#271310] transition hover:bg-[#DDDDDC]">
-                                <Filter size={16} />
-                                Filter
-                            </button>
+                            
                         </div>
 
-                        <button className="flex h-11 items-center gap-2 rounded-[14px] px-4 text-[14px] font-extrabold text-[#271310] transition hover:bg-white">
-                            <Download size={16} />
+                        <button className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white">
+                            <Download size={15} />
                             Export CSV
                         </button>
                     </div>
 
-                    <div className="overflow-hidden rounded-[24px]">
+                    {/* Desktop Table */}
+                    <div className="hidden overflow-hidden rounded-[22px] lg:block">
                         <table className="w-full border-collapse text-left">
                             <thead>
                                 <tr className="border-b border-[#E3DDD8]">
@@ -186,18 +180,29 @@ export default function Transactions({
                         </table>
                     </div>
 
-                    <div className="mt-8 flex items-center justify-between">
-                        <p className="text-[12px] font-extrabold uppercase tracking-[0.18em] text-[#5A4A47]">
+                    {/* Mobile Cards */}
+                    <div className="flex flex-col gap-3 lg:hidden">
+                        {transactions.map((trx) => (
+                            <TransactionMobileCard
+                                key={trx.id}
+                                trx={trx}
+                                formatCurrency={formatCurrency}
+                            />
+                        ))}
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-between gap-4">
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#5A4A47] lg:text-[11px]">
                             Showing {transactions.length} of{" "}
                             {summary.totalOrders} transactions
                         </p>
 
                         <div className="flex items-center gap-2">
                             <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#271310] transition hover:bg-[#E7E7E6]">
-                                <ChevronLeft size={18} />
+                                <ChevronLeft size={17} />
                             </button>
                             <button className="flex h-8 w-8 items-center justify-center rounded-full bg-[#271310] text-white transition hover:opacity-90">
-                                <ChevronRight size={18} />
+                                <ChevronRight size={17} />
                             </button>
                         </div>
                     </div>
@@ -213,7 +218,7 @@ function SummaryCard({
     value,
     variant,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     value: string;
     variant: "light" | "green" | "dark";
@@ -227,12 +232,16 @@ function SummaryCard({
     const muted = variant === "dark" ? "text-white/60" : "text-[#5A4A47]";
 
     return (
-        <div className={`rounded-[26px] p-7 shadow-[0_2px_12px_rgba(39,19,16,0.03)] ${styles[variant]}`}>
-            <div className="mb-8">{icon}</div>
-            <p className={`mb-2 text-[14px] font-extrabold uppercase tracking-[0.08em] ${muted}`}>
+        <div
+            className={`rounded-[22px] p-5 shadow-[0_2px_12px_rgba(39,19,16,0.03)] lg:p-5 ${styles[variant]}`}
+        >
+            <div className="mb-5 lg:mb-4">{icon}</div>
+            <p
+                className={`mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${muted}`}
+            >
                 {label}
             </p>
-            <p className="text-[28px] font-extrabold tracking-[-0.04em]">
+            <p className="text-[22px] font-extrabold tracking-[-0.04em] lg:text-[23px]">
                 {value}
             </p>
         </div>
@@ -243,12 +252,12 @@ function TableHead({
     children,
     align = "left",
 }: {
-    children: React.ReactNode;
+    children: ReactNode;
     align?: "left" | "right";
 }) {
     return (
         <th
-            className={`pb-4 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#5A4A47] ${
+            className={`pb-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#5A4A47] ${
                 align === "right" ? "text-right" : "text-left"
             }`}
         >
@@ -261,10 +270,10 @@ function TableCell({
     children,
     className = "",
 }: {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }) {
-    return <td className={`py-5 text-[15px] ${className}`}>{children}</td>;
+    return <td className={`py-4 text-[14px] ${className}`}>{children}</td>;
 }
 
 function Avatar({ transaction }: { transaction: DailyTransaction }) {
@@ -294,10 +303,50 @@ function Avatar({ transaction }: { transaction: DailyTransaction }) {
     );
 }
 
+function TransactionMobileCard({
+    trx,
+    formatCurrency,
+}: {
+    trx: DailyTransaction;
+    formatCurrency: (value: number) => string;
+}) {
+    return (
+        <article className="rounded-[20px] bg-white p-4 shadow-[0_3px_14px_rgba(39,19,16,0.04)]">
+            <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                    <p className="text-[12px] font-extrabold uppercase tracking-[0.05em] text-[#8A7B77]">
+                        #{trx.orderId}
+                    </p>
+                    <p className="mt-1 text-[16px] font-extrabold text-[#271310]">
+                        {trx.customerName}
+                    </p>
+                </div>
+
+                <StatusBadge status={trx.status} />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-[#ECE8E4] pt-4">
+                <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8A7B77]">
+                        Payment
+                    </p>
+                    <p className="mt-1 text-[13px] font-bold text-[#5A4A47]">
+                        {trx.paymentMethod} • {trx.time}
+                    </p>
+                </div>
+
+                <p className="text-right text-[17px] font-extrabold tracking-[-0.03em] text-[#271310]">
+                    {formatCurrency(trx.totalPrice)}
+                </p>
+            </div>
+        </article>
+    );
+}
+
 function StatusBadge({ status }: { status: DailyTransaction["status"] }) {
     if (status === "refunded") {
         return (
-            <span className="inline-flex rounded-full bg-[#FFD9D6] px-4 py-1 text-[11px] font-extrabold uppercase text-[#C62828]">
+            <span className="inline-flex rounded-full bg-[#FFD9D6] px-3 py-1 text-[10px] font-extrabold uppercase text-[#C62828]">
                 Refunded
             </span>
         );
@@ -305,14 +354,14 @@ function StatusBadge({ status }: { status: DailyTransaction["status"] }) {
 
     if (status === "pending") {
         return (
-            <span className="inline-flex rounded-full bg-[#FFF0C7] px-4 py-1 text-[11px] font-extrabold uppercase text-[#A46A00]">
+            <span className="inline-flex rounded-full bg-[#FFF0C7] px-3 py-1 text-[10px] font-extrabold uppercase text-[#A46A00]">
                 Pending
             </span>
         );
     }
 
     return (
-        <span className="inline-flex rounded-full bg-[#DCEED8] px-4 py-1 text-[11px] font-extrabold uppercase text-[#4F654D]">
+        <span className="inline-flex rounded-full bg-[#DCEED8] px-3 py-1 text-[10px] font-extrabold uppercase text-[#4F654D]">
             Completed
         </span>
     );

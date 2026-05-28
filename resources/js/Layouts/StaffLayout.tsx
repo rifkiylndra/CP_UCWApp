@@ -21,22 +21,18 @@ export default function StaffLayout({
         <div className="min-h-screen bg-[#F9F9F8] font-['Manrope']">
             {title && <Head title={title} />}
 
-            <header className="fixed left-0 top-0 z-40 flex h-[76px] w-full items-center justify-between bg-[#F9F9F8] px-8">
-                <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-[#271310]">
-                    Unand Coworkspace
+            <header className="fixed left-0 top-0 z-40 flex h-[68px] w-full items-center justify-between border-b border-[#ECE8E4] bg-[#F9F9F8] px-4 lg:h-[76px] lg:px-8">
+                <h1 className="text-[17px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[22px]">
+                    UNAND Co-Workspace
                 </h1>
 
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F4F4F3] text-[#271310] transition hover:bg-[#ECECEA]"
-                    >
-                        <Bell size={20} strokeWidth={2.2} />
+                <div className="flex items-center gap-2 lg:gap-3">
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F4F3] text-[#271310] lg:h-11 lg:w-11">
+                        <Bell size={19} strokeWidth={2.2} />
                     </button>
 
                     <button
-                        type="button"
-                        className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#F4F4F3] text-[#271310] transition hover:bg-[#ECECEA]"
+                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#F4F4F3] text-[#271310] lg:h-11 lg:w-11"
                         title={auth.user.name}
                     >
                         {auth.user.avatarUrl ? (
@@ -46,19 +42,17 @@ export default function StaffLayout({
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <UserRound size={21} strokeWidth={2.2} />
+                            <UserRound size={20} strokeWidth={2.2} />
                         )}
                     </button>
                 </div>
             </header>
 
-            <div className="flex min-h-screen pt-[76px] bg-[#F9F9F8]">
-                <StaffSidebar user={auth.user} currentRoute={currentRoute} />
+            <StaffSidebar currentRoute={currentRoute} />
 
-                <main className="ml-[272px] flex-1 bg-[#F9F9F8] p-8">
-                    {children}
-                </main>
-            </div>
+            <main className="min-h-screen bg-[#F9F9F8] px-4 pb-[92px] pt-[88px] lg:ml-[272px] lg:px-8 lg:pb-8 lg:pt-[108px]">
+                {children}
+            </main>
         </div>
     );
 }

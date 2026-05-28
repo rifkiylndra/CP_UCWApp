@@ -106,87 +106,79 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
             <Head title="Staff Dashboard" />
 
             <div className="font-['Manrope']">
-                <div className="mb-8 flex items-end justify-between">
-                    <div>
-                        <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.35em] text-[#5E735B]">
-                            Operations
-                        </p>
-                        <h1 className="text-[34px] font-extrabold tracking-[-0.04em] text-[#271310]">
-                            Orders Dashboard
-                        </h1>
-                    </div>
+    <div className="mb-6 flex flex-col gap-5 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.32em] text-[#5E735B] lg:text-[12px]">
+                Operations
+            </p>
+            <h1 className="text-[30px] font-extrabold tracking-[-0.05em] text-[#271310] lg:text-[34px]">
+                Orders Dashboard
+            </h1>
+        </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 rounded-full border border-[#ECE8E4] bg-white px-5 py-3">
-                            <span className="h-2 w-2 rounded-full bg-[#C62828]" />
-                            <span className="text-[14px] font-bold text-[#271310]">
-                                {orders.incoming.length} Pending
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 rounded-full border border-[#ECE8E4] bg-white px-5 py-3">
-                            <span className="h-2 w-2 rounded-full bg-[#5E735B]" />
-                            <span className="text-[14px] font-bold text-[#271310]">
-                                {orders.completed.length} Completed
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid h-[calc(100vh-190px)] grid-cols-3 gap-7">
-                    <OrderColumn
-                        title="Incoming"
-                        count={orders.incoming.length}
-                        color="#C62828"
-                    >
-                        {orders.incoming.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="incoming"
-                                onViewDetail={handleViewDetail}
-                                onVerifyPayment={handleVerifyPayment}
-                                onUpdateStatus={handleUpdateStatus}
-                            />
-                        ))}
-                    </OrderColumn>
-
-                    <OrderColumn
-                        title="Processing"
-                        count={orders.processing.length}
-                        color="#D99A2B"
-                    >
-                        {orders.processing.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="processing"
-                                onViewDetail={handleViewDetail}
-                                onVerifyPayment={handleVerifyPayment}
-                                onUpdateStatus={handleUpdateStatus}
-                            />
-                        ))}
-                    </OrderColumn>
-
-                    <OrderColumn
-                        title="Completed"
-                        count={orders.completed.length}
-                        color="#5E735B"
-                        rightLabel="Today"
-                        dashed
-                    >
-                        {orders.completed.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="completed"
-                                onViewDetail={handleViewDetail}
-                                readOnly
-                            />
-                        ))}
-                    </OrderColumn>
-                </div>
+        <div className="grid grid-cols-2 gap-3 lg:flex lg:items-center">
+            <div className="flex items-center justify-center gap-2 rounded-full border border-[#ECE8E4] bg-white px-4 py-3 lg:px-5">
+                <span className="h-2 w-2 rounded-full bg-[#C62828]" />
+                <span className="text-[13px] font-bold text-[#271310] lg:text-[14px]">
+                    {orders.incoming.length} Pending
+                </span>
             </div>
+
+            <div className="flex items-center justify-center gap-2 rounded-full border border-[#ECE8E4] bg-white px-4 py-3 lg:px-5">
+                <span className="h-2 w-2 rounded-full bg-[#5E735B]" />
+                <span className="text-[13px] font-bold text-[#271310] lg:text-[14px]">
+                    {orders.completed.length} Completed
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div className="flex flex-col gap-5 lg:grid lg:h-[calc(100vh-190px)] lg:grid-cols-3 lg:gap-7">
+        <OrderColumn title="Incoming" count={orders.incoming.length} color="#C62828">
+            {orders.incoming.map((order) => (
+                <KanbanCard
+                    key={order.id}
+                    order={order}
+                    columnType="incoming"
+                    onViewDetail={handleViewDetail}
+                    onVerifyPayment={handleVerifyPayment}
+                    onUpdateStatus={handleUpdateStatus}
+                />
+            ))}
+        </OrderColumn>
+
+        <OrderColumn title="Processing" count={orders.processing.length} color="#D99A2B">
+            {orders.processing.map((order) => (
+                <KanbanCard
+                    key={order.id}
+                    order={order}
+                    columnType="processing"
+                    onViewDetail={handleViewDetail}
+                    onVerifyPayment={handleVerifyPayment}
+                    onUpdateStatus={handleUpdateStatus}
+                />
+            ))}
+        </OrderColumn>
+
+        <OrderColumn
+            title="Completed"
+            count={orders.completed.length}
+            color="#5E735B"
+            rightLabel="Today"
+            dashed
+        >
+            {orders.completed.map((order) => (
+                <KanbanCard
+                    key={order.id}
+                    order={order}
+                    columnType="completed"
+                    onViewDetail={handleViewDetail}
+                    readOnly
+                />
+            ))}
+        </OrderColumn>
+    </div>
+</div>
 
             <OrderDetailModal
                 order={selectedOrder}
@@ -253,16 +245,16 @@ function OrderColumn({
 }: OrderColumnProps) {
     return (
         <section
-            className={[
-                "flex flex-col overflow-hidden rounded-[30px] bg-[#F4F4F3]",
-                dashed
-                    ? "border border-dashed border-[#E6DED8]"
-                    : "border border-[#ECE8E4]",
-            ].join(" ")}
-        >
-            <div className="flex items-center justify-between border-b border-[#ECE8E4] px-6 py-5">
+    className={[
+        "flex flex-col rounded-[26px] bg-[#F4F4F3] lg:max-h-full lg:overflow-hidden lg:rounded-[30px]",
+        dashed
+            ? "border border-dashed border-[#E6DED8]"
+            : "border border-[#ECE8E4]",
+    ].join(" ")}
+>
+            <div className="flex items-center justify-between border-b border-[#ECE8E4] px-5 py-4 lg:px-6 lg:py-5">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-[17px] font-extrabold tracking-[-0.02em] text-[#271310]">
+                    <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#271310] lg:text-[17px]">
                         {title}
                     </h2>
 
@@ -274,16 +266,16 @@ function OrderColumn({
                 </div>
 
                 <div
-                    className="flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[12px] font-bold text-white"
+                    className="flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11px] font-bold text-white lg:h-8 lg:min-w-8 lg:text-[12px]"
                     style={{ backgroundColor: color }}
                 >
                     {count}
                 </div>
             </div>
 
-            <div className="styled-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto p-5">
-                {children}
-            </div>
+            <div className="styled-scrollbar flex flex-col gap-4 overflow-visible p-4 lg:flex-1 lg:gap-5 lg:overflow-y-auto lg:p-5">
+    {children}
+</div>
         </section>
     );
 }
