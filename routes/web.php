@@ -73,9 +73,14 @@ Route::prefix('staff')->name('staff.')->group(function () {
 /* ── Admin Dashboard Routes ── */
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', fn () => Inertia::render('Admin/Login'))->name('login');
+    Route::post('/login', function () {
+        // Dummy redirect ke overview saat login
+        return redirect()->route('admin.overview');
+    })->name('login.post');
+    
     Route::get('/overview', fn () => Inertia::render('Admin/Overview'))->name('overview');
     Route::get('/live-order', fn () => Inertia::render('Admin/LiveOrder'))->name('live-order');
-    Route::get('/ai-analytics', fn () => Inertia::render('Admin/AIAnalytics'))->name('ai-analytics');
+    Route::get('/ai-analytics', fn () => Inertia::render('Admin/AIAnalytics'))->name('analytics');
     Route::get('/menu', fn () => Inertia::render('Admin/Menu/Index'))->name('menu');
     Route::get('/staff', fn () => Inertia::render('Admin/Staff/Index'))->name('staff');
     Route::get('/finances', fn () => Inertia::render('Admin/Finances'))->name('finances');
