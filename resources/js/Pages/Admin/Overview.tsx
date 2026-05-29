@@ -59,8 +59,8 @@ export default function Overview({ auth }: OverviewProps) {
     <AdminLayout auth={auth} title="Overview" currentRoute="admin.overview">
       <section className="font-['Manrope'] text-[#271310]">
         {/* Header */}
-        <div className="mb-11">
-          <h1 className="text-[34px] font-extrabold tracking-[-1.4px]">
+        <div className="mb-7 md:mb-11">
+          <h1 className="text-[28px] font-extrabold tracking-[-1px] md:text-[34px] md:tracking-[-1.4px]">
             Morning Overview
           </h1>
           <p className="mt-2 max-w-[750px] text-[15px] leading-relaxed text-[#8B807D]">
@@ -70,8 +70,8 @@ export default function Overview({ auth }: OverviewProps) {
         </div>
 
         {/* Top Cards */}
-        <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="rounded-[10px] bg-white p-8 shadow-[0_10px_34px_rgba(39,19,16,0.04)]">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:grid-cols-3 lg:gap-8">
+          <div className="rounded-[14px] bg-white p-5 shadow-[0_10px_34px_rgba(39,19,16,0.04)] md:rounded-[10px] md:p-8">
             <div className="mb-7 flex items-start justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#EEF5ED] text-[#516B58]">
                 <ClipboardList size={22} />
@@ -88,7 +88,7 @@ export default function Overview({ auth }: OverviewProps) {
             </h2>
           </div>
 
-          <div className="rounded-[10px] bg-white p-8 shadow-[0_10px_34px_rgba(39,19,16,0.04)]">
+          <div className="rounded-[14px] bg-white p-5 shadow-[0_10px_34px_rgba(39,19,16,0.04)] md:rounded-[10px] md:p-8">
             <div className="mb-7 flex items-start justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#FFF3DD] text-[#8C651C]">
                 <Banknote size={22} />
@@ -105,7 +105,7 @@ export default function Overview({ auth }: OverviewProps) {
             </h2>
           </div>
 
-          <div className="rounded-[10px] bg-[#301713] p-8 text-white shadow-[0_22px_36px_rgba(39,19,16,0.16)]">
+          <div className="rounded-[14px] bg-[#301713] p-5 text-white shadow-[0_22px_36px_rgba(39,19,16,0.16)] md:rounded-[10px] md:p-8">
             <div className="mb-7 flex items-start justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/10 text-white/70">
                 <Timer size={22} />
@@ -131,8 +131,8 @@ export default function Overview({ auth }: OverviewProps) {
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_300px]">
           {/* Left */}
           <div className="space-y-12">
-            <div className="min-h-[520px] rounded-[10px] border border-[#ECE8E6] bg-[#FAFAF9] p-8">
-              <div className="mb-8 flex items-start justify-between">
+            <div className="min-h-[430px] rounded-[14px] border border-[#ECE8E6] bg-[#FAFAF9] p-5 md:min-h-[520px] md:rounded-[10px] md:p-8">
+              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-[20px] font-extrabold">
                     Weekly Sales Trends
@@ -152,11 +152,11 @@ export default function Overview({ auth }: OverviewProps) {
                 </div>
               </div>
 
-              <div className="flex h-[360px] flex-col justify-end">
-                <div className="mb-9 grid grid-cols-7 items-end gap-8">
+              <div className="flex h-[300px] flex-col justify-end md:h-[360px]">
+                <div className="mb-9 grid grid-cols-7 items-end gap-3 sm:gap-5 md:gap-8">
                   {[34, 52, 44, 66, 90, 58, 42].map((height, index) => (
                     <div key={index} className="flex flex-col items-center gap-5">
-                      <div className="flex h-[250px] items-end gap-2">
+                      <div className="flex h-[210px] items-end gap-1.5 md:h-[250px] md:gap-2">
                         <span
                           className="w-3 rounded-full bg-[#DDEED8]"
                           style={{ height: `${height}%` }}
@@ -196,7 +196,7 @@ export default function Overview({ auth }: OverviewProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[220px_1fr] lg:gap-8">
               <div className="rounded-[10px] bg-[#4A2A24] p-6 text-white">
                 <p className="mb-5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
                   Loyalty Insights
@@ -207,7 +207,7 @@ export default function Overview({ auth }: OverviewProps) {
               </div>
 
               <div className="rounded-[10px] border border-[#ECE8E6] bg-[#FAFAF9] p-7">
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h3 className="text-[15px] font-extrabold uppercase tracking-[0.12em]">
                     Active Staff Activity
                   </h3>

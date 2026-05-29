@@ -3,6 +3,7 @@ import { Head } from "@inertiajs/react";
 import type { AdminUser } from "@/types/admin";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import MobileBottomNav from "./MobileBottomNavAdmin";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -31,13 +32,15 @@ export default function AdminLayout({
         <Sidebar user={safeUser} currentRoute={currentRoute} />
 
         <div className="flex min-w-0 flex-1 flex-col bg-white">
-          <TopBar user={safeUser} />
+          <TopBar user={safeUser} title={title} />
 
-          <main className="flex-1 overflow-y-auto px-8 pb-8 pt-6 lg:px-9">
+          <main className="flex-1 overflow-y-auto px-4 pb-24 pt-4 sm:px-6 md:px-8 md:pb-8 md:pt-6 lg:px-9">
             {children}
           </main>
         </div>
       </div>
+
+      <MobileBottomNav currentRoute={currentRoute} />
     </div>
   );
 }
