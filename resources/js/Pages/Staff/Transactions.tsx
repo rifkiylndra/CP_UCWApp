@@ -1,12 +1,11 @@
 import { Head } from "@inertiajs/react";
-import StaffLayout from "@/Layouts/StaffLayout";
+import StaffLayout from "@/Components/Layout/StaffLayout";
 import type { StaffUser, DailyTransaction } from "@/types/staff";
 import type { ReactNode } from "react";
 import {
     Banknote,
     CreditCard,
     Download,
-    
     Search,
     Star,
     ChevronLeft,
@@ -19,7 +18,7 @@ interface Props {
     summary: {
         cashTotal: number;
         digitalTotal: number;
-        
+
         totalRevenue: number;
         totalOrders: number;
     };
@@ -98,8 +97,6 @@ export default function Transactions({
                         value={formatCurrency(summary.digitalTotal)}
                         variant="green"
                     />
-
-                    
                 </div>
 
                 <section className="rounded-[26px] bg-[#F4F4F3] p-4 lg:rounded-[30px] lg:p-6">
@@ -116,8 +113,6 @@ export default function Transactions({
                                     className="h-11 w-full rounded-[14px] border-none bg-white pl-11 pr-4 text-[13px] font-medium text-[#271310] outline-none placeholder:text-[#9A8F8B]"
                                 />
                             </div>
-
-                            
                         </div>
 
                         <button className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white">

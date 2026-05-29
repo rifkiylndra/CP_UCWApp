@@ -6,7 +6,7 @@
 
 import { Link } from '@inertiajs/react';
 
-export type NavTab = 'menu' | 'cart' | 'orders' ;
+export type NavTab = 'menu' | 'cart' | 'track' ;
 
 interface BottomNavProps {
     tableId:  string;
@@ -68,8 +68,8 @@ export default function BottomNav({ tableId, active, cartCount = 0 }: BottomNavP
             ),
         },
         {
-            key:   'orders',
-            label: 'Orders',
+            key:   'track',
+            label: 'Track',
             href:  '#',
             icon:  (a) => (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -89,7 +89,7 @@ export default function BottomNav({ tableId, active, cartCount = 0 }: BottomNavP
 
     return (
         <div
-            className="grid grid-cols-4 px-2 py-2 border-t"
+            className="grid grid-cols-3 px-2 py-2 border-t"
             style={{ borderColor: 'var(--color-ucw-border)' }}
         >
             {tabs.map(tab => {
