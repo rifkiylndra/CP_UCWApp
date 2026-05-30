@@ -17,12 +17,12 @@ with open(os.path.join(MDL, "model_config.json")) as f:
 BUFFER = CONFIG.get("buffer_persen", 15)
 W_MIN  = CONFIG.get("waktu_minimum", 1.0)
 # Urutan fitur WAJIB sama dengan saat training:
-# ["jumlah_kopi", "jumlah_non_kopi", "jumlah_makanan", "antrian_dapur"]
+# ["jumlah_kopi", "jumlah_kopi_manual", "jumlah_non_kopi", "jumlah_makanan", "antrian_dapur", "is_peak_hour"]
 
 
 # ── Helper (salin langsung dari flask_app_estimasi.py) ───────────────────
-def predict_estimasi(jumlah_kopi, jumlah_non_kopi, jumlah_makanan, antrian_dapur) -> dict:
-    X = np.array([[jumlah_kopi, jumlah_non_kopi, jumlah_makanan, antrian_dapur]])
+def predict_estimasi(jumlah_kopi, jumlah_kopi_manual, jumlah_non_kopi, jumlah_makanan, antrian_dapur, is_peak_hour) -> dict:
+    X = np.array([[jumlah_kopi, jumlah_kopi_manual, jumlah_non_kopi, jumlah_makanan, antrian_dapur, is_peak_hour]])
     waktu     = float(MODEL.predict(X)[0])
     waktu     = max(W_MIN, round(waktu, 1))
     waktu_min = max(1, round(waktu * (1 - BUFFER / 100)))
@@ -32,7 +32,7 @@ def predict_estimasi(jumlah_kopi, jumlah_non_kopi, jumlah_makanan, antrian_dapur
         "range_min":      waktu_min,
         "range_max":      waktu_max,
         "display":        f"{waktu_min}–{waktu_max} menit",
-        "total_item":     jumlah_kopi + jumlah_non_kopi + jumlah_makanan,
+        "total_item":     jumlah_kopi + jumlah_kopi_manual + jumlah_non_kopi + jumlah_makanan,
         "antrian_dapur":  antrian_dapur,
     }
 
@@ -41,11 +41,19 @@ def predict_estimasi(jumlah_kopi, jumlah_non_kopi, jumlah_makanan, antrian_dapur
 @router.post("/predict")
 def predict(req: EstimasiRequest):
     """Estimasi waktu penyajian untuk satu order."""
-    if (req.jumlah_kopi + req.jumlah_non_kopi + req.jumlah_makanan) == 0:
+    total_items = req.jumlah_kopi + req.jumlah_kopi_manual + req.jumlah_non_kopi + req.jumlah_makanan
+    if total_items == 0:
         from fastapi import HTTPException
         raise HTTPException(400, "Minimal 1 item harus ada")
-    hasil = predict_estimasi(req.jumlah_kopi, req.jumlah_non_kopi,
-                             req.jumlah_makanan, req.antrian_dapur)
+    
+    hasil = predict_estimasi(
+        req.jumlah_kopi, 
+        req.jumlah_kopi_manual,
+        req.jumlah_non_kopi,
+        req.jumlah_makanan, 
+        req.antrian_dapur,
+        req.is_peak_hour
+    )
     return {"status": "ok", **hasil}
 
 @router.get("/info")

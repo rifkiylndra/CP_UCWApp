@@ -18,14 +18,16 @@ class AiService
     /**
      * Get prediction for serve time (MLR)
      */
-    public function predictServeTime(int $jumlahKopi, int $jumlahNonKopi, int $jumlahMakanan, int $antrianDapur)
+    public function predictServeTime(int $jumlahKopi, int $jumlahKopiManual, int $jumlahNonKopi, int $jumlahMakanan, int $antrianDapur, int $isPeakHour = 0)
     {
         try {
             $response = Http::timeout(5)->post("{$this->baseUrl}/estimation/predict", [
                 'jumlah_kopi' => $jumlahKopi,
+                'jumlah_kopi_manual' => $jumlahKopiManual,
                 'jumlah_non_kopi' => $jumlahNonKopi,
                 'jumlah_makanan' => $jumlahMakanan,
-                'antrian_dapur' => $antrianDapur
+                'antrian_dapur' => $antrianDapur,
+                'is_peak_hour' => $isPeakHour
             ]);
 
             if ($response->successful()) {

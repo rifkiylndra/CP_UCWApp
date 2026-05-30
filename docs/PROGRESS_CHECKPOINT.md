@@ -1,6 +1,6 @@
 # Progress Checkpoint — UCW App Frontend
 
-## Last Updated: [2026-05-03 09:20:23]
+## Last Updated: [2026-05-30 17:17:23]
 
 ## Model
 - Model sebelumnya : Claude Sonnet 4.6 — quota habis 2x
@@ -90,7 +90,7 @@ Status : [ ] Belum dicek
 - [x] uvicorn main:app --port 8001 berhasil jalan
 - [x] Test /health, /api/estimation/predict, /api/sentiment/analyze
 - [x] Tambah AI_SERVICE_URL=http://localhost:8001 ke .env Laravel
-- [ ] Update AiService.php — sesuaikan format request/response
+- [x] Update AiService.php — sesuaikan format request/response
 - [ ] Test dari Laravel: AnalyticsController → AiService → FastAPI
 - [ ] git add ai_service/ && git commit && git push origin feature/ai-module
 - [ ] Tambahkan WMA training notebook (menu populer) — menyusul

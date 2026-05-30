@@ -5,9 +5,11 @@ from typing import Optional, Dict, List
 # ── ESTIMASI WAKTU ──────────────────────────────────────
 class EstimasiRequest(BaseModel):
     jumlah_kopi: int = 0
+    jumlah_kopi_manual: int = 0
     jumlah_non_kopi: int = 0
     jumlah_makanan: int = 0
     antrian_dapur: int = 0
+    is_peak_hour: int = 0
 
 class EstimasiResponse(BaseModel):
     status: str
