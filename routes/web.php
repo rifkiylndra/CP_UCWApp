@@ -1,18 +1,17 @@
 <?php
 
-use App\Http\Controllers\AdminAuthController;
-use App\Http\Controllers\StaffAuthController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // ==================== PUBLIC ROUTES ====================
-// Halaman Landing / Welcome (bisa diganti nanti)
-Route::get('/', fn () => Inertia::render('Welcome'))->name('welcome');
+// Root redirect ke landing page customer (Sesuai Frontend)
+Route::get('/', fn () => redirect()->route('customer.landing', ['tableId' => 'T01']))->name('welcome');
 
 // ==================== AUTHENTICATION (UNIVERSAL) ====================
-Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
-Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ==================== STAFF ROUTES ====================
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
@@ -48,11 +47,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Admin Dashboard
     Route::get('/overview', [\App\Http\Controllers\Admin\DashboardController::class, 'overview'])->name('overview');
     
+    // Rute Inertia Tambahan dari Frontend
+    Route::get('/live-order', fn () => Inertia::render('Admin/LiveOrder'))->name('live-order');
+    Route::get('/ai-analytics', fn () => Inertia::render('Admin/AIAnalytics'))->name('analytics-page');
+    Route::get('/menu', fn () => Inertia::render('Admin/Menu/Index'))->name('menu-page');
+    Route::get('/staff', fn () => Inertia::render('Admin/Staff/Index'))->name('staff-page');
+    Route::get('/finances', fn () => Inertia::render('Admin/Finances'))->name('finances-page');
+
     // Statistics and charts
     Route::get('/statistics/orders-chart', [\App\Http\Controllers\Admin\DashboardController::class, 'getOrdersChartData'])->name('statistics.ordersChart');
     Route::get('/statistics/revenue', [\App\Http\Controllers\Admin\DashboardController::class, 'getRevenueStatistics'])->name('statistics.revenue');
     
-    // AI Analytics
+    // AI Analytics API
     Route::prefix('analytics')->name('analytics.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('index');
         Route::get('/serving-time', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getServingTimeEstimation'])->name('servingTime');
@@ -73,8 +79,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/payment/settings', [\App\Http\Controllers\Admin\SystemConfigController::class, 'getPaymentSettings'])->name('payment');
         Route::put('/payment/settings', [\App\Http\Controllers\Admin\SystemConfigController::class, 'updatePaymentSettings'])->name('updatePayment');
     });
-    
-    // Admin routes lainnya akan ditambahkan di sini
 });
 
 // ==================== CUSTOMER ROUTES ====================

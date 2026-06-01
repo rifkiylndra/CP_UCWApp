@@ -1,71 +1,53 @@
-import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
-import CustomerLayout from '@/Components/Layout/CustomerLayout';
+import { useState } from "react";
+import { Head, router } from "@inertiajs/react";
+import CustomerLayout from "@/Components/Layout/CustomerLayout";
+import TopBar from "@/Components/customer/navigation/TopBar";
+import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 
 interface Props {
     tableId: string;
     orderId: string;
+    orderRef?: string;
+    tableNumber?: string;
+    visitTime?: string;
 }
 
-const ASPECTS = [
-    { key: 'overall', label: 'Overall Experience' },
-    { key: 'service', label: 'Service Speed' },
-    { key: 'quality', label: 'Coffee Quality' },
-    { key: 'ambiance', label: 'Ambiance' },
-] as const;
+const COFFEE_PLACEHOLDER =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='220' viewBox='0 0 400 220'%3E%3Crect width='400' height='220' fill='%23C8A882'/%3E%3Cellipse cx='200' cy='110' rx='70' ry='42' fill='%23A07850' opacity='0.6'/%3E%3C/svg%3E";
 
-function StarRow({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-    return (
-        <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map(star => (
-                <button
-                    key={star}
-                    onClick={() => onChange(star)}
-                    className="text-[28px] transition-transform active:scale-90"
-                    style={{ opacity: star <= value ? 1 : 0.25 }}
-                >
-                    ★
-                </button>
-            ))}
-        </div>
-    );
-}
+export default function Feedback({
+    tableId,
+    orderId,
+    orderRef = "UCW-2931",
+    tableNumber = "05",
+    visitTime = "10:45 AM",
+}: Props) {
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState("");
 
-export default function Feedback({ tableId, orderId }: Props) {
-    const [ratings, setRatings] = useState({ overall: 0, service: 0, quality: 0, ambiance: 0 });
-    const [comment, setComment] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
-    function handleRating(key: keyof typeof ratings, val: number) {
-        setRatings(prev => ({ ...prev, [key]: val }));
-    }
-
     function handleSubmit() {
-        // POST to API in production
+        if (rating === 0) return;
+
         setSubmitted(true);
-        setTimeout(() => router.visit(route('customer.landing', { tableId })), 2500);
+
+        setTimeout(() => {
+            router.visit(route("customer.landing", { tableId }));
+        }, 2200);
     }
 
-    const avgRating = ratings.overall;
+    function handleReturnHome() {
+        router.visit(route("customer.landing", { tableId }));
+    }
 
     if (submitted) {
         return (
             <>
-                <Head title="Thank You!" />
+                <Head title="Thank You — UCW" />
+
                 <CustomerLayout hideTopBar>
-                    <div className="flex flex-col flex-1 items-center justify-center px-8 text-center">
-                        <div className="text-6xl mb-6">🙏</div>
-                        <h1 className="text-[28px] font-black tracking-tight mb-3" style={{ color: 'var(--color-ucw-text)' }}>
-                            Thank you!
-                        </h1>
-                        <p className="text-[14px] leading-relaxed" style={{ color: 'var(--color-ucw-text-muted)' }}>
-                            Your feedback helps us craft a better experience for every guest.
-                        </p>
-                        <div className="mt-8 flex items-center gap-2 text-[13px]" style={{ color: 'var(--color-ucw-text-muted)' }}>
-                            <div className="w-4 h-4 border-2 rounded-full border-current animate-spin border-t-transparent" />
-                            Redirecting...
-                        </div>
-                    </div>
+                    <ThankYouScreen onReturnHome={handleReturnHome} />
                 </CustomerLayout>
             </>
         );
@@ -73,72 +55,611 @@ export default function Feedback({ tableId, orderId }: Props) {
 
     return (
         <>
-            <Head title="Share Feedback" />
-            <CustomerLayout
-                showBack
-                backHref={route('customer.ready', { tableId, orderId })}
-                title="Your Feedback"
-            >
-                <div className="flex flex-col flex-1 px-5 pt-4 pb-36">
-                    <h2 className="text-[24px] font-black tracking-tight mb-1" style={{ color: 'var(--color-ucw-text)' }}>
-                        How was your experience?
-                    </h2>
-                    <p className="text-[13px] mb-6" style={{ color: 'var(--color-ucw-text-muted)' }}>
-                        Order #{orderId} · {avgRating > 0 ? `${avgRating}/5 ★` : 'Rate your visit'}
-                    </p>
+            <Head title="Share Feedback — UCW" />
 
-                    {/* Rating sections */}
-                    <div className="flex flex-col gap-5 mb-6">
-                        {ASPECTS.map(aspect => (
-                            <div key={aspect.key} className="p-4 rounded-2xl"
-                                style={{ backgroundColor: 'white', border: '1px solid var(--color-ucw-border)' }}>
-                                <p className="text-[13px] font-semibold mb-3" style={{ color: 'var(--color-ucw-text)' }}>
-                                    {aspect.label}
-                                </p>
-                                <StarRow
-                                    value={ratings[aspect.key]}
-                                    onChange={val => handleRating(aspect.key, val)}
-                                />
-                            </div>
-                        ))}
-                    </div>
+            <CustomerLayout hideTopBar>
+                {/* MOBILE */}
+                <div
+                    className="md:hidden min-h-svh flex flex-col"
+                    style={{ backgroundColor: "var(--color-ucw-bg)" }}
+                >
+                    <TopBar
+                        tableId={tableId}
+                        title="Feedback"
+                        subtitle={`Order #${orderRef}`}
+                        showBack
+                        backHref={route("customer.status", {
+                            tableId,
+                            orderId,
+                        })}
+                    />
 
-                    {/* Written comment */}
-                    <div className="p-4 rounded-2xl" style={{ backgroundColor: 'white', border: '1px solid var(--color-ucw-border)' }}>
-                        <p className="text-[13px] font-semibold mb-3" style={{ color: 'var(--color-ucw-text)' }}>
-                            Tell us more (optional)
-                        </p>
-                        <textarea
-                            rows={4}
-                            placeholder="What did you love? What could we improve?"
+                    <div className="flex-1 px-5 pb-8">
+                        <FeedbackHero />
+
+                        <div className="mt-8">
+                            <p
+                                className="font-bold mb-4 text-center"
+                                style={{
+                                    fontSize: "16px",
+                                    color: "var(--color-ucw-text-muted)",
+                                }}
+                            >
+                                Rate your experience
+                            </p>
+
+                            <StarRating value={rating} onChange={setRating} />
+                        </div>
+
+                        <FeedbackTextarea
                             value={comment}
-                            onChange={e => setComment(e.target.value)}
-                            className="w-full text-[13px] resize-none rounded-xl p-3 outline-none"
-                            style={{
-                                backgroundColor: 'var(--color-ucw-bg)',
-                                border: '1px solid var(--color-ucw-border)',
-                                color: 'var(--color-ucw-text)',
-                            }}
+                            onChange={setComment}
+                            className="mt-9"
+                        />
+
+                        <div className="grid grid-cols-2 gap-4 mt-8">
+                            <InfoCard
+                                label="ORDER"
+                                value={`#${orderRef}`}
+                                subValue={`Table ${tableNumber}`}
+                                type="order"
+                            />
+
+                            <InfoCard
+                                label="VISIT TIME"
+                                value={visitTime}
+                                subValue="Today"
+                                type="time"
+                            />
+                        </div>
+
+                        <SubmitSection
+                            rating={rating}
+                            onSubmit={handleSubmit}
+                            onReturnHome={handleReturnHome}
+                            className="mt-9"
                         />
                     </div>
                 </div>
 
-                {/* Footer CTA */}
-                <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] px-5 pb-8 pt-4 z-50"
-                    style={{ background: 'linear-gradient(to top, var(--color-ucw-bg) 70%, transparent)' }}>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={ratings.overall === 0}
-                        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-[15px] font-semibold transition-all active:scale-[0.98]"
-                        style={{
-                            backgroundColor: ratings.overall > 0 ? 'var(--color-ucw-dark)' : 'var(--color-ucw-border)',
-                            color: ratings.overall > 0 ? 'white' : 'var(--color-ucw-text-muted)',
-                        }}
-                    >
-                        Submit Feedback
-                    </button>
+                {/* DESKTOP */}
+                <div
+                    className="hidden md:flex h-svh max-h-svh overflow-hidden"
+                    style={{ backgroundColor: "#E8E1D8" }}
+                >
+                    <main className="flex-1 overflow-y-auto flex flex-col">
+                        <CustomerDesktopHeader
+                            tableId={tableId}
+                            title="Feedback"
+                            subtitle={`Order #${orderRef}`}
+                            backHref={route("customer.status", {
+                                tableId,
+                                orderId,
+                            })}
+                            active="track"
+                        />
+
+                        <div className="flex-1 max-w-4xl mx-auto w-full px-8 lg:px-10 py-8">
+                            <div className="grid grid-cols-[1.05fr_0.95fr] gap-6">
+                                <div className="flex flex-col gap-6">
+                                    <FeedbackHero desktop />
+
+                                    <div
+                                        className="rounded-3xl p-6"
+                                        style={{
+                                            backgroundColor: "white",
+                                            border: "1px solid var(--color-ucw-border)",
+                                        }}
+                                    >
+                                        <p
+                                            className="font-semibold uppercase tracking-[0.14em] mb-4"
+                                            style={{
+                                                fontSize: "10px",
+                                                color: "var(--color-ucw-text-muted)",
+                                            }}
+                                        >
+                                            YOUR RATING
+                                        </p>
+
+                                        <StarRating
+                                            value={rating}
+                                            onChange={setRating}
+                                            desktop
+                                        />
+                                    </div>
+
+                                    <FeedbackTextarea
+                                        value={comment}
+                                        onChange={setComment}
+                                    />
+                                </div>
+
+                                <aside className="flex flex-col gap-5">
+                                    <div
+                                        className="rounded-3xl p-6"
+                                        style={{
+                                            backgroundColor: "white",
+                                            border: "1px solid var(--color-ucw-border)",
+                                        }}
+                                    >
+                                        <h2
+                                            className="font-black mb-2"
+                                            style={{
+                                                fontSize: "22px",
+                                                color: "var(--color-ucw-dark)",
+                                            }}
+                                        >
+                                            Share your feedback
+                                        </h2>
+
+                                        <p
+                                            className="leading-relaxed"
+                                            style={{
+                                                fontSize: "13px",
+                                                color: "var(--color-ucw-text-muted)",
+                                            }}
+                                        >
+                                            Your feedback helps us improve the
+                                            coffee, service, and workspace
+                                            experience for every guest.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InfoCard
+                                            label="ORDER"
+                                            value={`#${orderRef}`}
+                                            subValue={`Table ${tableNumber}`}
+                                            type="order"
+                                        />
+
+                                        <InfoCard
+                                            label="VISIT TIME"
+                                            value={visitTime}
+                                            subValue="Today"
+                                            type="time"
+                                        />
+                                    </div>
+
+                                    <SubmitSection
+                                        rating={rating}
+                                        onSubmit={handleSubmit}
+                                        onReturnHome={handleReturnHome}
+                                    />
+                                </aside>
+                            </div>
+                        </div>
+                    </main>
                 </div>
             </CustomerLayout>
         </>
+    );
+}
+
+function FeedbackHero({ desktop = false }: { desktop?: boolean }) {
+    return (
+        <div
+            className="relative rounded-[30px] overflow-hidden"
+            style={{ height: desktop ? "260px" : "200px" }}
+        >
+            <img
+                src={COFFEE_PLACEHOLDER}
+                alt="Coffee"
+                className="w-full h-full object-cover"
+                style={{ filter: "brightness(0.68)" }}
+            />
+
+            <div
+                className="absolute inset-0"
+                style={{
+                    background:
+                        "linear-gradient(to bottom, rgba(20,12,6,0.05), rgba(20,12,6,0.50))",
+                }}
+            />
+
+            <div className="absolute left-7 right-7 bottom-7">
+                <p
+                    className="font-bold uppercase tracking-[0.24em] mb-2 text-white"
+                    style={{ fontSize: "11px" }}
+                >
+                    THANK YOU FOR VISITING
+                </p>
+
+                <h1
+                    className="font-black leading-tight text-white"
+                    style={{ fontSize: desktop ? "34px" : "30px" }}
+                >
+                    How was your
+                    <br />
+                    brew today?
+                </h1>
+            </div>
+        </div>
+    );
+}
+
+function StarRating({
+    value,
+    onChange,
+    desktop = false,
+}: {
+    value: number;
+    onChange: (value: number) => void;
+    desktop?: boolean;
+}) {
+    const [hovered, setHovered] = useState(0);
+
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-center gap-3">
+                {[1, 2, 3, 4, 5].map((star) => {
+                    const filled = star <= (hovered || value);
+
+                    return (
+                        <button
+                            key={star}
+                            onClick={() => onChange(star)}
+                            onMouseEnter={() => setHovered(star)}
+                            onMouseLeave={() => setHovered(0)}
+                            className="transition-transform active:scale-90 hover:scale-110"
+                            aria-label={`Rate ${star} star`}
+                        >
+                            <span
+                                style={{
+                                    fontSize: desktop ? "42px" : "36px",
+                                    lineHeight: 1,
+                                    color: filled
+                                        ? "var(--color-ucw-dark)"
+                                        : "#D8CBC7",
+                                    transition: "color 0.15s",
+                                }}
+                            >
+                                ★
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            <p
+                className="font-semibold tracking-widest uppercase"
+                style={{
+                    fontSize: "11px",
+                    color: "var(--color-ucw-text-muted)",
+                }}
+            >
+                {value > 0 ? `${value}.0 / 5.0 Rating` : "0.0 / 5.0 Rating"}
+            </p>
+        </div>
+    );
+}
+
+function FeedbackTextarea({
+    value,
+    onChange,
+    className = "",
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    className?: string;
+}) {
+    return (
+        <div className={className}>
+            <label
+                className="block font-bold uppercase tracking-[0.16em] mb-4"
+                style={{
+                    fontSize: "12px",
+                    color: "var(--color-ucw-dark)",
+                }}
+            >
+                Your thoughts
+            </label>
+
+            <div className="relative">
+                <textarea
+                    rows={5}
+                    placeholder="Tell us about the atmosphere, the coffee, or the workspace..."
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full resize-none rounded-[24px] px-6 py-6 outline-none leading-relaxed"
+                    style={{
+                        minHeight: "168px",
+                        backgroundColor: "white",
+                        border: "1px solid var(--color-ucw-border)",
+                        color: "var(--color-ucw-text)",
+                        fontSize: "15px",
+                    }}
+                />
+
+                <svg
+                    className="absolute right-6 bottom-6 opacity-30"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--color-ucw-text-muted)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+            </div>
+        </div>
+    );
+}
+
+function VibeSlider({
+    value,
+    onChange,
+}: {
+    value: number;
+    onChange: (value: number) => void;
+}) {
+    return (
+        <div>
+            <p
+                className="font-semibold uppercase tracking-[0.14em] mb-4"
+                style={{
+                    fontSize: "10px",
+                    color: "var(--color-ucw-text-muted)",
+                }}
+            >
+                Describe the vibe
+            </p>
+
+            <div className="flex items-center gap-3">
+                <span
+                    className="text-left font-semibold uppercase"
+                    style={{
+                        fontSize: "11px",
+                        color: "var(--color-ucw-text-muted)",
+                        width: "44px",
+                    }}
+                >
+                    Quiet
+                </span>
+
+                <div
+                    className="relative flex-1 h-[3px] rounded-full"
+                    style={{
+                        backgroundColor: "var(--color-ucw-border-dark)",
+                    }}
+                >
+                    <div
+                        className="absolute top-0 left-0 h-full rounded-full transition-all"
+                        style={{
+                            width: `${value}%`,
+                            backgroundColor: "var(--color-ucw-dark)",
+                        }}
+                    />
+
+                    <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={value}
+                        onChange={(e) => onChange(Number(e.target.value))}
+                        className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+                    />
+
+                    <div
+                        className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full shadow-md transition-all"
+                        style={{
+                            left: `calc(${value}% - 12px)`,
+                            backgroundColor: "var(--color-ucw-dark)",
+                            pointerEvents: "none",
+                        }}
+                    />
+                </div>
+
+                <span
+                    className="text-right font-semibold uppercase"
+                    style={{
+                        fontSize: "11px",
+                        color: "var(--color-ucw-text-muted)",
+                        width: "44px",
+                    }}
+                >
+                    Lively
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function InfoCard({
+    label,
+    value,
+    subValue,
+    type,
+}: {
+    label: string;
+    value: string;
+    subValue: string;
+    type: "order" | "time";
+}) {
+    const isTime = type === "time";
+
+    return (
+        <div
+            className="rounded-[22px] px-5 py-5"
+            style={{
+                backgroundColor: isTime ? "#D8ECD2" : "white",
+                border: isTime ? "none" : "1px solid var(--color-ucw-border)",
+                boxShadow: "0 18px 40px rgba(0,0,0,0.04)",
+            }}
+        >
+            <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={isTime ? "#5E715A" : "var(--color-ucw-text-muted)"}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                {isTime ? (
+                    <>
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" />
+                    </>
+                ) : (
+                    <>
+                        <path d="M8 2v4" />
+                        <path d="M16 2v4" />
+                        <rect x="4" y="4" width="16" height="18" rx="2" />
+                        <path d="M8 10h8" />
+                        <path d="M8 14h6" />
+                        <path d="M8 18h4" />
+                    </>
+                )}
+            </svg>
+
+            <p
+                className="font-bold uppercase tracking-[0.14em] mt-5 mb-2"
+                style={{
+                    fontSize: "10px",
+                    color: isTime ? "#7D8F78" : "var(--color-ucw-text-muted)",
+                }}
+            >
+                {label}
+            </p>
+
+            <p
+                className="font-black leading-snug break-words"
+                style={{
+                    fontSize: "16px",
+                    color: isTime ? "#5B6E56" : "var(--color-ucw-dark)",
+                }}
+            >
+                {value}
+                <br />
+                {subValue}
+            </p>
+        </div>
+    );
+}
+
+function SubmitSection({
+    rating,
+    onSubmit,
+    onReturnHome,
+    className = "",
+}: {
+    rating: number;
+    onSubmit: () => void;
+    onReturnHome: () => void;
+    className?: string;
+}) {
+    return (
+        <div className={className}>
+            <button
+                onClick={onSubmit}
+                disabled={rating === 0}
+                className="w-full rounded-full font-bold text-white transition-all active:scale-[0.98]"
+                style={{
+                    height: "62px",
+                    fontSize: "16px",
+                    backgroundColor:
+                        rating > 0 ? "var(--color-ucw-dark)" : "#CFC5C0",
+                    boxShadow:
+                        rating > 0 ? "0 16px 30px rgba(45,26,14,0.22)" : "none",
+                    cursor: rating > 0 ? "pointer" : "not-allowed",
+                }}
+            >
+                Submit Feedback
+            </button>
+
+            <p
+                className="text-center mt-4 leading-relaxed"
+                style={{
+                    fontSize: "11px",
+                    color: "var(--color-ucw-text-muted)",
+                }}
+            >
+                By submitting, you help us refine the Unand experience.
+            </p>
+
+            <button
+                onClick={onReturnHome}
+                className="w-full mt-4 h-10 font-semibold uppercase tracking-[0.12em]"
+                style={{
+                    fontSize: "11px",
+                    color: "var(--color-ucw-text-muted)",
+                }}
+            >
+                Return Home
+            </button>
+        </div>
+    );
+}
+
+function ThankYouScreen({ onReturnHome }: { onReturnHome: () => void }) {
+    return (
+        <div
+            className="min-h-svh flex items-center justify-center px-6"
+            style={{ backgroundColor: "var(--color-ucw-bg)" }}
+        >
+            <div
+                className="w-full max-w-[420px] rounded-[32px] px-8 py-10 text-center"
+                style={{
+                    backgroundColor: "white",
+                    border: "1px solid var(--color-ucw-border)",
+                    boxShadow: "0 24px 70px rgba(45,26,14,0.12)",
+                }}
+            >
+                <div
+                    className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+                    style={{
+                        backgroundColor: "var(--color-ucw-green-bg)",
+                    }}
+                >
+                    <span style={{ fontSize: 44 }}>🙏</span>
+                </div>
+
+                <h1
+                    className="font-black tracking-tight mb-3"
+                    style={{
+                        fontSize: "30px",
+                        color: "var(--color-ucw-dark)",
+                    }}
+                >
+                    Thank you!
+                </h1>
+
+                <p
+                    className="leading-relaxed mx-auto"
+                    style={{
+                        fontSize: "14px",
+                        color: "var(--color-ucw-text-muted)",
+                        maxWidth: "280px",
+                    }}
+                >
+                    Your feedback helps us craft a better experience for every
+                    guest.
+                </p>
+
+                <button
+                    onClick={onReturnHome}
+                    className="w-full mt-7 h-12 rounded-2xl font-bold text-white"
+                    style={{ backgroundColor: "var(--color-ucw-dark)" }}
+                >
+                    Return Home
+                </button>
+
+                <p
+                    className="mt-4"
+                    style={{
+                        fontSize: "11px",
+                        color: "var(--color-ucw-text-muted)",
+                    }}
+                >
+                    Redirecting automatically...
+                </p>
+            </div>
+        </div>
     );
 }
