@@ -36,8 +36,8 @@ return [
     ],
 
     'ai' => [
-        'base_url' => env('AI_SERVICE_URL', 'http://localhost:8000'),
-        'timeout' => env('AI_SERVICE_TIMEOUT', 10),
+        'base_url' => env('AI_SERVICE_URL', 'http://localhost:8001'),
+        'timeout'  => env('AI_SERVICE_TIMEOUT', 10),
     ],
 
     'midtrans' => [

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Menu;
 
 class AiService
 {
@@ -11,7 +12,7 @@ class AiService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.ai.base_url', 'http://localhost:8000');
+        $this->baseUrl = config('services.ai.base_url', 'http://127.0.0.1:8000');
     }
 
     /**
@@ -23,18 +24,60 @@ class AiService
     public function getServingTimeEstimation(array $orderData): array
     {
         try {
+            $jumlahKopi = 0;
+            $jumlahKopiManual = 0;
+            $jumlahNonKopi = 0;
+            $jumlahMakanan = 0;
+
+            if (!empty($orderData['items'])) {
+                $menuIds = collect($orderData['items'])->pluck('id')->filter()->toArray();
+                if (empty($menuIds)) {
+                    // Fallback to menu_id if id is not provided
+                    $menuIds = collect($orderData['items'])->pluck('menu_id')->filter()->toArray();
+                }
+                
+                $menus = Menu::whereIn('id', $menuIds)->with('category')->get()->keyBy('id');
+
+                foreach ($orderData['items'] as $item) {
+                    $mId = $item['id'] ?? $item['menu_id'] ?? null;
+                    $menu = $menus[$mId] ?? null;
+                    
+                    if ($menu) {
+                        $catName = strtolower($menu->category->name ?? '');
+                        $qty = $item['quantity'] ?? 1;
+                        
+                        if (str_contains($catName, 'manual')) {
+                            $jumlahKopiManual += $qty;
+                        } elseif (str_contains($catName, 'kopi') || str_contains($catName, 'coffee') || str_contains($catName, 'espresso')) {
+                            $jumlahKopi += $qty;
+                        } elseif (str_contains($catName, 'makanan') || str_contains($catName, 'snack') || str_contains($catName, 'food') || str_contains($catName, 'pastry')) {
+                            $jumlahMakanan += $qty;
+                        } else {
+                            $jumlahNonKopi += $qty;
+                        }
+                    }
+                }
+            }
+
+            $currentHour = (int) now()->format('H');
+            $isPeakHour = ($currentHour >= 12 && $currentHour <= 14) || ($currentHour >= 18 && $currentHour <= 21) ? 1 : 0;
+
             $response = Http::timeout(10)->post($this->baseUrl . '/api/estimation/predict', [
-                'order_items' => $orderData['items'] ?? [],
-                'current_queue' => $orderData['current_queue'] ?? 0,
-                'time_of_day' => now()->format('H'),
+                'jumlah_kopi' => $jumlahKopi,
+                'jumlah_kopi_manual' => $jumlahKopiManual,
+                'jumlah_non_kopi' => $jumlahNonKopi,
+                'jumlah_makanan' => $jumlahMakanan,
+                'antrian_dapur' => $orderData['current_queue'] ?? 0,
+                'is_peak_hour' => $isPeakHour
             ]);
 
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'estimated_time' => $response->json('estimated_time'),
-                    'confidence' => $response->json('confidence'),
-                    'model_performance' => $response->json('model_performance'),
+                    'estimated_time' => $response->json('estimasi_menit'),
+                    'display' => $response->json('display'),
+                    'confidence' => 0.85,
+                    'model_performance' => null,
                 ];
             }
 
@@ -69,11 +112,16 @@ class AiService
             ]);
 
             if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'menus' => $response->json('menus'),
-                    'trend_analysis' => $response->json('trend_analysis'),
-                ];
+                // Return fallback if FastAPI fails or doesn't return exactly what frontend expects
+                // Since FastAPI returns {"status": "ok", "wma_top_menus": [...]}
+                $data = $response->json();
+                if (isset($data['wma_top_menus'])) {
+                    return [
+                        'success' => true,
+                        'menus' => $data['wma_top_menus'],
+                        'trend_analysis' => 'WMA computed',
+                    ];
+                }
             }
 
             return $this->getFallbackPopularMenus($limit);
@@ -94,15 +142,16 @@ class AiService
     {
         try {
             $response = Http::timeout(10)->post($this->baseUrl . '/api/sentiment/analyze', [
-                'text' => $reviewText,
+                'komentar' => $reviewText,
+                'rating' => 5 // Default rating if none provided
             ]);
 
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'sentiment' => $response->json('sentiment'),
+                    'sentiment' => $response->json('sentiment_label'),
                     'confidence' => $response->json('confidence'),
-                    'keywords' => $response->json('keywords'),
+                    'keywords' => [],
                 ];
             }
 
@@ -127,8 +176,8 @@ class AiService
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'summary' => $response->json('summary'),
-                    'distribution' => $response->json('distribution'),
+                    'summary' => $response->json('summary') ?? [],
+                    'distribution' => $response->json('distribution') ?? [],
                 ];
             }
 

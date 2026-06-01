@@ -1,0 +1,28 @@
+{
+  "fitur": [
+    "jumlah_kopi",
+    "jumlah_kopi_manual",
+    "jumlah_non_kopi",
+    "jumlah_makanan",
+    "antrian_dapur",
+    "is_peak_hour"
+  ],
+  "target": "waktu_penyajian",
+  "intercept": 1.9174,
+  "koefisien": {
+    "jumlah_kopi": 0.9354,
+    "jumlah_kopi_manual": 1.9177,
+    "jumlah_non_kopi": 1.0484,
+    "jumlah_makanan": 4.8457,
+    "antrian_dapur": 0.5969,
+    "is_peak_hour": 5.8829
+  },
+  "buffer_persen": 15,
+  "waktu_minimum": 1.0,
+  "sumber_data": "Wawancara barista Unand Co-Workspace, April 2026",
+  "catatan": {
+    "kopi_manual": "V60, Vietnam Drip, Japanese — lebih lama dari kopi reguler",
+    "peak_hour": "Jam 12-13 dan 14-15 (sumber: Q11 wawancara)",
+    "antrian": "+0.6 menit per pesanan antri (sumber: Q8 wawancara)"
+  }
+}
