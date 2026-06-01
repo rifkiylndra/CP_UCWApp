@@ -35,6 +35,56 @@ class DashboardController extends Controller
     }
 
     /**
+     * Display staff transactions history
+     */
+    public function transactions()
+    {
+        $today = now()->startOfDay();
+        
+        $orders = Order::with(['payments'])
+            ->whereDate('created_at', $today)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $transactions = $orders->map(function ($order) {
+            $paymentMethod = $order->payments->first()?->payment_method ?? 'cash';
+            
+            return [
+                'id' => (string)$order->id,
+                'orderId' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'customerName' => $order->customer_name ?? 'Walk-in Customer',
+                'time' => $order->created_at->format('H:i'),
+                'totalPrice' => (float)$order->total_price,
+                'paymentMethod' => ucfirst($paymentMethod),
+                'status' => $order->order_status,
+            ];
+        });
+
+        $cashTotal = $orders->filter(function ($order) {
+            $method = $order->payments->first()?->payment_method ?? 'cash';
+            return strtolower($method) === 'cash' && $order->order_status === 'completed';
+        })->sum('total_price');
+
+        $digitalTotal = $orders->filter(function ($order) {
+            $method = $order->payments->first()?->payment_method ?? 'cash';
+            return strtolower($method) !== 'cash' && $order->order_status === 'completed';
+        })->sum('total_price');
+
+        $summary = [
+            'cashTotal' => $cashTotal,
+            'digitalTotal' => $digitalTotal,
+            'totalRevenue' => $cashTotal + $digitalTotal,
+            'totalOrders' => $orders->count(),
+        ];
+
+        return Inertia::render('Staff/Transactions', [
+            'transactions' => $transactions,
+            'summary' => $summary,
+            'date' => now()->format('d M Y'),
+        ]);
+    }
+
+    /**
      * Transform orders to Kanban format
      */
     private function transformOrders($orders)

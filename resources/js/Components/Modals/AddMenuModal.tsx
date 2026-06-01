@@ -6,17 +6,18 @@ interface MenuModalProps {
   open: boolean;
   onClose: () => void;
   editData?: any | null;
+  categories?: any[];
 }
 
-export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
+export default function MenuModal({ open, onClose, editData, categories = [] }: MenuModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const { data, setData, post, processing, reset } = useForm({
+  const { data, setData, post, processing, reset, errors } = useForm({
     name: "",
-    category: "Espresso Based",
+    category_id: "",
     price: "",
     description: "",
-    isAvailable: true,
+    is_available: true,
     image: null as File | null,
   });
 
@@ -26,18 +27,19 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
     if (editData) {
       setData({
         name: editData.name || "",
-        category: editData.category || "Espresso Based",
+        category_id: editData.category_id || (categories[0]?.id || ""),
         price: editData.price || "",
-        description: editData.desc || "",
-        isAvailable: editData.available ?? true,
+        description: editData.description || "",
+        is_available: editData.is_available ?? true,
         image: null,
       });
-      setImagePreview(editData.img || null);
+      setImagePreview(editData.image_url || null);
     } else {
       reset();
+      setData("category_id", categories[0]?.id || "");
       setImagePreview(null);
     }
-  }, [open, editData]);
+  }, [open, editData, categories]);
 
   if (!open) return null;
 
@@ -97,6 +99,7 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
               onImageChange={handleImageChange}
               dark
             />
+            {errors.image && <p className="mt-1 text-center text-[11px] text-red-400">{errors.image}</p>}
 
             <div className="flex items-center gap-3 text-[13px] text-white/60">
               <span className="h-[4px] w-10 rounded-full bg-[#E8C06B]" />
@@ -129,6 +132,7 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
               imagePreview={imagePreview}
               onImageChange={handleImageChange}
             />
+            {errors.image && <p className="mt-2 text-center text-[11px] text-red-500">{errors.image}</p>}
           </div>
 
           <form
@@ -150,21 +154,22 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
               <Field label="Category">
                 <div className="relative">
                   <select
-                    value={data.category}
-                    onChange={(e) => setData("category", e.target.value)}
+                    value={data.category_id}
+                    onChange={(e) => setData("category_id", e.target.value)}
                     className="h-12 w-full appearance-none rounded-[14px] border border-[#ECE8E6] bg-[#FAFAF9] px-4 pr-10 text-[14px] outline-none focus:ring-2 focus:ring-[#301713]/10 md:h-14 md:text-[15px]"
                   >
-                    <option>Espresso Based</option>
-                    <option>Milk Based</option>
-                    <option>Cold Brews</option>
-                    <option>Botanicals</option>
-                    <option>Bakery</option>
+                    {categories?.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown
                     size={18}
                     className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#5A4A47]"
                   />
                 </div>
+                {errors.category_id && <p className="mt-1 text-[11px] text-red-500">{errors.category_id}</p>}
               </Field>
 
               <Field label="Price (IDR)">
@@ -176,28 +181,30 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
                   className="h-12 w-full rounded-[14px] border border-[#ECE8E6] bg-[#FAFAF9] px-4 text-[14px] outline-none focus:ring-2 focus:ring-[#301713]/10 md:h-14 md:text-[15px]"
                   required
                 />
+                {errors.price && <p className="mt-1 text-[11px] text-red-500">{errors.price}</p>}
               </Field>
 
               <Field label="Availability">
                 <div className="flex h-12 items-center justify-between rounded-[14px] border border-[#ECE8E6] bg-[#FAFAF9] px-4 md:h-14">
                   <span className="text-[14px] font-medium text-[#271310] md:text-[15px]">
-                    {data.isAvailable ? "Available" : "Unavailable"}
+                    {data.is_available ? "Available" : "Unavailable"}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setData("isAvailable", !data.isAvailable)}
+                    onClick={() => setData("is_available", !data.is_available)}
                     className={`flex h-7 w-12 items-center rounded-full p-1 transition ${
-                      data.isAvailable ? "bg-[#60765D]" : "bg-[#E5E5E3]"
+                      data.is_available ? "bg-[#60765D]" : "bg-[#E5E5E3]"
                     }`}
                   >
                     <span
                       className={`h-5 w-5 rounded-full bg-white transition-transform ${
-                        data.isAvailable ? "translate-x-5" : "translate-x-0"
+                        data.is_available ? "translate-x-5" : "translate-x-0"
                       }`}
                     />
-                  </button>
-                </div>
-              </Field>
+                    </button>
+                  </div>
+                  {errors.is_available && <p className="mt-1 text-[11px] text-red-500">{errors.is_available}</p>}
+                </Field>
             </div>
 
             <div className="mt-4 md:mt-5">
@@ -209,6 +216,7 @@ export default function MenuModal({ open, onClose, editData }: MenuModalProps) {
                   placeholder="Describe the flavor notes, origin, and texture..."
                   className="w-full rounded-[16px] border border-[#ECE8E6] bg-[#FAFAF9] p-4 text-[14px] outline-none focus:ring-2 focus:ring-[#301713]/10 md:text-[15px]"
                 />
+                {errors.description && <p className="mt-1 text-[11px] text-red-500">{errors.description}</p>}
               </Field>
             </div>
           </form>

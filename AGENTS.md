@@ -198,7 +198,7 @@ Desktop : Staff & Admin dashboard
 - [x] Konversi desain Figma via MCP
 - [ ] Database migration & seeder
 - [ ] Authentication multi-role
-- [ ] Customer flow (order & payment)
+- [x] Customer flow (order & payment)
 - [ ] Staff dashboard realtime
 - [ ] Admin dashboard & CRUD
 - [ ] Midtrans payment integration

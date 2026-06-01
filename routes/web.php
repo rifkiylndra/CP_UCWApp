@@ -19,7 +19,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::get('/dashboard', [\App\Http\Controllers\Staff\DashboardController::class, 'index'])->name('dashboard');
     
     // Staff Transactions
-    Route::get('/transactions', fn () => Inertia::render('Staff/Transactions'))->name('transactions');
+    Route::get('/transactions', [\App\Http\Controllers\Staff\DashboardController::class, 'transactions'])->name('transactions');
     
     // Order management
     Route::get('/orders/status/{status}', [\App\Http\Controllers\Staff\DashboardController::class, 'getOrdersByStatus'])->name('orders.byStatus');
@@ -50,8 +50,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Rute Inertia Tambahan dari Frontend
     Route::get('/live-order', fn () => Inertia::render('Admin/LiveOrder'))->name('live-order');
     Route::get('/ai-analytics', fn () => Inertia::render('Admin/AIAnalytics'))->name('analytics-page');
-    Route::get('/menu', fn () => Inertia::render('Admin/Menu/Index'))->name('menu-page');
-    Route::get('/staff', fn () => Inertia::render('Admin/Staff/Index'))->name('staff-page');
+    // Menu Management
+    Route::get('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'index'])->name('menu');
+    Route::post('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'store'])->name('menu.store');
+    Route::post('/menu/{menu}', [\App\Http\Controllers\Admin\MenuController::class, 'update'])->name('menu.update');
+    Route::delete('/menu/{menu}', [\App\Http\Controllers\Admin\MenuController::class, 'destroy'])->name('menu.destroy');
+    
+    // Staff Management
+    Route::get('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'index'])->name('staff');
+    Route::post('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'store'])->name('staff.store');
+    Route::post('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'update'])->name('staff.update');
+    Route::delete('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'destroy'])->name('staff.destroy');
+    
     Route::get('/finances', fn () => Inertia::render('Admin/Finances'))->name('finances-page');
 
     // Statistics and charts
@@ -83,6 +93,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // ==================== CUSTOMER ROUTES ====================
 Route::prefix('customer')->name('customer.')->group(function () {
+    // Landing page
+    Route::get('/landing', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/Landing', [
+        'tableId' => $request->query('tableId', 'T01')
+    ]))->name('landing');
+    
     // Menu page (accessed via QR code)
     Route::get('/menu', [\App\Http\Controllers\Customer\MenuController::class, 'index'])->name('menu');
     
@@ -125,6 +140,31 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::get('/order/{order}/reviews', [\App\Http\Controllers\Customer\ReviewController::class, 'getOrderReviews'])->name('review.list');
     Route::get('/reviews/recent', [\App\Http\Controllers\Customer\ReviewController::class, 'getRecentReviews'])->name('review.recent');
     Route::get('/reviews/statistics', [\App\Http\Controllers\Customer\ReviewController::class, 'getStatistics'])->name('review.statistics');
+    
+    // Additional Customer Flow Routes (Inertia Direct Renders for Static Views)
+    Route::get('/order-type', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/OrderType', [
+        'tableId' => $request->query('tableId', 'T01')
+    ]))->name('order-type');
+    
+    Route::get('/estimate', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/Estimate', [
+        'tableId' => $request->query('tableId', 'T01')
+    ]))->name('estimate');
+    
+    Route::get('/payment/cash', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/CashConfirmation', [
+        'tableId' => $request->query('tableId', 'T01')
+    ]))->name('payment.cash');
+    
+    Route::get('/payment/online', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/OnlinePayment', [
+        'tableId' => $request->query('tableId', 'T01')
+    ]))->name('payment.online');
+    
+    Route::get('/order/{order}/feedback', fn (\Illuminate\Http\Request $request, $order) => Inertia::render('Customer/Feedback', [
+        'tableId' => $request->query('tableId', 'T01'),
+        'orderId' => $order
+    ]))->name('feedback');
+    
+    // AI Estimation Proxy for Customer
+    Route::post('/api/estimate', [\App\Http\Controllers\Customer\OrderController::class, 'getEstimatedTime'])->name('api.estimate');
 });
 
 // Fallback route (optional)

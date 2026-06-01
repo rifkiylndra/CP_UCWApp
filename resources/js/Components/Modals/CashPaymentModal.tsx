@@ -5,7 +5,7 @@ interface Props {
     order: KanbanOrder | null;
     isOpen: boolean;
     onClose: () => void;
-    onConfirmPayment: (orderId: string) => void;
+    onConfirmPayment: (orderId: string, amount: number) => void;
 }
 
 export default function CashPaymentModal({
@@ -102,7 +102,7 @@ export default function CashPaymentModal({
                 <button
                     disabled={!isEnough}
                     onClick={() => {
-                        onConfirmPayment(order.id);
+                        onConfirmPayment(order.id, received);
                         onClose();
                     }}
                     className="w-full rounded-2xl bg-[#271310] py-4 text-[15px] font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-40"

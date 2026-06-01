@@ -24,8 +24,12 @@ class PaymentController extends Controller
     {
         $order = Order::with(['orderDetails.menu'])->findOrFail($orderId);
         
-        return Inertia::render('Customer/Payment', [
+        return Inertia::render('Customer/ChoosePayment', [
             'order' => $order,
+            'tableId' => $order->table_id ?? 'T01',
+            'tableNumber' => $order->table ? $order->table->table_number : '05',
+            'total' => $order->total_price,
+            'orderId' => $order->id
         ]);
     }
 

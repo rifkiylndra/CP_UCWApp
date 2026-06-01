@@ -1,61 +1,76 @@
+import { useState, useEffect } from "react";
 import { Head, Link } from "@inertiajs/react";
+import axios from "axios";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
 import { formatIDR } from "@/lib/currency";
-
-interface OrderItem {
-    id: string;
-    name: string;
-    subtitle: string;
-    price: number;
-    quantity: number;
-    imageUrl: string;
-}
+import { useCart } from "@/hooks/useCart";
 
 interface Props {
     tableId: string;
     tableNumber?: string;
-    cartCount?: number;
-    estimatedMinMin?: number;
-    estimatedMinMax?: number;
-    items?: OrderItem[];
 }
 
 const PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
 
-const DEMO_ITEMS: OrderItem[] = [
-    {
-        id: "1",
-        name: "Signature Oat Latte",
-        subtitle: "12OZ • EXTRA HOT • OAT MILK",
-        price: 65000,
-        quantity: 1,
-        imageUrl: "",
-    },
-    {
-        id: "2",
-        name: "Double Espresso",
-        subtitle: "DOUBLE SHOT • ETHIOPIAN ROAST",
-        price: 40000,
-        quantity: 1,
-        imageUrl: "",
-    },
-];
-
 export default function Estimate({
     tableId,
     tableNumber = "05",
-    estimatedMinMin = 10,
-    estimatedMinMax = 15,
-    items = DEMO_ITEMS,
 }: Props) {
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const serviceFee = Math.round(subtotal * 0.08);
-    const total = subtotal + serviceFee;
-    const totalItems = items.reduce((s, i) => s + i.quantity, 0);
+    const { items, subtotal, tax: serviceFee, total, totalItems, customerName, orderType } = useCart();
+    
+    const [estimatedMinMin, setEstimatedMinMin] = useState<number>(10);
+    const [estimatedMinMax, setEstimatedMinMax] = useState<number>(15);
+    const [isLoadingEstimate, setIsLoadingEstimate] = useState(true);
+    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
+    const handleCreateOrder = async () => {
+        if (isCreatingOrder) return;
+        setIsCreatingOrder(true);
+        try {
+            const payload = {
+                table_id: tableId,
+                customer_name: customerName,
+                order_type: orderType || 'dine_in',
+                items: items.map(i => ({
+                    menu_id: i.menuId,
+                    quantity: i.quantity,
+                    price: i.price,
+                    note: i.notes || ''
+                }))
+            };
+            
+            const res = await axios.post('/customer/order', payload);
+            if (res.data.success && res.data.redirect_url) {
+                window.location.href = res.data.redirect_url;
+            } else {
+                console.error("Order creation failed", res.data);
+                setIsCreatingOrder(false);
+            }
+        } catch (error) {
+            console.error("Order error", error);
+            setIsCreatingOrder(false);
+        }
+    };
+
+    useEffect(() => {
+        if (items.length === 0) return;
+        
+        axios.post('/api/estimate', {
+            items: items.map(i => ({ menu_id: i.id, quantity: i.quantity }))
+        })
+        .then(res => {
+            if (res.data) {
+                setEstimatedMinMin(res.data.estimated_min_time || 10);
+                setEstimatedMinMax(res.data.estimated_max_time || 15);
+            }
+        })
+        .catch(err => console.error("Failed to fetch estimate", err))
+        .finally(() => setIsLoadingEstimate(false));
+    }, [items]);
 
     return (
         <>
@@ -84,6 +99,7 @@ export default function Estimate({
                         <EstimationCard
                             minMin={estimatedMinMin}
                             minMax={estimatedMinMax}
+                            isLoading={isLoadingEstimate}
                         />
 
                         <SelectionList
@@ -107,7 +123,7 @@ export default function Estimate({
                                 "linear-gradient(to top, var(--color-ucw-bg) 65%, transparent)",
                         }}
                     >
-                        <PaymentButton tableId={tableId} />
+                        <PaymentButton onClick={handleCreateOrder} isLoading={isCreatingOrder} />
                         <TrustNote />
                     </div>
                 </div>
@@ -137,6 +153,7 @@ export default function Estimate({
                                 <EstimationCard
                                     minMin={estimatedMinMin}
                                     minMax={estimatedMinMax}
+                                    isLoading={isLoadingEstimate}
                                     desktop
                                 />
 
@@ -235,7 +252,7 @@ export default function Estimate({
                             />
 
                             <div className="mt-6">
-                                <PaymentButton tableId={tableId} />
+                                <PaymentButton onClick={handleCreateOrder} isLoading={isCreatingOrder} />
                                 <TrustNote />
                             </div>
 
@@ -296,10 +313,12 @@ function PageHeading({ desktop = false }: { desktop?: boolean }) {
 function EstimationCard({
     minMin,
     minMax,
+    isLoading = false,
     desktop = false,
 }: {
     minMin: number;
     minMax: number;
+    isLoading?: boolean;
     desktop?: boolean;
 }) {
     return (
@@ -339,26 +358,32 @@ function EstimationCard({
                 Estimated Serve Time
             </p>
 
-            <div className="flex items-baseline gap-2 mb-5">
-                <span
-                    className="font-black leading-none"
-                    style={{
-                        fontSize: desktop ? "64px" : "52px",
-                        color: "white",
-                    }}
-                >
-                    {minMin}–{minMax}
-                </span>
+            <div className="flex items-baseline gap-2 mb-5 h-[64px]">
+                {isLoading ? (
+                    <div className="w-24 h-12 bg-white/20 rounded-xl animate-pulse" />
+                ) : (
+                    <>
+                        <span
+                            className="font-black leading-none"
+                            style={{
+                                fontSize: desktop ? "64px" : "52px",
+                                color: "white",
+                            }}
+                        >
+                            {minMin}–{minMax}
+                        </span>
 
-                <span
-                    className="font-semibold"
-                    style={{
-                        fontSize: "20px",
-                        color: "rgba(255,255,255,0.55)",
-                    }}
-                >
-                    min
-                </span>
+                        <span
+                            className="font-semibold"
+                            style={{
+                                fontSize: "20px",
+                                color: "rgba(255,255,255,0.55)",
+                            }}
+                        >
+                            min
+                        </span>
+                    </>
+                )}
             </div>
 
             <div className="flex-1" />
@@ -405,7 +430,7 @@ function SelectionList({
     className = "",
     desktop = false,
 }: {
-    items: OrderItem[];
+    items: any[];
     tableId: string;
     className?: string;
     desktop?: boolean;
@@ -451,7 +476,7 @@ function SelectionList({
     );
 }
 
-function OrderSelectionItem({ item }: { item: OrderItem }) {
+function OrderSelectionItem({ item }: { item: any }) {
     return (
         <div className="flex items-center gap-3">
             <div
@@ -505,7 +530,7 @@ function OrderSelectionItem({ item }: { item: OrderItem }) {
     );
 }
 
-function MiniItemList({ items }: { items: OrderItem[] }) {
+function MiniItemList({ items }: { items: any[] }) {
     return (
         <div className="flex flex-col gap-4">
             {items.map((item) => (
@@ -601,32 +626,37 @@ function PriceSummary({
     );
 }
 
-function PaymentButton({ tableId }: { tableId: string }) {
+function PaymentButton({ onClick, isLoading }: { onClick: () => void; isLoading: boolean }) {
     return (
-        <Link
-            href={route("customer.payment", { tableId })}
+        <button
+            onClick={onClick}
+            disabled={isLoading}
             className="w-full flex items-center justify-center gap-2.5 rounded-2xl font-bold transition-all active:scale-[0.98] text-white"
             style={{
                 height: "54px",
                 fontSize: "15px",
-                backgroundColor: "var(--color-ucw-dark)",
-                boxShadow: "0 4px 20px rgba(45,26,14,0.25)",
+                backgroundColor: isLoading ? "var(--color-ucw-border)" : "var(--color-ucw-dark)",
+                color: isLoading ? "var(--color-ucw-text-muted)" : "white",
+                boxShadow: isLoading ? "none" : "0 4px 20px rgba(45,26,14,0.25)",
+                cursor: isLoading ? "not-allowed" : "pointer"
             }}
         >
-            Continue to Payment
-            <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-        </Link>
+            {isLoading ? "Processing..." : "Continue to Payment"}
+            {!isLoading && (
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            )}
+        </button>
     );
 }
 

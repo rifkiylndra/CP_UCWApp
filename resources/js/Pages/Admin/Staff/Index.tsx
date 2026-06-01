@@ -12,52 +12,18 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { router, Link } from "@inertiajs/react";
+
 interface StaffIndexProps {
   auth: { user: AdminUser };
+  staffs: any; // data pagination dari Laravel
 }
 
-export default function StaffIndex({ auth }: StaffIndexProps) {
+export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
 
-  const staff = [
-    {
-      id: "#UCW-2042",
-      name: "Marcus Holloway",
-      email: "marcus.h@unand.co",
-      role: "Barista",
-      roleColor: "green",
-      date: "Oct 12, 2023",
-      img: "https://i.pravatar.cc/100?img=13",
-    },
-    {
-      id: "#UCW-2045",
-      name: "Sarah Chen",
-      email: "s.chen@unand.co",
-      role: "Cashier",
-      roleColor: "yellow",
-      date: "Nov 05, 2023",
-      img: "https://i.pravatar.cc/100?img=32",
-    },
-    {
-      id: "#UCW-2051",
-      name: "Julian Vane",
-      email: "j.vane@unand.co",
-      role: "Barista",
-      roleColor: "green",
-      date: "Jan 18, 2024",
-      img: "https://i.pravatar.cc/100?img=15",
-    },
-    {
-      id: "#UCW-2058",
-      name: "Amelie Rocher",
-      email: "amelie.r@unand.co",
-      role: "Cashier",
-      roleColor: "yellow",
-      date: "Feb 02, 2024",
-      img: "https://i.pravatar.cc/100?img=44",
-    },
-  ];
+  const staff = staffs?.data || [];
 
   const handleAdd = () => {
     setSelectedStaff(null);
@@ -70,7 +36,9 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
   };
 
   const handleDelete = (id: string) => {
-    console.log("Delete staff:", id);
+    if (confirm("Apakah Anda yakin ingin menghapus staff ini?")) {
+      router.delete(route("admin.staff.destroy", id as any));
+    }
   };
 
   return (
@@ -151,7 +119,7 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
               <RoleBadge item={item} />
 
               <p className="text-[14px] font-medium text-[#5A4A47]">
-                {item.date}
+                {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
 
               <ActionButtons
@@ -161,7 +129,7 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter />
+          <PaginationFooter data={staffs} />
         </div>
 
         {/* Mobile Card List */}
@@ -185,7 +153,7 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
             >
               <div className="flex gap-4">
                 <img
-                  src={item.img}
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random`}
                   alt={item.name}
                   className="h-[64px] w-[64px] shrink-0 rounded-[18px] object-cover"
                 />
@@ -207,7 +175,7 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
                   </div>
 
                   <p className="mb-4 text-[12px] font-medium text-[#5A4A47]">
-                    Registered: {item.date}
+                    Registered: {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -232,7 +200,7 @@ export default function StaffIndex({ auth }: StaffIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter mobile />
+          <PaginationFooter data={staffs} mobile />
         </div>
 
         <div className="rounded-[24px] bg-[#3A1D18] p-6 text-white shadow-[0_18px_42px_rgba(39,19,16,0.16)] md:rounded-[34px] md:p-12">
@@ -298,7 +266,7 @@ function StaffIdentity({ item }: { item: any }) {
   return (
     <div className="flex items-center gap-4">
       <img
-        src={item.img}
+        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random`}
         alt={item.name}
         className="h-10 w-10 rounded-[10px] object-cover"
       />
@@ -315,7 +283,7 @@ function RoleBadge({ item }: { item: any }) {
     <div>
       <span
         className={`inline-flex rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[0.08em] md:px-4 md:text-[10px] ${
-          item.roleColor === "yellow"
+          item.role === "admin"
             ? "bg-[#FFE3A7] text-[#8C651C]"
             : "bg-[#DDEED8] text-[#60765D]"
         }`}
@@ -352,7 +320,9 @@ function ActionButtons({
   );
 }
 
-function PaginationFooter({ mobile = false }: { mobile?: boolean }) {
+function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolean }) {
+  if (!data || !data.links) return null;
+
   return (
     <div
       className={[
@@ -361,22 +331,44 @@ function PaginationFooter({ mobile = false }: { mobile?: boolean }) {
       ].join(" ")}
     >
       <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-        Showing 1 to 4 of 24 staff
+        Showing {data.from || 0} to {data.to || 0} of {data.total || 0} staff
       </p>
 
-      <div className="flex items-center gap-2 md:gap-3">
-        <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white md:h-10 md:w-10">
-          <ChevronLeft size={17} />
-        </button>
-        <button className="h-9 w-9 rounded-[10px] bg-[#301713] text-[13px] font-extrabold text-white md:h-10 md:w-10">
-          1
-        </button>
-        <button className="hidden h-10 w-10 rounded-[10px] border border-[#E8E3E1] text-[13px] font-semibold md:block">
-          2
-        </button>
-        <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white md:h-10 md:w-10">
-          <ChevronRight size={17} />
-        </button>
+      <div className="flex items-center gap-1 md:gap-2">
+        {data.links.map((link: any, index: number) => {
+          let label = link.label;
+          if (String(label).includes("Previous")) label = <ChevronLeft size={17} />;
+          if (String(label).includes("Next")) label = <ChevronRight size={17} />;
+
+          return link.url ? (
+            <Link
+              key={index}
+              href={link.url}
+              className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-semibold transition md:h-10 md:w-10 ${
+                link.active
+                  ? "bg-[#301713] text-white"
+                  : "border border-[#E8E3E1] bg-white text-[#5A4A47] hover:bg-[#F4F4F3]"
+              }`}
+            >
+              {typeof label === "string" ? (
+                <span dangerouslySetInnerHTML={{ __html: label }} />
+              ) : (
+                label
+              )}
+            </Link>
+          ) : (
+            <span
+              key={index}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10 md:w-10"
+            >
+              {typeof label === "string" ? (
+                <span dangerouslySetInnerHTML={{ __html: label }} />
+              ) : (
+                label
+              )}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

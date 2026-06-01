@@ -4,7 +4,7 @@ import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
-import type { OrderType } from "@/types/customer";
+import { useCart } from "@/hooks/useCart";
 
 interface Props {
     tableId: string;
@@ -15,16 +15,16 @@ interface Props {
 export default function OrderTypePage({
     tableId,
     tableNumber = "05",
-    cartCount = 0,
 }: Props) {
-    const [selected, setSelected] = useState<OrderType | null>(null);
-    const [name, setName] = useState("");
+    const { orderType, setOrderType, customerName, setCustomerName, totalItems } = useCart();
     const [nameError, setNameError] = useState("");
+
+    const selected = orderType === 'takeaway' ? 'takeaway' : (orderType === 'dine_in' ? 'dine-in' : null);
 
     function handleConfirm() {
         if (!selected) return;
 
-        if (selected === "takeaway" && !name.trim()) {
+        if (selected === "takeaway" && !customerName.trim()) {
             setNameError("Please enter your name.");
             return;
         }
@@ -62,21 +62,21 @@ export default function OrderTypePage({
                                 selected={selected === "dine-in"}
                                 tableNumber={tableNumber}
                                 onSelect={() => {
-                                    setSelected("dine-in");
+                                    setOrderType("dine_in");
                                     setNameError("");
                                 }}
                             />
 
                             <TakeawayCard
                                 selected={selected === "takeaway"}
-                                name={name}
+                                name={customerName}
                                 nameError={nameError}
                                 onSelect={() => {
-                                    setSelected("takeaway");
+                                    setOrderType("takeaway");
                                     setNameError("");
                                 }}
                                 onNameChange={(value) => {
-                                    setName(value);
+                                    setCustomerName(value);
                                     setNameError("");
                                 }}
                             />
@@ -125,7 +125,7 @@ export default function OrderTypePage({
                                     selected={selected === "dine-in"}
                                     tableNumber={tableNumber}
                                     onSelect={() => {
-                                        setSelected("dine-in");
+                                        setOrderType("dine_in");
                                         setNameError("");
                                     }}
                                     desktop
@@ -133,14 +133,14 @@ export default function OrderTypePage({
 
                                 <TakeawayCard
                                     selected={selected === "takeaway"}
-                                    name={name}
+                                    name={customerName}
                                     nameError={nameError}
                                     onSelect={() => {
-                                        setSelected("takeaway");
+                                        setOrderType("takeaway");
                                         setNameError("");
                                     }}
                                     onNameChange={(value) => {
-                                        setName(value);
+                                        setCustomerName(value);
                                         setNameError("");
                                     }}
                                     desktop
@@ -182,12 +182,12 @@ export default function OrderTypePage({
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
                             <SelectedSummary
-                                selected={selected}
+                                selected={selected as 'dine-in' | 'takeaway' | null}
                                 tableNumber={tableNumber}
-                                name={name}
+                                name={customerName}
                             />
 
-                            <ExpectationTips selected={selected} />
+                            <ExpectationTips selected={selected as 'dine-in' | 'takeaway' | null} />
                         </div>
 
                         <div className="px-8 pb-8">
@@ -464,7 +464,7 @@ function SelectedSummary({
     tableNumber,
     name,
 }: {
-    selected: OrderType | null;
+    selected: 'dine-in' | 'takeaway' | null;
     tableNumber: string;
     name: string;
 }) {
@@ -550,7 +550,7 @@ function SelectedSummary({
     );
 }
 
-function ExpectationTips({ selected }: { selected: OrderType | null }) {
+function ExpectationTips({ selected }: { selected: 'dine-in' | 'takeaway' | null }) {
     const tips =
         selected === "takeaway"
             ? [
@@ -630,7 +630,7 @@ function ConfirmButton({
     selected,
     onConfirm,
 }: {
-    selected: OrderType | null;
+    selected: 'dine-in' | 'takeaway' | null;
     onConfirm: () => void;
 }) {
     return (

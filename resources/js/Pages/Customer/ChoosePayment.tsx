@@ -1,15 +1,17 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
 import { formatIDR } from "@/lib/currency";
+import { useCart } from "@/hooks/useCart";
 
 interface Props {
     tableId: string;
     tableNumber?: string;
     total?: number;
+    orderId?: number;
 }
 
 type PaymentGroup = "online" | "cash" | null;
@@ -18,17 +20,73 @@ export default function ChoosePayment({
     tableId,
     tableNumber = "05",
     total = 145000,
+    orderId,
 }: Props) {
     const [selected, setSelected] = useState<PaymentGroup>(null);
+    const { clearCart } = useCart();
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    function handleConfirm() {
-        if (!selected) return;
+    // Initialize Snap script
+    React.useEffect(() => {
+        const script = document.createElement('script');
+        // Sandbox environment URL (update to production if needed)
+        script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+        script.setAttribute('data-client-key', "SB-Mid-client-XXXXX"); // Placeholder
+        document.body.appendChild(script);
 
-        router.visit(
-            selected === "online"
-                ? route("customer.payment.online", { tableId })
-                : route("customer.payment.cash", { tableId }),
-        );
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+    async function handleConfirm() {
+        if (!selected || !orderId) return;
+
+        if (selected === "cash") {
+            // Clear cart upon choosing payment since order is saved and payment method is selected
+            clearCart();
+            router.visit(route("customer.payment.cash", { tableId, orderId }));
+            return;
+        }
+
+        if (selected === "online") {
+            setIsProcessing(true);
+            try {
+                // Fetch snap token from backend
+                const res = await window.axios.post(`/customer/order/${orderId}/payment/process`, {
+                    payment_method: "midtrans"
+                });
+
+                if (res.data.token) {
+                    clearCart();
+                    // Open Snap window
+                    (window as any).snap.pay(res.data.token, {
+                        onSuccess: function (result: any) {
+                            router.visit(route("customer.status", { order: orderId }));
+                        },
+                        onPending: function (result: any) {
+                            router.visit(route("customer.status", { order: orderId }));
+                        },
+                        onError: function (result: any) {
+                            setIsProcessing(false);
+                            alert("Payment failed!");
+                        },
+                        onClose: function () {
+                            setIsProcessing(false);
+                        }
+                    });
+                } else {
+                    // Fallback to manual online payment if Midtrans token isn't generated
+                    clearCart();
+                    router.visit(route("customer.payment.online", { tableId, orderId }));
+                }
+            } catch (e) {
+                console.error("Failed to process payment", e);
+                // Fallback on error
+                clearCart();
+                router.visit(route("customer.payment.online", { tableId, orderId }));
+            }
+        }
     }
 
     return (
@@ -83,6 +141,7 @@ export default function ChoosePayment({
                         <ConfirmButton
                             selected={selected}
                             onConfirm={handleConfirm}
+                            isLoading={isProcessing}
                         />
                     </div>
                 </div>
@@ -165,6 +224,7 @@ export default function ChoosePayment({
                             <ConfirmButton
                                 selected={selected}
                                 onConfirm={handleConfirm}
+                                isLoading={isProcessing}
                             />
 
                             <Link
@@ -469,43 +529,49 @@ function TrustBlurb({ className = "" }: { className?: string }) {
 function ConfirmButton({
     selected,
     onConfirm,
+    isLoading = false
 }: {
     selected: PaymentGroup;
     onConfirm: () => void;
+    isLoading?: boolean;
 }) {
     return (
         <button
             onClick={onConfirm}
-            disabled={!selected}
+            disabled={!selected || isLoading}
             className="w-full flex items-center justify-center gap-2.5 rounded-2xl font-bold transition-all active:scale-[0.98]"
             style={{
                 height: "54px",
                 fontSize: "15px",
-                backgroundColor: selected
-                    ? "var(--color-ucw-dark)"
-                    : "var(--color-ucw-border)",
-                color: selected ? "white" : "var(--color-ucw-text-muted)",
-                boxShadow: selected ? "0 4px 20px rgba(45,26,14,0.25)" : "none",
-                cursor: selected ? "pointer" : "not-allowed",
+                backgroundColor: isLoading || !selected
+                    ? "var(--color-ucw-border)"
+                    : "var(--color-ucw-dark)",
+                color: isLoading || !selected ? "var(--color-ucw-text-muted)" : "white",
+                boxShadow: selected && !isLoading ? "0 4px 20px rgba(45,26,14,0.25)" : "none",
+                cursor: selected && !isLoading ? "pointer" : "not-allowed",
             }}
         >
-            {selected === "online"
-                ? "Continue to Online Payment"
-                : selected === "cash"
-                  ? "Continue with Cash"
-                  : "Select Payment Method"}
+            {isLoading ? "Processing..." : (
+                selected === "online"
+                    ? "Continue to Online Payment"
+                    : selected === "cash"
+                    ? "Continue with Cash"
+                    : "Select Payment Method"
+            )}
 
-            <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-            >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+            {!isLoading && (
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            )}
         </button>
     );
 }

@@ -13,6 +13,13 @@ class Menu extends Model
         'category_id', 'name', 'description', 'price', 'image', 'is_available'
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset($this->image) : null;
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);

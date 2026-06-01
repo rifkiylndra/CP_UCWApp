@@ -13,15 +13,30 @@ interface OrderItem {
     imageUrl: string;
 }
 
+interface OrderDetail {
+    menu: {
+        id: number;
+        name: string;
+        description: string;
+        image: string;
+    };
+}
+
+interface OrderData {
+    id: number;
+    order_status: OrderStatus;
+    estimated_serve_time: number;
+    created_at: string;
+    order_details: OrderDetail[];
+}
+
 interface Props {
     tableId: string;
     orderId: string;
     orderRef?: string;
     tableNumber?: string;
     cartCount?: number;
-    initialStatus?: OrderStatus;
-    estimatedSecs?: number;
-    items?: OrderItem[];
+    order?: OrderData;
 }
 
 const PLACEHOLDER =
@@ -91,19 +106,58 @@ export default function OrderStatusPage({
     orderRef = "EB-94021",
     tableNumber = "05",
     cartCount = 0,
-    initialStatus = "preparing",
-    estimatedSecs = 525,
-    items = DEMO_ITEMS,
+    order,
 }: Props) {
-    const [status, setStatus] = useState<OrderStatus>(initialStatus);
+    const defaultStatus = order?.order_status || "pending";
+    const [status, setStatus] = useState<OrderStatus>(defaultStatus);
     const [showReadyPopup, setShowReadyPopup] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(estimatedSecs);
-    const [receivedAt] = useState(() =>
-        new Date().toLocaleTimeString("id-ID", {
+    
+    // Fallback if not provided
+    const estimatedMin = order?.estimated_serve_time || 15;
+    const [timeLeft, setTimeLeft] = useState(estimatedMin * 60);
+    
+    const [receivedAt] = useState(() => {
+        if (order?.created_at) {
+            return new Date(order.created_at).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        }
+        return new Date().toLocaleTimeString("id-ID", {
             hour: "2-digit",
             minute: "2-digit",
-        }),
-    );
+        });
+    });
+
+    // Map backend order details to items format
+    const displayItems = order?.order_details?.map(d => ({
+        id: String(d.menu.id),
+        name: d.menu.name,
+        subtitle: d.menu.description?.substring(0, 30) + '...',
+        imageUrl: d.menu.image || ""
+    })) || DEMO_ITEMS;
+
+    useEffect(() => {
+        // Echo Realtime Listeners
+        const echo = (window as any).Echo;
+        if (echo) {
+            echo.channel(`order.${order?.id}`)
+                .listen('OrderStatusUpdated', (e: any) => {
+                    if (e.order && e.order.order_status) {
+                        setStatus(e.order.order_status);
+                    }
+                })
+                .listen('PaymentStatusUpdated', (e: any) => {
+                    // Could show payment confirmation toast
+                });
+        }
+
+        return () => {
+            if (echo) {
+                echo.leave(`order.${order?.id}`);
+            }
+        };
+    }, [order?.id]);
 
     useEffect(() => {
         if (timeLeft <= 0) return;
@@ -156,7 +210,7 @@ export default function OrderStatusPage({
                             className="mb-4"
                         />
 
-                        <ItemList items={items} className="mb-3" />
+                        <ItemList items={displayItems} className="mb-3" />
 
                         <OrderIdRow
                             orderRef={orderRef}
@@ -223,7 +277,7 @@ export default function OrderStatusPage({
                             </div>
 
                             <div className="grid grid-cols-[1fr_0.85fr] gap-6 mt-6">
-                                <ItemList items={items} desktop />
+                                <ItemList items={displayItems} desktop />
 
                                 <ContactBaristaCard />
                             </div>

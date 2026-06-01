@@ -24,7 +24,7 @@ export default function MobileBottomNav({ currentRoute }: MobileBottomNavProps) 
   const navItems = [
     { name: "Overview", route: "admin.overview", icon: LayoutGrid },
     { name: "Orders", route: "admin.live-order", icon: ClipboardList },
-    { name: "AI", route: "admin.analytics", icon: Sparkles },
+    { name: "AI", route: "admin.analytics-page", icon: Sparkles },
     { name: "Menu", route: "admin.menu", icon: UtensilsCrossed },
     { name: "More", route: "admin.staff", icon: MoreHorizontal },
   ];

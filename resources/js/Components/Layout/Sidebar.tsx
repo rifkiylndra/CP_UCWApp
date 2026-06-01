@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   Banknote,
   Settings,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -28,11 +29,10 @@ export default function Sidebar({ user, currentRoute }: SidebarProps) {
   const navItems = [
     { name: "Overview", route: "admin.overview", icon: LayoutGrid },
     { name: "Live Order", route: "admin.live-order", icon: ClipboardList },
-    { name: "AI Analytics", route: "admin.analytics", icon: Sparkles },
+    { name: "AI Analytics", route: "admin.analytics-page", icon: Sparkles },
     { name: "Menu", route: "admin.menu", icon: UtensilsCrossed },
     { name: "Staff", route: "admin.staff", icon: BriefcaseBusiness },
-    { name: "Finances", route: "admin.finances", icon: Banknote },
-    
+    { name: "Finances", route: "admin.finances-page", icon: Banknote },
   ];
 
   return (
@@ -83,29 +83,40 @@ export default function Sidebar({ user, currentRoute }: SidebarProps) {
       <div className="px-8 pb-8">
         
 
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 overflow-hidden rounded-full bg-[#EAE7E4]">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-extrabold text-[#271310]">
-                {user.name?.charAt(0)?.toUpperCase() || "A"}
-              </div>
-            )}
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 overflow-hidden rounded-full bg-[#EAE7E4] shrink-0">
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm font-extrabold text-[#271310]">
+                  {user.name?.charAt(0)?.toUpperCase() || "A"}
+                </div>
+              )}
+            </div>
 
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-extrabold text-[#271310]">
-              {user.name || "Julian Reed"}
-            </p>
-            <p className="text-[9px] font-bold uppercase tracking-wide text-[#50444299]">
-              {user.role || "Masterroaster"}
-            </p>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-extrabold text-[#271310]">
+                {user.name || "Julian Reed"}
+              </p>
+              <p className="text-[9px] font-bold uppercase tracking-wide text-[#50444299]">
+                {user.role || "Masterroaster"}
+              </p>
+            </div>
           </div>
+          
+          <Link
+            href={route('logout')}
+            method="post"
+            as="button"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#A69D9A] hover:bg-[#F4F4F3] hover:text-[#B42318] transition"
+          >
+            <LogOut size={18} />
+          </Link>
         </div>
       </div>
     </aside>

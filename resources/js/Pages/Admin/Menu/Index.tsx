@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import MenuModal from "@/Components/Modals/AddMenuModal";
@@ -16,54 +17,16 @@ import {
 
 interface MenuIndexProps {
   auth: { user: AdminUser };
+  menus: any; // data pagination dari Laravel
+  categories: any[];
 }
 
-export default function MenuIndex({ auth }: MenuIndexProps) {
+export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
   const [openModal, setOpenModal] = useState(false);
   const [editData, setEditData] = useState<any | null>(null);
 
-  const [items] = useState([
-    {
-      id: "1",
-      name: "Midnight Espresso",
-      desc: "Signature House Roast • 2oz",
-      category: "Espresso Bar",
-      price: "$4.50",
-      available: true,
-      color: "green",
-      img: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=120&auto=format&fit=crop",
-    },
-    {
-      id: "2",
-      name: "Oat Milk Botanical Latte",
-      desc: "Lavender-infused • 12oz",
-      category: "Botanicals",
-      price: "$6.75",
-      available: true,
-      color: "green",
-      img: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=120&auto=format&fit=crop",
-    },
-    {
-      id: "3",
-      name: "Artisan Butter Croissant",
-      desc: "Twice-baked • Seasonal",
-      category: "Bakery",
-      price: "$5.25",
-      available: false,
-      color: "yellow",
-      img: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=120&auto=format&fit=crop",
-    },
-    {
-      id: "4",
-      name: "Hibiscus Cold Brew",
-      desc: "Single origin Ethiopia • 16oz",
-      category: "Cold Brews",
-      price: "$5.50",
-      available: true,
-      color: "green",
-      img: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=120&auto=format&fit=crop",
-    },
-  ]);
+  // Pakai data dari prop, fallback ke array kosong kalau belum ada data
+  const items = menus?.data || [];
 
   const handleAdd = () => {
     setEditData(null);
@@ -76,7 +39,9 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
   };
 
   const handleDelete = (id: string) => {
-    console.log("Delete menu:", id);
+    if (confirm("Apakah Anda yakin ingin menghapus menu ini?")) {
+      router.delete(route("admin.menu.destroy", id as any));
+    }
   };
 
   return (
@@ -85,6 +50,7 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
         open={openModal}
         onClose={() => setOpenModal(false)}
         editData={editData}
+        categories={categories}
       />
 
       <section className="font-['Manrope'] text-[#271310]">
@@ -140,9 +106,9 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
               className="grid min-h-[110px] grid-cols-[120px_1.4fr_170px_130px_160px_120px] items-center border-t border-[#F0ECEA] px-8"
             >
               <img
-                src={item.img}
+                src={item.image_url || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=120&auto=format&fit=crop"}
                 alt={item.name}
-                className="h-16 w-16 rounded-[16px] object-cover grayscale"
+                className="h-16 w-16 rounded-[16px] object-cover"
               />
 
               <div>
@@ -150,15 +116,15 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
                   {item.name}
                 </h3>
                 <p className="mt-1 text-[13px] font-medium text-[#5A4A47]">
-                  {item.desc}
+                  {item.description}
                 </p>
               </div>
 
               <CategoryBadge item={item} />
 
-              <p className="text-[15px] font-extrabold">{item.price}</p>
+              <p className="text-[15px] font-extrabold">Rp {Number(item.price).toLocaleString('id-ID')}</p>
 
-              <AvailabilityToggle available={item.available} />
+              <AvailabilityToggle available={item.is_available} />
 
               <ActionButtons
                 onEdit={() => handleEdit(item)}
@@ -167,7 +133,7 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter />
+          <PaginationFooter data={menus} />
         </div>
 
         {/* Mobile Card List */}
@@ -179,9 +145,9 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
             >
               <div className="flex gap-4">
                 <img
-                  src={item.img}
+                  src={item.image_url || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=120&auto=format&fit=crop"}
                   alt={item.name}
-                  className="h-[82px] w-[82px] shrink-0 rounded-[18px] object-cover grayscale"
+                  className="h-[82px] w-[82px] shrink-0 rounded-[18px] object-cover"
                 />
 
                 <div className="min-w-0 flex-1">
@@ -191,18 +157,18 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
                         {item.name}
                       </h3>
                       <p className="mt-1 line-clamp-1 text-[12px] font-medium text-[#5A4A47]">
-                        {item.desc}
+                        {item.description}
                       </p>
                     </div>
 
                     <p className="shrink-0 text-[15px] font-extrabold">
-                      {item.price}
+                      Rp {Number(item.price).toLocaleString('id-ID')}
                     </p>
                   </div>
 
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <CategoryBadge item={item} />
-                    <AvailabilityToggle available={item.available} />
+                    <AvailabilityToggle available={item.is_available} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -227,7 +193,7 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter mobile />
+          <PaginationFooter data={menus} mobile />
         </div>
 
         {/* Bottom Stats */}
@@ -268,16 +234,19 @@ export default function MenuIndex({ auth }: MenuIndexProps) {
 }
 
 function CategoryBadge({ item }: { item: any }) {
+  // Gunakan category.name atau category_id jika direlasi
+  const categoryName = item.category?.name || "Unknown";
+  
   return (
     <div>
       <span
         className={`inline-flex rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[0.08em] md:px-4 md:text-[10px] ${
-          item.color === "yellow"
+          categoryName.includes("Bakery") || item.color === "yellow"
             ? "bg-[#FFE3A7] text-[#8C651C]"
             : "bg-[#DDEED8] text-[#60765D]"
         }`}
       >
-        {item.category}
+        {categoryName}
       </span>
     </div>
   );
@@ -325,7 +294,9 @@ function ActionButtons({
   );
 }
 
-function PaginationFooter({ mobile = false }: { mobile?: boolean }) {
+function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolean }) {
+  if (!data || !data.links) return null;
+  
   return (
     <div
       className={[
@@ -334,25 +305,44 @@ function PaginationFooter({ mobile = false }: { mobile?: boolean }) {
       ].join(" ")}
     >
       <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-        Showing 1–4 of 32 items
+        Showing {data.from || 0}–{data.to || 0} of {data.total || 0} items
       </p>
 
-      <div className="flex items-center gap-2 md:gap-4">
-        <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white md:h-10 md:w-10">
-          <ChevronLeft size={17} />
-        </button>
-        <button className="h-9 w-9 rounded-[10px] bg-[#301713] text-[13px] font-extrabold text-white md:h-10 md:w-10">
-          1
-        </button>
-        <button className="hidden h-10 w-10 rounded-[10px] text-[13px] font-semibold md:block">
-          2
-        </button>
-        <button className="hidden h-10 w-10 rounded-[10px] text-[13px] font-semibold md:block">
-          3
-        </button>
-        <button className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white md:h-10 md:w-10">
-          <ChevronRight size={17} />
-        </button>
+      <div className="flex items-center gap-1 md:gap-2">
+        {data.links.map((link: any, index: number) => {
+          let label = link.label;
+          if (String(label).includes("Previous")) label = <ChevronLeft size={17} />;
+          if (String(label).includes("Next")) label = <ChevronRight size={17} />;
+
+          return link.url ? (
+            <Link
+              key={index}
+              href={link.url}
+              className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-semibold transition md:h-10 md:w-10 ${
+                link.active
+                  ? "bg-[#301713] text-white"
+                  : "border border-[#E8E3E1] bg-white text-[#5A4A47] hover:bg-[#F4F4F3]"
+              }`}
+            >
+              {typeof label === "string" ? (
+                <span dangerouslySetInnerHTML={{ __html: label }} />
+              ) : (
+                label
+              )}
+            </Link>
+          ) : (
+            <span
+              key={index}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10 md:w-10"
+            >
+              {typeof label === "string" ? (
+                <span dangerouslySetInnerHTML={{ __html: label }} />
+              ) : (
+                label
+              )}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

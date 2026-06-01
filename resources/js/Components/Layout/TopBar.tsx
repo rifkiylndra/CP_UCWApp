@@ -1,6 +1,7 @@
 import React from "react";
 import type { AdminUser } from "@/types/admin";
-import { Bell, CircleUserRound, Search } from "lucide-react";
+import { Bell, CircleUserRound, Search, LogOut } from "lucide-react";
+import { Link } from "@inertiajs/react";
 
 interface TopBarProps {
   user: AdminUser;
@@ -24,6 +25,15 @@ export default function TopBar({ user, title }: TopBarProps) {
           <button className="flex h-9 w-9 items-center justify-center rounded-full">
             <CircleUserRound size={22} strokeWidth={2.2} />
           </button>
+          
+          <Link
+            href={route('logout')}
+            method="post"
+            as="button"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#B91C1C] transition hover:bg-[#F4F4F3]"
+          >
+            <LogOut size={20} strokeWidth={2.2} />
+          </Link>
         </div>
       </div>
 
@@ -53,6 +63,16 @@ export default function TopBar({ user, title }: TopBarProps) {
         >
           <CircleUserRound size={22} strokeWidth={2.2} />
         </button>
+
+        <Link
+          href={route('logout')}
+          method="post"
+          as="button"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-[#B91C1C] transition hover:bg-[#F4F4F3]"
+          title="Logout"
+        >
+          <LogOut size={20} strokeWidth={2.2} />
+        </Link>
       </div>
     </header>
   );

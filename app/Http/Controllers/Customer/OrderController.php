@@ -7,16 +7,19 @@ use App\Http\Requests\Customer\CreateOrderRequest;
 use App\Models\Order;
 use App\Models\Table;
 use App\Services\OrderService;
+use App\Services\AiService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class OrderController extends Controller
 {
     protected $orderService;
+    protected $aiService;
 
-    public function __construct(OrderService $orderService)
+    public function __construct(OrderService $orderService, AiService $aiService)
     {
         $this->orderService = $orderService;
+        $this->aiService = $aiService;
     }
 
     /**
@@ -125,5 +128,35 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Pesanan berhasil dibatalkan'
         ]);
+    }
+
+    /**
+     * Get estimated serve time from AI
+     */
+    public function getEstimatedTime(Request $request)
+    {
+        $items = $request->input('items', []);
+        
+        // Count active queue
+        $currentQueue = Order::whereIn('order_status', ['pending', 'processing'])->count();
+
+        // Normally we would map items to the required structure for AiService
+        // But for proxy, just pass them
+        try {
+            $estimation = $this->aiService->getServingTimeEstimation([
+                'items' => $items,
+                'current_queue' => $currentQueue,
+            ]);
+
+            return response()->json($estimation);
+        } catch (\Exception $e) {
+            // Fallback estimation
+            return response()->json([
+                'estimated_min_time' => 10,
+                'estimated_max_time' => 15,
+                'queue_position' => $currentQueue + 1,
+                'is_fallback' => true
+            ]);
+        }
     }
 }

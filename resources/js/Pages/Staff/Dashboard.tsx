@@ -5,6 +5,7 @@ import KanbanCard from "@/Components/UI/KanbanCard";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";
 import type { StaffUser, KanbanOrder, KanbanColumn } from "@/types/staff";
+import axios from "axios";
 
 interface Props {
     auth: { user: StaffUser };
@@ -46,10 +47,11 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         setIsPaymentModalOpen(true);
     };
 
-    const handleUpdateStatus = (orderId: string, newStatus: KanbanColumn) => {
+    const handleUpdateStatus = async (orderId: string, newStatus: KanbanColumn) => {
         const order = allOrders.find((item) => item.id === orderId);
         if (!order) return;
 
+        // Optimistic update
         const updatedOrder = {
             ...order,
             status: newStatus,
@@ -58,51 +60,60 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         setOrders((prev) => {
             const cleaned = {
                 incoming: prev.incoming.filter((item) => item.id !== orderId),
-                processing: prev.processing.filter(
-                    (item) => item.id !== orderId,
-                ),
+                processing: prev.processing.filter((item) => item.id !== orderId),
                 completed: prev.completed.filter((item) => item.id !== orderId),
             };
 
             if (newStatus === "incoming") {
-                return {
-                    ...cleaned,
-                    incoming: [updatedOrder, ...cleaned.incoming],
-                };
+                return { ...cleaned, incoming: [updatedOrder, ...cleaned.incoming] };
             }
-
             if (newStatus === "processing") {
-                return {
-                    ...cleaned,
-                    processing: [updatedOrder, ...cleaned.processing],
-                };
+                return { ...cleaned, processing: [updatedOrder, ...cleaned.processing] };
             }
-
-            return {
-                ...cleaned,
-                completed: [updatedOrder, ...cleaned.completed],
-            };
+            return { ...cleaned, completed: [updatedOrder, ...cleaned.completed] };
         });
+
+        try {
+            await axios.put(`/staff/order/${orderId}/status`, { status: newStatus });
+        } catch (error) {
+            console.error("Failed to update order status:", error);
+            alert("Gagal mengubah status pesanan. Pastikan koneksi internet stabil.");
+            // Ideally we revert the state here or refresh the page
+            window.location.reload();
+        }
     };
 
-    const handleConfirmPayment = (orderId: string) => {
+    const handleConfirmPayment = async (orderId: string, amount: number) => {
         const order = allOrders.find((item) => item.id === orderId);
         if (!order) return;
 
-        const updatedOrder = {
-            ...order,
-            isPaid: true,
-            status: "processing" as KanbanColumn,
-        };
+        try {
+            await axios.post(`/staff/payments/order/${orderId}/verify-cash`, {
+                amount_received: amount
+            });
+            
+            // Update UI state to Processing (since it's paid, it moves to kitchen/processing)
+            const updatedOrder = {
+                ...order,
+                isPaid: true,
+                status: "processing" as KanbanColumn,
+            };
 
-        setOrders((prev) => ({
-            incoming: prev.incoming.filter((item) => item.id !== orderId),
-            processing: [
-                updatedOrder,
-                ...prev.processing.filter((item) => item.id !== orderId),
-            ],
-            completed: prev.completed.filter((item) => item.id !== orderId),
-        }));
+            setOrders((prev) => ({
+                incoming: prev.incoming.filter((item) => item.id !== orderId),
+                processing: [
+                    updatedOrder,
+                    ...prev.processing.filter((item) => item.id !== orderId),
+                ],
+                completed: prev.completed.filter((item) => item.id !== orderId),
+            }));
+            
+            alert("Pembayaran berhasil diverifikasi!");
+            
+        } catch (error: any) {
+            console.error('Payment verification failed', error);
+            alert(error.response?.data?.message || "Gagal memverifikasi pembayaran.");
+        }
     };
 
     return (

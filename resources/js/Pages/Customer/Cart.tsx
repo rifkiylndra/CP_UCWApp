@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
@@ -6,68 +5,20 @@ import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
 import { formatIDR } from "@/lib/currency";
+import { useCart, CartItem } from "@/hooks/useCart";
 
 interface Props {
     tableId: string;
     tableNumber?: string;
 }
 
-interface CartItem {
-    id: string;
-    name: string;
-    subtitle: string;
-    price: number;
-    quantity: number;
-    imageUrl: string;
-    notes?: string;
-}
-
 const PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
 
-const DEMO_CART: CartItem[] = [
-    {
-        id: "1",
-        name: "Signature Flat White",
-        subtitle: "Double shot espresso, velvety microfoam",
-        price: 55000,
-        quantity: 1,
-        imageUrl: "",
-    },
-    {
-        id: "2",
-        name: "Almond Croissant",
-        subtitle: "Flaky pastry with frangipane filling",
-        price: 47500,
-        quantity: 2,
-        imageUrl: "",
-    },
-];
-
 export default function Cart({ tableId, tableNumber = "05" }: Props) {
-    const [items, setItems] = useState<CartItem[]>(DEMO_CART);
+    const { items, subtotal, tax, total, totalItems, adjustQuantity, updateNotes } = useCart();
 
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const tax = Math.round(subtotal * 0.08);
-    const total = subtotal + tax;
-    const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-
-    function adjust(id: string, delta: number) {
-        setItems((prev) =>
-            prev.flatMap((item) => {
-                if (item.id !== id) return [item];
-
-                const next = item.quantity + delta;
-                return next <= 0 ? [] : [{ ...item, quantity: next }];
-            }),
-        );
-    }
-
-    function updateNotes(id: string, notes: string) {
-        setItems((prev) =>
-            prev.map((item) => (item.id === id ? { ...item, notes } : item)),
-        );
-    }
+    // adjust() and updateNotes() are now handled by useCart()
 
     if (items.length === 0) {
         return (
@@ -160,7 +111,7 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                                 <div key={item.id}>
                                     <CartItemRow
                                         item={item}
-                                        onAdjust={adjust}
+                                        onAdjust={adjustQuantity}
                                         onUpdateNotes={updateNotes}
                                     />
 
@@ -252,7 +203,7 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                                     <div key={item.id}>
                                         <CartItemRow
                                             item={item}
-                                            onAdjust={adjust}
+                                            onAdjust={adjustQuantity}
                                             onUpdateNotes={updateNotes}
                                             desktop
                                         />
@@ -608,7 +559,7 @@ function PriceSummary({
                     className="font-semibold uppercase tracking-[0.12em]"
                     style={{ fontSize: "11px", color: "var(--color-ucw-text-muted)" }}
                 >
-                    TAX (8%)
+                    TAX (11%)
                 </span>
                 <span
                     className="font-semibold"

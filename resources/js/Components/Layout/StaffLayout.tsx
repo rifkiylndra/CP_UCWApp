@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
-import { Head } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 import StaffSidebar from "@/Components/Layout/StaffSidebar";
 import type { StaffUser } from "@/types/staff";
-import { Bell, UserRound } from "lucide-react";
+import { Bell, UserRound, LogOut } from "lucide-react";
 
 interface Props {
     children: ReactNode;
@@ -45,6 +45,16 @@ export default function StaffLayout({
                             <UserRound size={20} strokeWidth={2.2} />
                         )}
                     </button>
+
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F4F3] text-[#B91C1C] transition hover:bg-[#FDECEC] lg:h-11 lg:w-11"
+                        title="Logout"
+                    >
+                        <LogOut size={19} strokeWidth={2.2} />
+                    </Link>
                 </div>
             </header>
 

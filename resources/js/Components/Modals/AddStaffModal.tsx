@@ -26,7 +26,7 @@ export default function AddStaffModal({
   const { data, setData, post, put, processing, reset } = useForm({
     name: "",
     username: "",
-    role: "Senior Barista",
+    email: "",
     password: "",
   });
 
@@ -37,12 +37,11 @@ export default function AddStaffModal({
       setData({
         name: staffToEdit.name || "",
         username: staffToEdit.username || staffToEdit.email?.split("@")[0] || "",
-        role: staffToEdit.role || "Senior Barista",
+        email: staffToEdit.email || "",
         password: "",
       });
     } else {
       reset();
-      setData("role", "Senior Barista");
     }
 
     setShowPassword(false);
@@ -117,25 +116,15 @@ export default function AddStaffModal({
               />
             </Field>
 
-            <Field label="Role Selection">
-              <div className="relative">
-                <select
-                  value={data.role}
-                  onChange={(e) => setData("role", e.target.value)}
-                  className="h-12 w-full appearance-none rounded-[12px] border-0 bg-white px-4 pr-12 text-[14px] font-medium text-[#271310] focus:outline-none focus:ring-2 focus:ring-[#301713]/10 md:h-[57px] md:px-5 md:text-[15px]"
-                >
-                  <option>Senior Barista</option>
-                  <option>Head Barista</option>
-                  <option>Barista</option>
-                  <option>Cashier</option>
-                  <option>Manager</option>
-                </select>
-
-                <ChevronDown
-                  size={21}
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#5A4A47]"
-                />
-              </div>
+            <Field label="Email Address">
+              <input
+                type="email"
+                value={data.email}
+                onChange={(e) => setData("email", e.target.value)}
+                placeholder="sebastian@unand.co"
+                className="h-12 w-full rounded-[12px] border-0 bg-white px-4 text-[14px] font-medium text-[#271310] placeholder:text-[#BDB6B3] focus:outline-none focus:ring-2 focus:ring-[#301713]/10 md:h-[55px] md:px-5 md:text-[15px]"
+                required
+              />
             </Field>
 
             <Field label="Password">

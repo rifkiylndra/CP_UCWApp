@@ -27,9 +27,38 @@ class MenuController extends Controller
             $query->where('is_available', true);
         }])->get();
 
+        $menuItems = Menu::with('category')
+            ->where('is_available', true)
+            ->get()
+            ->map(function ($menu) {
+                return [
+                    'id' => (string)$menu->id,
+                    'name' => $menu->name,
+                    'subtitle' => $menu->description ?? '',
+                    'description' => $menu->description ?? '',
+                    'price' => (float)$menu->price,
+                    'category' => $menu->category ? strtolower($menu->category->name) : 'all',
+                    'imageUrl' => $menu->image_url,
+                    'isAvailable' => (bool)$menu->is_available,
+                    'isPopular' => false,
+                ];
+            });
+
+        $formattedCategories = $categories->map(function ($cat) {
+            return [
+                'key' => strtolower($cat->name),
+                'label' => $cat->name
+            ];
+        });
+
+        // Add 'all' category at the beginning
+        $formattedCategories->prepend(['key' => 'all', 'label' => 'All']);
+
         return Inertia::render('Customer/Menu', [
-            'categories' => $categories,
-            'table' => $table,
+            'menuItems' => $menuItems,
+            'serverCategories' => $formattedCategories,
+            'tableId' => $tableId ?? 'T01',
+            'tableNumber' => $table ? $table->table_number : '05',
         ]);
     }
 

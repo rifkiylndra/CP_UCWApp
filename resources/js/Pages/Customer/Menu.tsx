@@ -11,103 +11,33 @@ import MenuSidebar from '@/Components/customer/menu/MenuSidebar';
 import CartSidebar from '@/Components/customer/menu/CartSidebar';
 import FloatingCartButton from '@/Components/customer/menu/FloatingCartButton';
 
+import { useCart } from '@/hooks/useCart';
+
+interface CategoryConfig {
+    key: string;
+    label: string;
+}
+
 interface Props {
     tableId: string;
     tableNumber?: string;
     menuItems?: MenuItem[];
+    serverCategories?: CategoryConfig[];
 }
 
-const CATEGORIES: { key: MenuCategory | 'all'; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'espresso', label: 'Coffee' },
-    { key: 'cold-brews', label: 'Cold Brew' },
-    { key: 'botanicals', label: 'Botanicals' },
-    { key: 'bakery', label: 'Bakery' },
-];
-
+// DEMO_ITEMS and CATEGORIES moved to backend
 const PLACEHOLDER =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23E8E2DB'/%3E%3Cg opacity='.4'%3E%3Ccircle cx='200' cy='130' r='36' fill='none' stroke='%238B7B6B' stroke-width='2'/%3E%3Cpath d='M200 110 v40 M180 130 h40' stroke='%238B7B6B' stroke-width='2' stroke-linecap='round'/%3E%3C/g%3E%3Ctext x='200' y='195' text-anchor='middle' font-family='system-ui' font-size='13' fill='%238B7B6B'%3ENo image%3C/text%3E%3C/svg%3E";
-
-const DEMO_ITEMS: MenuItem[] = [
-    {
-        id: '1',
-        name: 'Signature Latte',
-        subtitle: 'House blend • Steamed milk • Local honey',
-        description:
-            'Our house-blend double espresso balanced with velvety steamed milk and a hint of local honey.',
-        price: 45000,
-        category: 'espresso',
-        imageUrl: '',
-        isAvailable: true,
-        isPopular: true,
-    },
-    {
-        id: '2',
-        name: 'Cascara Cold Brew',
-        subtitle: '16oz • 5 cal • Dairy free',
-        description:
-            '18-hour slow steeped brew infused with the dried skins of the coffee cherry for a subtle fruity finish.',
-        price: 52500,
-        category: 'cold-brews',
-        imageUrl: '',
-        isAvailable: true,
-        isPopular: false,
-    },
-    {
-        id: '3',
-        name: 'Matcha Ceremonial',
-        subtitle: '12oz • 120 cal • Organic',
-        description:
-            'Whisked Uji matcha with oat milk. Earthy, creamy, and designed for steady energy throughout your session.',
-        price: 60000,
-        category: 'botanicals',
-        imageUrl: '',
-        isAvailable: true,
-        isPopular: false,
-    },
-    {
-        id: '4',
-        name: 'Honey Oat Latte',
-        subtitle: 'House-made oat milk • Wildflower honey',
-        description: 'Our crowd-pleaser. Subtly sweet and creamy.',
-        price: 48000,
-        category: 'espresso',
-        imageUrl: '',
-        isAvailable: true,
-        isPopular: true,
-    },
-    {
-        id: '5',
-        name: 'Hibiscus Cold Brew',
-        subtitle: 'Single origin Ethiopia • 16oz',
-        description: 'Cold-steeped 18hrs with dried hibiscus.',
-        price: 55000,
-        category: 'cold-brews',
-        imageUrl: '',
-        isAvailable: false,
-        isPopular: false,
-    },
-    {
-        id: '6',
-        name: 'Artisan Croissant',
-        subtitle: 'Baked in-house daily',
-        description: "Flaky, buttery layers. Ask your barista for today's filling.",
-        price: 35000,
-        category: 'bakery',
-        imageUrl: '',
-        isAvailable: true,
-        isPopular: false,
-    },
-];
+    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80';
 
 export default function Menu({
     tableId,
     tableNumber = '05',
-    menuItems = DEMO_ITEMS,
+    menuItems = [],
+    serverCategories = [{ key: 'all', label: 'All' }],
 }: Props) {
-    const [activeCategory, setActiveCategory] = useState<MenuCategory | 'all'>('all');
+    const [activeCategory, setActiveCategory] = useState<string>('all');
     const [search, setSearch] = useState('');
-    const [cart, setCart] = useState<Record<string, number>>({});
+    const { items: cartItemsArray, addItem, adjustQuantity, total, totalItems } = useCart();
 
     const filtered = useMemo(() => {
         const keyword = search.trim().toLowerCase();
@@ -123,42 +53,37 @@ export default function Menu({
         });
     }, [menuItems, activeCategory, search]);
 
-    const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
+    const cartCount = totalItems;
+    const cartTotal = total;
 
-    const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
-        const item = menuItems.find((i) => i.id === id);
-        return sum + (item ? item.price * qty : 0);
-    }, 0);
+    const cartItems = cartItemsArray.map(cartItem => ({
+        item: menuItems.find(i => i.id === cartItem.id) || { ...cartItem, category: 'unknown', isAvailable: true, description: '' },
+        qty: cartItem.quantity
+    }));
 
-    const cartItems = Object.entries(cart)
-        .map(([id, qty]) => ({
-            item: menuItems.find((i) => i.id === id)!,
-            qty,
-        }))
-        .filter((row) => row.item);
+    function getCartQty(id: string) {
+        return cartItemsArray.find(i => i.id === id)?.quantity || 0;
+    }
 
     function addToCart(id: string) {
-        setCart((prev) => ({
-            ...prev,
-            [id]: (prev[id] ?? 0) + 1,
-        }));
+        const item = menuItems.find(i => i.id === id);
+        if (item) {
+            addItem({
+                id: item.id,
+                name: item.name,
+                subtitle: item.subtitle || item.description,
+                price: item.price,
+                imageUrl: item.imageUrl,
+                menuId: item.id
+            });
+        }
     }
 
     function removeFromCart(id: string) {
-        setCart((prev) => {
-            const next = { ...prev };
-
-            if ((next[id] ?? 0) <= 1) {
-                delete next[id];
-            } else {
-                next[id]--;
-            }
-
-            return next;
-        });
+        adjustQuantity(id, -1);
     }
 
-    const activeLabel = CATEGORIES.find((c) => c.key === activeCategory)?.label ?? 'Menu';
+    const activeLabel = serverCategories.find((c) => c.key === activeCategory)?.label ?? 'Menu';
 
     return (
         <>
@@ -171,8 +96,8 @@ export default function Menu({
                     style={{ backgroundColor: '#E8E1D8' }}
                 >
                     <MenuSidebar
-                        categories={CATEGORIES}
-                        activeCategory={activeCategory}
+                        categories={serverCategories as any}
+                        activeCategory={activeCategory as any}
                         search={search}
                         onSearchChange={setSearch}
                         onCategoryChange={setActiveCategory}
@@ -213,8 +138,8 @@ export default function Menu({
                                 {filtered.map((item) => (
                                     <MenuCardDesktop
                                         key={item.id}
-                                        item={item}
-                                        qty={cart[item.id] ?? 0}
+                                        item={item as any}
+                                        qty={getCartQty(item.id)}
                                         onAdd={() => addToCart(item.id)}
                                         onRemove={() => removeFromCart(item.id)}
                                         placeholder={PLACEHOLDER}
@@ -306,7 +231,7 @@ export default function Menu({
                             className="flex gap-2 px-5 pb-3 overflow-x-auto"
                             style={{ scrollbarWidth: 'none' }}
                         >
-                            {CATEGORIES.map((cat) => (
+                            {serverCategories.map((cat) => (
                                 <button
                                     key={cat.key}
                                     onClick={() => setActiveCategory(cat.key)}
@@ -346,8 +271,8 @@ export default function Menu({
                             filtered.map((item, index) => (
                                 <MenuCardMobile
                                     key={item.id}
-                                    item={item}
-                                    qty={cart[item.id] ?? 0}
+                                    item={item as any}
+                                    qty={getCartQty(item.id)}
                                     onAdd={() => addToCart(item.id)}
                                     onRemove={() => removeFromCart(item.id)}
                                     isLast={index === filtered.length - 1}
