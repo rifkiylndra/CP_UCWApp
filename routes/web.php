@@ -9,15 +9,10 @@ use Inertia\Inertia;
 // Halaman Landing / Welcome (bisa diganti nanti)
 Route::get('/', fn () => Inertia::render('Welcome'))->name('welcome');
 
-// ==================== AUTHENTICATION ====================
-// Login page for staff
-Route::get('/login', fn () => inertia('Staff/Login'))->name('login');
-
-// Login process
-Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
-
-// Logout (bisa diakses dari mana saja)
-Route::post('/logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+// ==================== AUTHENTICATION (UNIVERSAL) ====================
+Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 
 // ==================== STAFF ROUTES ====================
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {

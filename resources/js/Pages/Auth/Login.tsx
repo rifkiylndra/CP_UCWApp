@@ -1,7 +1,7 @@
 import { FormEventHandler } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 
-export default function StaffLogin() {
+export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
         username: '',
         password: '',
@@ -15,7 +15,7 @@ export default function StaffLogin() {
 
     return (
         <>
-            <Head title="Staff POS Login" />
+            <Head title="System Login" />
             
             {/* ── Background & Layout ── */}
             <div className="min-h-screen flex items-center justify-center p-5"
@@ -57,7 +57,7 @@ export default function StaffLogin() {
                                 type="text"
                                 value={data.username}
                                 onChange={e => setData('username', e.target.value)}
-                                placeholder="Enter your staff ID"
+                                placeholder="Enter your username or ID"
                                 className="w-full px-4 py-3.5 rounded-xl text-[14px] outline-none transition-all duration-200"
                                 style={{ 
                                     backgroundColor: 'var(--color-ucw-bg)',
