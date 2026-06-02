@@ -101,4 +101,18 @@ Status : [ ] Belum dicek
 - [x] Update AiService.php — sesuaikan format request/response
 - [x] Merge ke develop
 - [x] Test dari Laravel: AnalyticsController → AiService → FastAPI
+- [x] **[BUGFIX]** Upgrade pydantic ke >=2.9.2 untuk kompatibilitas Python 3.13
+- [x] **[BUGFIX]** Fix URL route `/customer/api/estimate` di `Estimate.tsx`
+- [x] **[BUGFIX]** Fix pemetaan response `estimated_min_time` dan `estimated_max_time` di `AiService.php`
 - [ ] Tambahkan WMA training notebook (menu populer) — menyusul
+
+---
+
+## ISSUE SELESAI HARI INI ✅
+- Menghapus direktori `ai-service` ganda sisa merge conflict.
+- Menyelesaikan masalah _incompatibility_ pustaka FastAPI & Pydantic dengan versi Python 3.13 milik user dengan melakukan upgrade library.
+- Memperbaiki komunikasi Frontend-Backend terkait AI (URL Route API Estimate 405 Method Not Allowed).
+- Memperbaiki pengiriman parameter `range_min` dan `range_max` yang terputus dari _FastAPI_ ke _React_ yang menyebabkan AI selalu menampilkan estimasi 10-15 menit statis.
+
+## TUGAS SELANJUTNYA
+- Menghubungkan dashboard `AIAnalytics.tsx` milik Admin (masih mock data) dengan backend sesungguhnya melalui `AnalyticsController.php`.

@@ -75,23 +75,31 @@ class AiService
                 return [
                     'success' => true,
                     'estimated_time' => $response->json('estimasi_menit'),
+                    'estimated_min_time' => $response->json('range_min'),
+                    'estimated_max_time' => $response->json('range_max'),
                     'display' => $response->json('display'),
                     'confidence' => 0.85,
                     'model_performance' => null,
                 ];
             }
 
+            $fallback = $this->calculateFallbackEstimation($orderData);
             return [
                 'success' => false,
-                'estimated_time' => $this->calculateFallbackEstimation($orderData),
+                'estimated_time' => $fallback,
+                'estimated_min_time' => max(1, $fallback - 5),
+                'estimated_max_time' => $fallback + 5,
                 'message' => 'AI service unavailable, using fallback calculation',
             ];
         } catch (\Exception $e) {
             Log::error('AI service error: ' . $e->getMessage());
             
+            $fallback = $this->calculateFallbackEstimation($orderData);
             return [
                 'success' => false,
-                'estimated_time' => $this->calculateFallbackEstimation($orderData),
+                'estimated_time' => $fallback,
+                'estimated_min_time' => max(1, $fallback - 5),
+                'estimated_max_time' => $fallback + 5,
                 'message' => 'AI service error: ' . $e->getMessage(),
             ];
         }

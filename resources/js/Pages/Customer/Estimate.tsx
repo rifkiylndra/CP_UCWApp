@@ -59,7 +59,7 @@ export default function Estimate({
     useEffect(() => {
         if (items.length === 0) return;
         
-        axios.post('/api/estimate', {
+        axios.post('/customer/api/estimate', {
             items: items.map(i => ({ menu_id: i.id, quantity: i.quantity }))
         })
         .then(res => {
