@@ -226,38 +226,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                     <PaginationFooter data={menus} mobile />
                 </div>
 
-                {/* Bottom Stats */}
-                <div className="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-                    <div className="rounded-[22px] bg-[#DDEED8] p-6 lg:min-h-[188px] lg:rounded-[28px] lg:p-8">
-                        <TrendingUp size={26} className="text-[#60765D]" />
-                        <h2 className="mt-7 text-[38px] font-extrabold tracking-[-1px] lg:mt-10 lg:text-[52px] lg:tracking-[-2px]">
-                            84%
-                        </h2>
-                        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#60765D] lg:text-[13px]">
-                            Active Availability
-                        </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-[#E8E3E1] bg-[#FAFAF9] p-6 lg:min-h-[188px] lg:rounded-[28px] lg:p-8">
-                        <Utensils size={26} />
-                        <h2 className="mt-7 text-[38px] font-extrabold tracking-[-1px] lg:mt-10 lg:text-[52px] lg:tracking-[-2px]">
-                            12
-                        </h2>
-                        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#5A4A47] lg:text-[13px]">
-                            New Seasonal Items
-                        </p>
-                    </div>
-
-                    <div className="rounded-[22px] bg-[#301713] p-6 text-white shadow-[0_16px_32px_rgba(39,19,16,0.18)] sm:col-span-2 lg:col-span-1 lg:min-h-[188px] lg:rounded-[28px] lg:p-8">
-                        <Star size={26} className="text-[#FFE3A7]" />
-                        <h2 className="mt-7 text-[38px] font-extrabold tracking-[-1px] lg:mt-10 lg:text-[52px] lg:tracking-[-2px]">
-                            4.9
-                        </h2>
-                        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55 lg:text-[13px]">
-                            Menu Popularity Score
-                        </p>
-                    </div>
-                </div>
+                
             </section>
         </AdminLayout>
     );
