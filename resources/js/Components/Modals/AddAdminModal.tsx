@@ -10,19 +10,19 @@ interface StaffMember {
   role: string;
 }
 
-interface AddStaffModalProps {
+interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   staffToEdit?: StaffMember | null;
   defaultRole?: "staff" | "admin";
 }
 
-export default function AddStaffModal({
+export default function AddUserModal({
   isOpen,
   onClose,
   staffToEdit,
   defaultRole = "staff",
-}: AddStaffModalProps) {
+}: AddUserModalProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   const { data, setData, post, put, processing, reset } = useForm({

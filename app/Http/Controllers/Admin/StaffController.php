@@ -11,14 +11,21 @@ use Illuminate\Validation\Rule;
 
 class StaffController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $staff = User::where('role', 'staff')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = User::query();
+
+        if ($request->has('role') && in_array($request->role, ['admin', 'staff'])) {
+            $query->where('role', $request->role);
+        } else {
+            $query->whereIn('role', ['admin', 'staff']);
+        }
+
+        $staff = $query->orderBy('created_at', 'desc')->paginate(10);
             
         return Inertia::render('Admin/Staff/Index', [
-            'staffs' => $staff
+            'staffs' => $staff,
+            'filters' => $request->only(['role'])
         ]);
     }
 
@@ -29,6 +36,7 @@ class StaffController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
+            'role' => 'required|in:admin,staff',
         ]);
 
         User::create([
@@ -36,7 +44,7 @@ class StaffController extends Controller
             'username' => $validated['username'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => 'staff',
+            'role' => $validated['role'],
             'is_active' => true,
         ]);
 
@@ -45,22 +53,21 @@ class StaffController extends Controller
 
     public function update(Request $request, User $staff)
     {
-        // Pastikan tidak merubah admin via endpoint ini
-        if ($staff->role !== 'staff') {
-            abort(403);
-        }
-
+        // Cegah menghapus/edit diri sendiri (optional) atau biarkan saja
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($staff->id)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($staff->id)],
             'password' => 'nullable|string|min:8',
+            'role' => 'required|in:admin,staff',
         ]);
 
         $updateData = [
             'name' => $validated['name'],
             'username' => $validated['username'],
             'email' => $validated['email'],
+            'role' => $validated['role'],
         ];
 
         if (!empty($validated['password'])) {
@@ -74,9 +81,10 @@ class StaffController extends Controller
 
     public function destroy(User $staff)
     {
-        // Hanya bisa menghapus staff
-        if ($staff->role !== 'staff') {
-            abort(403);
+        // Mencegah admin menghapus dirinya sendiri jika dibutuhkan,
+        // tapi untuk saat ini izinkan saja.
+        if (auth()->id() === $staff->id) {
+            return redirect()->back()->withErrors(['error' => 'You cannot delete yourself.']);
         }
 
         $staff->delete();

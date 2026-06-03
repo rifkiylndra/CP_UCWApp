@@ -27,11 +27,72 @@ class DashboardController extends Controller
     {
         $statistics = $this->getDashboardStatistics();
         
+        $endDate = now();
+        $startDate = now()->subDays(6);
+        $weeklySales = Order::whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(total_price) as revenue')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+        
         return Inertia::render('Admin/Overview', [
             'statistics' => $statistics,
             'recentOrders' => $this->getRecentOrders(),
             'topMenus' => $this->getTopMenus(),
+            'weeklySales' => $weeklySales,
         ]);
+    }
+
+    /**
+     * Display live order dashboard for admin
+     */
+    public function liveOrder()
+    {
+        $orders = [
+            'incoming' => $this->transformOrders($this->orderService->getOrdersByStatus('pending')),
+            'processing' => $this->transformOrders($this->orderService->getOrdersByStatus('processing')),
+            'completed' => $this->transformOrders($this->orderService->getOrdersByStatus('completed')),
+        ];
+
+        return Inertia::render('Admin/LiveOrder', [
+            'orders' => $orders,
+        ]);
+    }
+
+    /**
+     * Transform orders to Kanban format
+     */
+    private function transformOrders($orders)
+    {
+        return $orders->map(function ($order) {
+            return [
+                'id' => (string)$order->id,
+                'orderId' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'tableLabel' => $order->order_type === 'dine_in' 
+                    ? 'Table ' . ($order->table?->table_number ?? 'N/A')
+                    : ($order->customer_name ?? 'Takeaway'),
+                'orderType' => $order->order_type === 'dine_in' ? 'dine-in' : 'takeaway',
+                'items' => $order->orderDetails->map(function ($detail) {
+                    return [
+                        'id' => (string)$detail->id,
+                        'menuItem' => [
+                            'id' => (string)$detail->menu->id,
+                            'name' => $detail->menu->name,
+                            'price' => $detail->menu->price,
+                        ],
+                        'quantity' => $detail->quantity,
+                        'notes' => $detail->note,
+                    ];
+                })->toArray(),
+                'totalAmount' => $order->total_price,
+                'paymentMethod' => 'cash',
+                'isPaid' => $order->payment_status === 'paid',
+                'status' => $order->order_status === 'pending' ? 'incoming' : $order->order_status,
+                'placedAt' => $order->created_at->format('H:i'),
+                'customerName' => $order->customer_name,
+                'isPriority' => false,
+            ];
+        })->toArray();
     }
 
     /**

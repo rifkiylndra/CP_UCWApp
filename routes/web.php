@@ -20,6 +20,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     
     // Staff Transactions
     Route::get('/transactions', [\App\Http\Controllers\Staff\DashboardController::class, 'transactions'])->name('transactions');
+    Route::get('/transactions/export', [\App\Http\Controllers\Staff\DashboardController::class, 'exportTransactions'])->name('transactions.export');
     
     // Order management
     Route::get('/orders/status/{status}', [\App\Http\Controllers\Staff\DashboardController::class, 'getOrdersByStatus'])->name('orders.byStatus');
@@ -48,8 +49,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/overview', [\App\Http\Controllers\Admin\DashboardController::class, 'overview'])->name('overview');
     
     // Rute Inertia Tambahan dari Frontend
-    Route::get('/live-order', fn () => Inertia::render('Admin/LiveOrder'))->name('live-order');
-    Route::get('/ai-analytics', fn () => Inertia::render('Admin/AIAnalytics'))->name('analytics-page');
+    Route::get('/live-order', [\App\Http\Controllers\Admin\DashboardController::class, 'liveOrder'])->name('live-order');
+    Route::get('/ai-analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics-page');
     // Menu Management
     Route::get('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'index'])->name('menu');
     Route::post('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'store'])->name('menu.store');
@@ -63,10 +64,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Staff Management
     Route::get('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'index'])->name('staff');
     Route::post('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'store'])->name('staff.store');
-    Route::post('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'update'])->name('staff.update');
+    Route::put('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'update'])->name('staff.update');
     Route::delete('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'destroy'])->name('staff.destroy');
     
-    Route::get('/finances', fn () => Inertia::render('Admin/Finances'))->name('finances-page');
+    Route::get('/finances', [\App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('finances-page');
+    Route::get('/finances/export', [\App\Http\Controllers\Admin\FinanceController::class, 'export'])->name('finances.export');
 
     // Statistics and charts
     Route::get('/statistics/orders-chart', [\App\Http\Controllers\Admin\DashboardController::class, 'getOrdersChartData'])->name('statistics.ordersChart');
@@ -74,7 +76,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // AI Analytics API
     Route::prefix('analytics')->name('analytics.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('index');
         Route::get('/serving-time', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getServingTimeEstimation'])->name('servingTime');
         Route::get('/popular-menus', [\App\Http\Controllers\Admin\AnalyticsController::class, 'getPopularMenus'])->name('popularMenus');
         Route::post('/analyze-sentiment', [\App\Http\Controllers\Admin\AnalyticsController::class, 'analyzeSentiment'])->name('analyzeSentiment');

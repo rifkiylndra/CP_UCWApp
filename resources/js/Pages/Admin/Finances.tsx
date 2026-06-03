@@ -33,53 +33,8 @@ export default function Finances({
 }: FinancesProps) {
   const [month, setMonth] = useState(selectedMonth);
 
-  const fallbackTransactions = {
-    data: [
-      {
-        id: 1,
-        date: "Oct 24, 14:32",
-        order_id: "#ORD-9021-X",
-        customer_name: "Marcus Holloway",
-        amount: 24500,
-        payment_method: "Apple Pay",
-        status: "completed",
-        customer_avatar: "https://i.pravatar.cc/100?img=13",
-      },
-      {
-        id: 2,
-        date: "Oct 24, 12:10",
-        order_id: "#ORD-8820-B",
-        customer_name: "Elena Rodriguez",
-        amount: 12000,
-        payment_method: "Cash",
-        status: "completed",
-        customer_avatar: "https://i.pravatar.cc/100?img=32",
-      },
-      {
-        id: 3,
-        date: "Oct 24, 11:45",
-        order_id: "#ORD-8715-L",
-        customer_name: "Jordan Smith",
-        amount: 115000,
-        payment_method: "Wire Transfer",
-        status: "completed",
-        customer_avatar: "https://i.pravatar.cc/100?img=11",
-      },
-    ],
-    from: 1,
-    to: 3,
-    total: 248,
-    links: [],
-  };
-
-  const currentTransactions = transactions || fallbackTransactions;
-
-  const currentMetrics = metrics || {
-    totalSales: 12840000,
-    totalSalesChange: "+12.5%",
-    averageDailySales: 414193,
-    averageDailySalesChange: "+4.8%",
-  };
+  const currentTransactions = transactions;
+  const currentMetrics = metrics;
 
   const handleMonthChange = (value: string) => {
     setMonth(value);
@@ -145,19 +100,19 @@ export default function Finances({
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:gap-6">
           <MetricCard
             title="Total Penjualan"
-            value={`Rp ${Number(currentMetrics.totalSales).toLocaleString(
+            value={`Rp ${Number(currentMetrics?.totalSales || 0).toLocaleString(
               "id-ID"
             )}`}
-            footer={currentMetrics.totalSalesChange}
+            footer={currentMetrics?.totalSalesChange || "0%"}
             desc="dibanding bulan lalu"
           />
 
           <MetricCard
             title="Rata-rata Penjualan Harian"
             value={`Rp ${Number(
-              currentMetrics.averageDailySales
+              currentMetrics?.averageDailySales || 0
             ).toLocaleString("id-ID")}`}
-            footer={currentMetrics.averageDailySalesChange}
+            footer={currentMetrics?.averageDailySalesChange || "0%"}
             desc="dalam bulan ini"
           />
         </div>
@@ -187,7 +142,7 @@ export default function Finances({
               </div>
 
               <div className="space-y-4">
-                {currentTransactions.data.map((tx: any) => (
+                {currentTransactions?.data?.map((tx: any) => (
                   <TransactionRow key={tx.id || tx.order_id} tx={tx} />
                 ))}
               </div>
@@ -196,7 +151,7 @@ export default function Finances({
 
           {/* Mobile Cards */}
           <div className="space-y-4 lg:hidden">
-            {currentTransactions.data.map((tx: any) => (
+            {currentTransactions?.data?.map((tx: any) => (
               <TransactionCard key={tx.id || tx.order_id} tx={tx} />
             ))}
           </div>

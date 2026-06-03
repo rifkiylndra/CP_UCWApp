@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
-import AddStaffModal from "@/Components/Modals/AddStaffModal";
+import AddUserModal from "@/Components/Modals/AddAdminModal";
 import {
   UserPlus,
   ShieldPlus,
@@ -87,7 +87,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
 
   return (
     <AdminLayout auth={auth} title="Staff Management" currentRoute="admin.staff">
-      <AddStaffModal
+      <AddUserModal
         isOpen={isStaffModalOpen}
         onClose={() => setIsStaffModalOpen(false)}
         staffToEdit={selectedStaff}

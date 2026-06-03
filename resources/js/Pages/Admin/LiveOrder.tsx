@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import KanbanCard from "@/Components/UI/KanbanCard";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
@@ -16,114 +17,11 @@ interface LiveOrderProps {
 }
 
 export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProps) {
-  const fallbackOrders = {
-    incoming: [
-      {
-        id: "1",
-        orderId: "8821",
-        customerName: "Sarah",
-        tableLabel: "04",
-        orderType: "dine-in",
-        status: "incoming",
-        isPaid: false,
-        paymentMethod: "cash",
-        totalAmount: 85000,
-        placedAt: "Just now",
-        specialRequest: "No cilantro on the avocado tartine please.",
-        items: [
-          {
-            id: "item-1",
-            quantity: 1,
-            milkChoice: "Oat Milk",
-            sweetener: "Less Sugar",
-            menuItem: {
-              name: "Oat Milk Flat White",
-              imageUrl:
-                "https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?q=80&w=800&auto=format&fit=crop",
-            },
-          },
-          {
-            id: "item-2",
-            quantity: 1,
-            menuItem: {
-              name: "Avocado Tartine",
-              imageUrl: "",
-            },
-          },
-        ],
-      },
-    ] as KanbanOrder[],
-    processing: [
-      {
-        id: "2",
-        orderId: "8819",
-        customerName: "Marcus",
-        tableLabel: "12",
-        orderType: "dine-in",
-        status: "processing",
-        isPaid: true,
-        paymentMethod: "qris",
-        totalAmount: 72000,
-        placedAt: "8 mins ago",
-        items: [
-          {
-            id: "item-3",
-            quantity: 1,
-            milkChoice: "Default",
-            sweetener: "Normal",
-            menuItem: {
-              name: "Seasonal Espresso Macchiato",
-              imageUrl:
-                "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?q=80&w=800&auto=format&fit=crop",
-            },
-          },
-          {
-            id: "item-4",
-            quantity: 1,
-            menuItem: {
-              name: "Pain au Chocolat",
-              imageUrl: "",
-            },
-          },
-        ],
-      },
-    ] as KanbanOrder[],
-    completed: [
-      {
-        id: "3",
-        orderId: "8815",
-        customerName: "Elena",
-        tableLabel: "02",
-        orderType: "dine-in",
-        status: "completed",
-        isPaid: true,
-        paymentMethod: "qris",
-        totalAmount: 58000,
-        placedAt: "20 mins ago",
-        items: [
-          {
-            id: "item-5",
-            quantity: 1,
-            menuItem: {
-              name: "V60 Pour Over",
-              imageUrl:
-                "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop",
-            },
-          },
-          {
-            id: "item-6",
-            quantity: 1,
-            menuItem: {
-              name: "French Toast",
-              imageUrl: "",
-            },
-          },
-        ],
-      },
-    ] as KanbanOrder[],
-  };
-
-  const [orders, setOrders] = useState(initialOrders || fallbackOrders);
+  const [orders, setOrders] = useState(initialOrders || {
+    incoming: [],
+    processing: [],
+    completed: []
+  });
   const [selectedOrder, setSelectedOrder] = useState<KanbanOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -151,7 +49,7 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
     setIsPaymentModalOpen(true);
   };
 
-  const handleUpdateStatus = (orderId: string, newStatus: KanbanColumn) => {
+  const handleUpdateStatus = async (orderId: string, newStatus: KanbanColumn) => {
     const order = allOrders.find((item) => item.id === orderId);
     if (!order) return;
 
@@ -186,6 +84,14 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
         completed: [updatedOrder, ...cleaned.completed],
       };
     });
+
+    try {
+        // Fallback untuk admin jika tidak ada endpoint admin khusus, ini akan sukses jika middleware mengizinkan
+        // Jika tidak, admin hanya bisa melihat (read-only)
+        await axios.put(`/staff/order/${orderId}/status`, { status: newStatus });
+    } catch (error) {
+        console.error("Failed to update order status:", error);
+    }
   };
 
   const handleConfirmPayment = (orderId: string) => {

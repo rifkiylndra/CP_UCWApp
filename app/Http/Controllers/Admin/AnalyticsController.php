@@ -24,7 +24,7 @@ class AnalyticsController extends Controller
         $popularMenus = $this->aiService->getPopularMenus(10);
         $sentimentSummary = $this->aiService->getSentimentSummary();
         
-        return Inertia::render('Admin/Analytics', [
+        return Inertia::render('Admin/AIAnalytics', [
             'popularMenus' => $popularMenus,
             'sentimentSummary' => $sentimentSummary,
             'aiServiceStatus' => $this->checkAiServiceStatus(),

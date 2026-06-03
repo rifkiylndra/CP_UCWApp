@@ -1,7 +1,7 @@
 import { Head } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
 import type { StaffUser, DailyTransaction } from "@/types/staff";
-import type { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import {
     Banknote,
     CreditCard,
@@ -37,6 +37,16 @@ export default function Transactions({
             currency: "IDR",
             maximumFractionDigits: 0,
         }).format(value);
+
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredTransactions = transactions.filter((trx) => {
+        const query = searchQuery.toLowerCase();
+        return (
+            trx.orderId.toLowerCase().includes(query) ||
+            trx.customerName.toLowerCase().includes(query)
+        );
+    });
 
     return (
         <StaffLayout
@@ -110,15 +120,20 @@ export default function Transactions({
                                 <input
                                     type="text"
                                     placeholder="Search order ID or customer..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                     className="h-11 w-full rounded-[14px] border-none bg-white pl-11 pr-4 text-[13px] font-medium text-[#271310] outline-none placeholder:text-[#9A8F8B]"
                                 />
                             </div>
                         </div>
 
-                        <button className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white">
+                        <a
+                            href="/staff/transactions/export"
+                            className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white"
+                        >
                             <Download size={15} />
                             Export CSV
-                        </button>
+                        </a>
                     </div>
 
                     {/* Desktop Table */}
@@ -136,7 +151,7 @@ export default function Transactions({
                             </thead>
 
                             <tbody>
-                                {transactions.map((trx) => (
+                                {filteredTransactions.map((trx) => (
                                     <tr
                                         key={trx.id}
                                         className="border-b border-[#E9E5E1] transition hover:bg-white/60"
@@ -177,7 +192,7 @@ export default function Transactions({
 
                     {/* Mobile Cards */}
                     <div className="flex flex-col gap-3 lg:hidden">
-                        {transactions.map((trx) => (
+                        {filteredTransactions.map((trx) => (
                             <TransactionMobileCard
                                 key={trx.id}
                                 trx={trx}
@@ -188,7 +203,7 @@ export default function Transactions({
 
                     <div className="mt-6 flex items-center justify-between gap-4">
                         <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#5A4A47] lg:text-[11px]">
-                            Showing {transactions.length} of{" "}
+                            Showing {filteredTransactions.length} of{" "}
                             {summary.totalOrders} transactions
                         </p>
 
@@ -338,7 +353,7 @@ function TransactionMobileCard({
     );
 }
 
-function StatusBadge({ status }: { status: DailyTransaction["status"] }) {
+function StatusBadge({ status }: { status: DailyTransaction["status"] | string }) {
     if (status === "refunded") {
         return (
             <span className="inline-flex rounded-full bg-[#FFD9D6] px-3 py-1 text-[10px] font-extrabold uppercase text-[#C62828]">
@@ -351,6 +366,22 @@ function StatusBadge({ status }: { status: DailyTransaction["status"] }) {
         return (
             <span className="inline-flex rounded-full bg-[#FFF0C7] px-3 py-1 text-[10px] font-extrabold uppercase text-[#A46A00]">
                 Pending
+            </span>
+        );
+    }
+
+    if (status === "processing") {
+        return (
+            <span className="inline-flex rounded-full bg-[#E3F2FD] px-3 py-1 text-[10px] font-extrabold uppercase text-[#1565C0]">
+                Processing
+            </span>
+        );
+    }
+
+    if (status === "cancelled") {
+        return (
+            <span className="inline-flex rounded-full bg-[#EEEEEE] px-3 py-1 text-[10px] font-extrabold uppercase text-[#616161]">
+                Cancelled
             </span>
         );
     }

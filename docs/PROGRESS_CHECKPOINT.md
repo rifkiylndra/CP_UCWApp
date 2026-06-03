@@ -113,6 +113,12 @@ Status : [ ] Belum dicek
 - Menyelesaikan masalah _incompatibility_ pustaka FastAPI & Pydantic dengan versi Python 3.13 milik user dengan melakukan upgrade library.
 - Memperbaiki komunikasi Frontend-Backend terkait AI (URL Route API Estimate 405 Method Not Allowed).
 - Memperbaiki pengiriman parameter `range_min` dan `range_max` yang terputus dari _FastAPI_ ke _React_ yang menyebabkan AI selalu menampilkan estimasi 10-15 menit statis.
+- Memperbaiki *Method Not Allowed* pada manajemen staf dan menyatukan `AddAdminModal.tsx` menjadi `AddUserModal.tsx`.
+- Menghubungkan halaman dasbor `Finances.tsx` milik Admin dengan data dinamis dan fitur *Export CSV*.
+- Menghubungkan dasbor `AIAnalytics.tsx` Admin dengan integrasi modul kecerdasan buatan (*FastAPI*) sesungguhnya.
+- Menghubungkan dasbor `Overview.tsx` Admin dengan matriks mingguan dan data riil.
+- Mengintegrasikan fitur pencarian, lencana warna, dan *Export CSV* untuk `Transactions.tsx` di sisi Staf.
 
 ## TUGAS SELANJUTNYA
-- Menghubungkan dashboard `AIAnalytics.tsx` milik Admin (masih mock data) dengan backend sesungguhnya melalui `AnalyticsController.php`.
+- Testing integrasi seluruhnya dan persiapan Deployment.
+- Mengerjakan modul Settings (Konfigurasi Sistem) Admin.

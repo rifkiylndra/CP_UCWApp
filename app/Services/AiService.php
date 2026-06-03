@@ -114,19 +114,17 @@ class AiService
     public function getPopularMenus(int $limit = 10): array
     {
         try {
-            $response = Http::timeout(10)->get($this->baseUrl . '/api/menu/popular', [
+            $response = Http::timeout(10)->get($this->baseUrl . '/api/menu/populer', [
                 'limit' => $limit,
-                'period_days' => 30,
+                'periode_hari' => 30,
             ]);
 
             if ($response->successful()) {
-                // Return fallback if FastAPI fails or doesn't return exactly what frontend expects
-                // Since FastAPI returns {"status": "ok", "wma_top_menus": [...]}
                 $data = $response->json();
-                if (isset($data['wma_top_menus'])) {
+                if (isset($data['rankings'])) {
                     return [
                         'success' => true,
-                        'menus' => $data['wma_top_menus'],
+                        'menus' => $data['rankings'],
                         'trend_analysis' => 'WMA computed',
                     ];
                 }

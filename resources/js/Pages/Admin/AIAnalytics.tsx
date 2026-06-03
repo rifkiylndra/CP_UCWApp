@@ -4,15 +4,18 @@ import type { AdminUser } from "@/types/admin";
 
 interface AIAnalyticsProps {
     auth: { user: AdminUser };
+    popularMenus?: any;
+    sentimentSummary?: any;
+    aiServiceStatus?: any;
 }
 
-export default function AIAnalytics({ auth }: AIAnalyticsProps) {
-    const menu = [
-        ["Single Origin Flat White", 84],
-        ["Honey Oat Latte", 76],
-        ["Cascara Tonic", 62],
-        ["Artisan Pastry Selection", 48],
-    ];
+export default function AIAnalytics({
+    auth,
+    popularMenus,
+    sentimentSummary,
+    aiServiceStatus,
+}: AIAnalyticsProps) {
+    const aiMenus = popularMenus?.menus || [];
 
     const reviews = [
         {
@@ -61,10 +64,17 @@ export default function AIAnalytics({ auth }: AIAnalyticsProps) {
                     <div className="grid grid-cols-2 gap-3 xl:flex xl:gap-4">
                         <div className="rounded-[14px] bg-white px-4 py-4 text-center shadow-[0_10px_28px_rgba(39,19,16,0.04)] sm:px-6 xl:px-8">
                             <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#8B807D]">
-                                Model Confidence
+                                AI Link Status
                             </p>
-                            <h2 className="mt-1 text-[24px] font-extrabold">
-                                98.4%
+                            <h2
+                                className={`mt-1 text-[18px] font-extrabold ${aiServiceStatus?.status === "online"
+                                    ? "text-[#60765D]"
+                                    : "text-[#B91C1C]"
+                                    }`}
+                            >
+                                {aiServiceStatus?.status === "online"
+                                    ? "Online"
+                                    : "Offline"}
                             </h2>
                         </div>
 
@@ -135,22 +145,33 @@ export default function AIAnalytics({ auth }: AIAnalyticsProps) {
                         </h2>
 
                         <div className="mt-8 space-y-6">
-                            {menu.map(([name, value]) => (
-                                <div key={name as string}>
-                                    <div className="mb-2 flex justify-between text-[11px] font-extrabold uppercase">
-                                        <span className="max-w-[180px] truncate">
-                                            {name}
-                                        </span>
-                                        <span>{value}%</span>
-                                    </div>
-                                    <div className="h-1.5 rounded-full bg-[#EEEAE8]">
-                                        <div
-                                            className="h-full rounded-full bg-[#301713]"
-                                            style={{ width: `${value}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                            {aiMenus.length > 0 ? (
+                                aiMenus.map((item: any, idx: number) => {
+                                    const name = item.nama || item.name || "Unknown Menu";
+                                    const value = item.persentase || Math.min(100, (item.total_sold || 0) * 2);
+
+                                    return (
+                                        <div key={idx}>
+                                            <div className="mb-2 flex justify-between text-[11px] font-extrabold uppercase">
+                                                <span className="max-w-[180px] truncate">
+                                                    {name}
+                                                </span>
+                                                <span>{value}%</span>
+                                            </div>
+                                            <div className="h-1.5 rounded-full bg-[#EEEAE8]">
+                                                <div
+                                                    className="h-full rounded-full bg-[#301713]"
+                                                    style={{ width: `${value}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-[12px] font-medium text-[#A69D9A]">
+                                    Belum ada data WMA populer.
+                                </p>
+                            )}
                         </div>
 
                         <button className="mt-8 border-b border-[#271310] text-[11px] font-extrabold uppercase">
@@ -186,7 +207,7 @@ export default function AIAnalytics({ auth }: AIAnalyticsProps) {
                                     Positive
                                 </p>
                                 <h3 className="text-[22px] font-extrabold text-[#60765D]">
-                                    92%
+                                    {sentimentSummary?.summary?.positive_percentage || 0}%
                                 </h3>
                             </div>
                             <div className="rounded-[12px] bg-[#FFF6F6] py-5 text-center">
@@ -194,7 +215,7 @@ export default function AIAnalytics({ auth }: AIAnalyticsProps) {
                                     Critical
                                 </p>
                                 <h3 className="text-[22px] font-extrabold text-[#B91C1C]">
-                                    2.4%
+                                    {sentimentSummary?.summary?.negative_percentage || 0}%
                                 </h3>
                             </div>
                         </div>
@@ -236,44 +257,6 @@ export default function AIAnalytics({ auth }: AIAnalyticsProps) {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Bottom */}
-                <div className="grid grid-cols-1 gap-8 xl:grid-cols-[300px_1fr]">
-                    <div className="rounded-[34px] bg-[#301713] p-10 text-white">
-                        <h2 className="text-[24px] font-extrabold sm:text-[28px] xl:text-[32px] leading-tight">
-                            Barista AI <br /> Assist
-                        </h2>
-                        <p className="mt-6 text-[14px] leading-relaxed text-white/55">
-                            System suggests increasing staff for the 08:00 -
-                            10:00 window tomorrow based on local event data.
-                        </p>
-
-                        <button className="mt-8 xl:mt-16 h-14 w-full rounded-[14px] bg-white/85 text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#301713]">
-                            Auto-Schedule Review
-                        </button>
-                    </div>
-
-                    <div className="relative min-h-[260px] overflow-hidden rounded-[24px] bg-[#301713] p-6 text-white sm:p-8 xl:min-h-[320px] xl:rounded-[34px] xl:p-12">
-                        <img
-                            src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=1200&auto=format&fit=crop"
-                            alt="Coffee"
-                            className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
-                        />
-                        <div className="relative z-10 flex h-full flex-col justify-end">
-                            <p className="mb-4 text-[10px] font-extrabold uppercase tracking-[0.45em]">
-                                Upcoming Peak
-                            </p>
-                            <h2 className="text-[24px] font-extrabold sm:text-[28px] xl:text-[34px]">
-                                Friday Rush Prediction
-                            </h2>
-                            <p className="mt-4 max-w-[650px] text-[13px] leading-relaxed text-white/75 sm:text-[14px] xl:text-[15px]">
-                                Expect a 24% increase in artisan pastry demand
-                                between 09:00 and 11:00 AM. Pre-heat secondary
-                                oven by 08:30.
-                            </p>
                         </div>
                     </div>
                 </div>

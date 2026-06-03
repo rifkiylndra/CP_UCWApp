@@ -190,4 +190,49 @@ class DashboardController extends Controller
         
         return response()->json($statistics);
     }
+    /**
+     * Export today's transactions to CSV
+     */
+    public function exportTransactions()
+    {
+        $today = now()->startOfDay();
+        
+        $orders = Order::with(['payments'])
+            ->whereDate('created_at', $today)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $filename = "daily_transactions_" . now()->format('Y-m-d') . ".csv";
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = ['Time', 'Order ID', 'Customer Name', 'Total Price', 'Payment Method', 'Status'];
+
+        $callback = function () use ($orders, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($orders as $order) {
+                $paymentMethod = $order->payments->first()?->payment_method ?? 'cash';
+                fputcsv($file, [
+                    $order->created_at->format('H:i'),
+                    '#ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    $order->customer_name ?? 'Walk-in Customer',
+                    $order->total_price,
+                    ucfirst($paymentMethod),
+                    ucfirst($order->order_status)
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

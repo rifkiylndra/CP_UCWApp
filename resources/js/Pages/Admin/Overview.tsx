@@ -14,47 +14,27 @@ import {
 interface OverviewProps {
   auth: { user: AdminUser };
   statistics?: any;
+  topMenus?: any;
+  weeklySales?: any;
 }
 
-export default function Overview({ auth, statistics }: OverviewProps) {
-  const sellers = [
-    {
-      name: "Double Espresso",
-      sold: "482 SOLD",
-      revenue: "+$2,410",
-      img: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?q=80&w=120&auto=format&fit=crop",
-    },
-    {
-      name: "Oat Milk Latte",
-      sold: "312 SOLD",
-      revenue: "+$1,872",
-      img: "https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?q=80&w=120&auto=format&fit=crop",
-    },
-    {
-      name: "Matcha Ceremonial",
-      sold: "188 SOLD",
-      revenue: "+$1,316",
-      img: "https://images.unsplash.com/photo-1515823064-d6e0c04616a7?q=80&w=120&auto=format&fit=crop",
-    },
-  ];
+export default function Overview({ auth, statistics, topMenus = [], weeklySales = [] }: OverviewProps) {
+  // Chart Calculation
+  const maxRevenue = weeklySales.length > 0 ? Math.max(...weeklySales.map((s: any) => parseFloat(s.revenue) || 0)) : 100;
 
-  const staff = [
-    {
-      name: "Elena Gilbert",
-      role: "Head Barista",
-      img: "https://i.pravatar.cc/100?img=47",
-    },
-    {
-      name: "Markus Thorne",
-      role: "Brew Specialist",
-      img: "https://i.pravatar.cc/100?img=12",
-    },
-    {
-      name: "Sasha Lee",
-      role: "Service Lead",
-      img: "https://i.pravatar.cc/100?img=32",
-    },
-  ];
+  const chartDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
+  });
+
+  const chartHeights = chartDays.map(dayStr => {
+    const saleInfo = weeklySales.find((s: any) => {
+      const d = new Date(s.date);
+      return d.toLocaleDateString('en-US', { weekday: 'short' }) === dayStr;
+    });
+    return saleInfo ? Math.max(((parseFloat(saleInfo.revenue) || 0) / (maxRevenue || 1)) * 100, 5) : 5;
+  });
 
   return (
     <AdminLayout auth={auth} title="Overview" currentRoute="admin.overview">
@@ -85,7 +65,7 @@ export default function Overview({ auth, statistics }: OverviewProps) {
               Total Orders
             </p>
             <h2 className="mt-1 text-[36px] font-extrabold tracking-[-1px]">
-              {statistics?.total_orders || "1,248"}
+              {statistics?.total_orders ?? "1,248"}
             </h2>
           </div>
 
@@ -102,7 +82,7 @@ export default function Overview({ auth, statistics }: OverviewProps) {
               Total Revenue
             </p>
             <h2 className="mt-1 text-[36px] font-extrabold tracking-[-1px]">
-              Rp {statistics?.total_revenue?.toLocaleString('id-ID') || "14,520"}
+              Rp {statistics?.total_revenue?.toLocaleString('id-ID') ?? "14,520"}
             </h2>
           </div>
 
@@ -120,7 +100,7 @@ export default function Overview({ auth, statistics }: OverviewProps) {
               Active Queue (Pending)
             </p>
             <div className="mt-1 flex items-end gap-2">
-              <h2 className="text-[36px] font-extrabold tracking-[-1px]">{statistics?.pending_orders || "18"}</h2>
+              <h2 className="text-[36px] font-extrabold tracking-[-1px]">{statistics?.pending_orders ?? "18"}</h2>
               <span className="mb-2 text-[15px] font-medium text-white/45">
                 Orders
               </span>
@@ -155,7 +135,7 @@ export default function Overview({ auth, statistics }: OverviewProps) {
 
               <div className="flex h-[300px] flex-col justify-end md:h-[360px]">
                 <div className="mb-9 grid grid-cols-7 items-end gap-3 sm:gap-5 md:gap-8">
-                  {[34, 52, 44, 66, 90, 58, 42].map((height, index) => (
+                  {chartHeights.map((height, index) => (
                     <div key={index} className="flex flex-col items-center gap-5">
                       <div className="flex h-[210px] items-end gap-1.5 md:h-[250px] md:gap-2">
                         <span
@@ -164,7 +144,7 @@ export default function Overview({ auth, statistics }: OverviewProps) {
                         />
                         <span
                           className="w-3 rounded-full bg-[#301713]"
-                          style={{ height: `${Math.max(height - 18, 24)}%` }}
+                          style={{ height: `${Math.max(height - 18, 5)}%` }}
                         />
                       </div>
                     </div>
@@ -172,11 +152,11 @@ export default function Overview({ auth, statistics }: OverviewProps) {
                 </div>
 
                 <div className="grid grid-cols-7 border-t border-[#E8E3E1] pt-2 text-center text-[10px] font-bold uppercase text-[#B0A7A4]">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                  {chartDays.map(
                     (day) => (
                       <span
                         key={day}
-                        className={day === "Fri" ? "text-[#271310]" : ""}
+                        className={day === chartDays[6] ? "text-[#271310]" : ""}
                       >
                         {day}
                       </span>
@@ -193,52 +173,6 @@ export default function Overview({ auth, statistics }: OverviewProps) {
                     <span className="h-3 w-3 rounded-full bg-[#DDEED8]" />
                     Previous Period
                   </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[220px_1fr] lg:gap-8">
-              <div className="rounded-[10px] bg-[#4A2A24] p-6 text-white">
-                <p className="mb-5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
-                  Total Staff & Menu
-                </p>
-                <h3 className="text-[18px] font-semibold leading-snug">
-                  {statistics?.total_staff || 0} Staff Active<br/>
-                  {statistics?.available_menu_items || 0} Menus Ready
-                </h3>
-              </div>
-
-              <div className="rounded-[10px] border border-[#ECE8E6] bg-[#FAFAF9] p-7">
-                <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="text-[15px] font-extrabold uppercase tracking-[0.12em]">
-                    Active Staff Activity
-                  </h3>
-                  <p className="text-[12px] font-medium text-[#B0A7A4]">
-                    Current Shift: 06:00 - 14:00
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                  {staff.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center gap-4 rounded-[10px] bg-white p-4"
-                    >
-                      <img
-                        src={item.img}
-                        alt={item.name}
-                        className="h-11 w-11 rounded-full object-cover"
-                      />
-                      <div>
-                        <p className="text-[13px] font-extrabold">
-                          {item.name}
-                        </p>
-                        <p className="text-[10px] font-semibold text-[#8B807D]">
-                          {item.role}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -280,10 +214,10 @@ export default function Overview({ auth, statistics }: OverviewProps) {
               </h3>
 
               <div className="space-y-5">
-                {sellers.map((item) => (
-                  <div key={item.name} className="flex items-center gap-3">
+                {topMenus.slice(0, 3).map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-3">
                     <img
-                      src={item.img}
+                      src={`https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?q=80&w=120&auto=format&fit=crop&random=${idx}`}
                       alt={item.name}
                       className="h-10 w-10 rounded-[8px] object-cover"
                     />
@@ -292,11 +226,11 @@ export default function Overview({ auth, statistics }: OverviewProps) {
                         {item.name}
                       </p>
                       <p className="text-[9px] font-bold text-[#A69D9A]">
-                        {item.sold}
+                        {item.total_sold} SOLD
                       </p>
                     </div>
                     <p className="text-[11px] font-extrabold text-[#50634B]">
-                      {item.revenue}
+                      Rp {Number(item.total_revenue).toLocaleString('id-ID')}
                     </p>
                   </div>
                 ))}
@@ -307,18 +241,6 @@ export default function Overview({ auth, statistics }: OverviewProps) {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Floating Bottom Status */}
-        <div className="pointer-events-none fixed bottom-8 left-1/2 hidden -translate-x-1/2 items-center gap-7 rounded-full bg-white px-8 py-4 shadow-[0_18px_45px_rgba(39,19,16,0.10)] lg:flex">
-          <span className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[0.16em]">
-            <span className="h-3 w-3 rounded-full bg-[#5D7B5A]" />
-            System Online
-          </span>
-          <span className="h-6 w-px bg-[#E8E3E1]" />
-          <Printer size={18} />
-          <RefreshCw size={18} />
-          <Headphones size={18} />
         </div>
       </section>
     </AdminLayout>
