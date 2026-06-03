@@ -15,21 +15,18 @@ export type OrderStatus =
     | 'completed'
     | 'cancelled';
 
-export type MenuCategory =
-    | 'espresso'
-    | 'cold-brews'
-    | 'botanicals'
-    | 'bakery'
-    | 'all';
+export type MenuCategory = string;
 
 // ── Menu Item ──
 export interface MenuItem {
     id: string;
+    category_id: number;
     name: string;
     subtitle: string;
     description: string;
     price: number;
-    category: MenuCategory;
+    estimated_time: number;
+    category_name?: string | null;
     imageUrl: string;
     isAvailable: boolean;
     isPopular?: boolean;

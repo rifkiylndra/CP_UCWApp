@@ -18,14 +18,14 @@ class MenuController extends Controller
     {
         $tableId = $request->query('table_id');
         $table = null;
-        
+
         if ($tableId) {
             $table = Table::find($tableId);
         }
 
-        $categories = Category::with(['menus' => function($query) {
-            $query->where('is_available', true);
-        }])->get();
+        $categories = Category::query()
+            ->orderBy('name')
+            ->get();
 
         $menuItems = Menu::with('category')
             ->where('is_available', true)
@@ -33,11 +33,13 @@ class MenuController extends Controller
             ->map(function ($menu) {
                 return [
                     'id' => (string)$menu->id,
+                    'category_id' => $menu->category_id,
                     'name' => $menu->name,
                     'subtitle' => $menu->description ?? '',
                     'description' => $menu->description ?? '',
                     'price' => (float)$menu->price,
-                    'category' => $menu->category ? strtolower($menu->category->name) : 'all',
+                    'estimated_time' => (int) $menu->estimated_time,
+                    'category_name' => $menu->category?->name,
                     'imageUrl' => $menu->image_url,
                     'isAvailable' => (bool)$menu->is_available,
                     'isPopular' => false,
@@ -46,12 +48,11 @@ class MenuController extends Controller
 
         $formattedCategories = $categories->map(function ($cat) {
             return [
-                'key' => strtolower($cat->name),
-                'label' => $cat->name
+                'key' => (string) $cat->id,
+                'label' => $cat->name,
             ];
         });
 
-        // Add 'all' category at the beginning
         $formattedCategories->prepend(['key' => 'all', 'label' => 'All']);
 
         return Inertia::render('Customer/Menu', [
@@ -67,9 +68,25 @@ class MenuController extends Controller
      */
     public function getByCategory($categoryId)
     {
-        $menus = Menu::where('category_id', $categoryId)
+        $menus = Menu::with('category')
+            ->where('category_id', $categoryId)
             ->where('is_available', true)
-            ->get();
+            ->get()
+            ->map(function ($menu) {
+                return [
+                    'id' => (string) $menu->id,
+                    'category_id' => $menu->category_id,
+                    'name' => $menu->name,
+                    'subtitle' => $menu->description ?? '',
+                    'description' => $menu->description ?? '',
+                    'price' => (float) $menu->price,
+                    'estimated_time' => (int) $menu->estimated_time,
+                    'category_name' => $menu->category?->name,
+                    'imageUrl' => $menu->image_url,
+                    'isAvailable' => (bool) $menu->is_available,
+                    'isPopular' => false,
+                ];
+            });
 
         return response()->json($menus);
     }

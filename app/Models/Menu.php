@@ -10,7 +10,13 @@ class Menu extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id', 'name', 'description', 'price', 'image', 'is_available'
+        'category_id',
+        'name',
+        'description',
+        'price',
+        'estimated_time',
+        'image',
+        'is_available',
     ];
 
     protected $appends = ['image_url'];

@@ -66,6 +66,15 @@ export default function MenuCategoryModal({
         try {
             router.delete(
                 route("admin.menu-categories.destroy" as any, category.id),
+                {
+                    onError: (errors) => {
+                        const message =
+                            errors.category ||
+                            "Kategori gagal dihapus karena masih dipakai.";
+
+                        window.alert(message);
+                    },
+                },
             );
         } catch {
             console.warn("Route kategori belum tersedia.");
@@ -114,6 +123,10 @@ export default function MenuCategoryModal({
                                         </p>
                                         <p className="text-[11px] font-semibold text-[#8B807D]">
                                             Category ID: {category.id}
+                                            {typeof category.menus_count ===
+                                            "number"
+                                                ? ` • ${category.menus_count} menu`
+                                                : ""}
                                         </p>
                                     </div>
 

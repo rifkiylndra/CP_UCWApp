@@ -55,6 +55,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'store'])->name('menu.store');
     Route::post('/menu/{menu}', [\App\Http\Controllers\Admin\MenuController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menu}', [\App\Http\Controllers\Admin\MenuController::class, 'destroy'])->name('menu.destroy');
+    Route::get('/menu-categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('menu-categories.index');
+    Route::post('/menu-categories', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('menu-categories.store');
+    Route::put('/menu-categories/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('menu-categories.update');
+    Route::delete('/menu-categories/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('menu-categories.destroy');
     
     // Staff Management
     Route::get('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'index'])->name('staff');

@@ -35,7 +35,7 @@ export default function MenuModal({
         name: editData.name || "",
         category_id: editData.category_id || categories[0]?.id || "",
         price: editData.price || "",
-        estimated_time: editData.estimated_time || "",
+        estimated_time: editData.estimated_time || "15",
         description: editData.description || "",
         is_available: editData.is_available ?? true,
         image: null,
@@ -44,6 +44,7 @@ export default function MenuModal({
     } else {
       reset();
       setData("category_id", categories[0]?.id || "");
+      setData("estimated_time", "15");
       setImagePreview(null);
     }
   }, [open, editData, categories]);

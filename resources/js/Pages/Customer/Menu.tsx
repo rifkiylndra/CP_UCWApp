@@ -43,7 +43,9 @@ export default function Menu({
         const keyword = search.trim().toLowerCase();
 
         return menuItems.filter((item) => {
-            const matchCat = activeCategory === 'all' || item.category === activeCategory;
+            const matchCat =
+                activeCategory === 'all' ||
+                String(item.category_id) === activeCategory;
             const matchSearch =
                 keyword === '' ||
                 item.name.toLowerCase().includes(keyword) ||
@@ -57,7 +59,15 @@ export default function Menu({
     const cartTotal = total;
 
     const cartItems = cartItemsArray.map(cartItem => ({
-        item: menuItems.find(i => i.id === cartItem.id) || { ...cartItem, category: 'unknown', isAvailable: true, description: '' },
+        item:
+            menuItems.find(i => i.id === cartItem.id) || {
+                ...cartItem,
+                category_id: 0,
+                estimated_time: 15,
+                category_name: 'Unknown',
+                isAvailable: true,
+                description: '',
+            },
         qty: cartItem.quantity
     }));
 
