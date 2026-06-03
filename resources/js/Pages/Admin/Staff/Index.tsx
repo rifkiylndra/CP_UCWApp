@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import AddStaffModal from "@/Components/Modals/AddStaffModal";
 import {
   UserPlus,
+  ShieldPlus,
   Filter,
   Download,
   ChevronLeft,
@@ -12,32 +14,74 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { router, Link } from "@inertiajs/react";
-
 interface StaffIndexProps {
   auth: { user: AdminUser };
-  staffs: any; // data pagination dari Laravel
+  staffs: any;
+  filters?: {
+    role?: string;
+  };
 }
 
-export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
+export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
+  const [modalRole, setModalRole] = useState<"staff" | "admin">("staff");
+  const [roleFilter, setRoleFilter] = useState(filters?.role || "all");
 
-  const staff = staffs?.data || [];
+  const users = staffs?.data || [];
 
-  const handleAdd = () => {
+  const totalStaff = useMemo(
+    () => users.filter((item: any) => item.role !== "admin").length,
+    [users]
+  );
+
+  const totalAdmin = useMemo(
+    () => users.filter((item: any) => item.role === "admin").length,
+    [users]
+  );
+
+  const handleAdd = (role: "staff" | "admin") => {
     setSelectedStaff(null);
+    setModalRole(role);
     setIsStaffModalOpen(true);
   };
 
   const handleEdit = (item: any) => {
     setSelectedStaff(item);
+    setModalRole(item.role === "admin" ? "admin" : "staff");
     setIsStaffModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus staff ini?")) {
+    if (confirm("Apakah Anda yakin ingin menghapus user ini?")) {
       router.delete(route("admin.staff.destroy", id as any));
+    }
+  };
+
+  const handleFilterChange = (role: string) => {
+    setRoleFilter(role);
+
+    try {
+      router.get(
+        route("admin.staff" as any),
+        { role: role === "all" ? undefined : role },
+        {
+          preserveScroll: true,
+          preserveState: true,
+        }
+      );
+    } catch {
+      console.log("Filter role:", role);
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      window.location.href = route("admin.staff.export" as any, {
+        role: roleFilter === "all" ? undefined : roleFilter,
+      });
+    } catch {
+      console.log("Export staff role:", roleFilter);
     }
   };
 
@@ -47,6 +91,7 @@ export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
         isOpen={isStaffModalOpen}
         onClose={() => setIsStaffModalOpen(false)}
         staffToEdit={selectedStaff}
+        defaultRole={modalRole}
       />
 
       <section className="font-['Manrope'] text-[#271310]">
@@ -60,66 +105,55 @@ export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
             </h1>
           </div>
 
-          <button
-            onClick={handleAdd}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-[12px] bg-[#301713] px-7 text-[14px] font-extrabold text-white shadow-[0_14px_28px_rgba(39,19,16,0.16)] sm:w-fit"
-          >
-            <UserPlus size={19} />
-            Add New Staff
-          </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => handleAdd("staff")}
+              className="flex h-12 items-center justify-center gap-3 rounded-[12px] bg-[#301713] px-7 text-[14px] font-extrabold text-white shadow-[0_14px_28px_rgba(39,19,16,0.16)]"
+            >
+              <UserPlus size={19} />
+              Add New Staff
+            </button>
+
+            <button
+              onClick={() => handleAdd("admin")}
+              className="flex h-12 items-center justify-center gap-3 rounded-[12px] border border-[#E8E3E1] bg-white px-7 text-[14px] font-extrabold text-[#271310] shadow-[0_10px_24px_rgba(39,19,16,0.04)]"
+            >
+              <ShieldPlus size={19} />
+              Add New Admin
+            </button>
+          </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:grid-cols-[190px_190px_1fr] lg:gap-6">
-          <StatBox title="Total Staff" value="24" desc="↗ +2 this month" />
-          <StatBox title="On Duty" value="08" desc="● Full capacity" />
-
-          <div className="flex items-center justify-between rounded-[22px] border border-[#D7E8D2] bg-[#F0F7ED] p-5 sm:col-span-2 lg:col-span-1 lg:p-6">
-            <div>
-              <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#60765D] md:text-[12px]">
-                Barista of the Month
-              </p>
-              <h2 className="text-[20px] font-extrabold md:text-[24px]">
-                Elena Gilbert
-              </h2>
-              <p className="mt-2 text-[13px] font-medium text-[#7D8C78] md:text-[15px]">
-                98% Customer Rating
-              </p>
-            </div>
-            <img
-              src="https://i.pravatar.cc/100?img=47"
-              alt="Elena Gilbert"
-              className="h-[62px] w-[62px] rounded-[18px] object-cover grayscale md:h-[72px] md:w-[72px]"
-            />
-          </div>
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:gap-6">
+          <StatBox title="Total Staff" value={String(totalStaff || 0)} desc="Active staff accounts" />
+          <StatBox title="Total Admin" value={String(totalAdmin || 0)} desc="Administrator accounts" />
         </div>
 
         {/* Desktop Table */}
         <div className="mb-12 hidden overflow-hidden rounded-[28px] bg-white shadow-[0_18px_45px_rgba(39,19,16,0.05)] lg:block">
-          <RosterHeader />
+          <RosterHeader
+            roleFilter={roleFilter}
+            onFilterChange={handleFilterChange}
+            onExport={handleExport}
+          />
 
-          <div className="grid grid-cols-[150px_1.4fr_150px_190px_130px] bg-[#FAFAF9] px-8 py-5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8B807D]">
-            <span>User ID</span>
+          <div className="grid grid-cols-[1.6fr_160px_200px_130px] bg-[#FAFAF9] px-8 py-5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8B807D]">
             <span>Staff Member</span>
             <span>Role</span>
             <span>Registration Date</span>
             <span className="text-center">Action</span>
           </div>
 
-          {staff.map((item) => (
+          {users.map((item: any) => (
             <div
               key={item.id}
-              className="grid min-h-[84px] grid-cols-[150px_1.4fr_150px_190px_130px] items-center border-t border-[#F0ECEA] px-8"
+              className="grid min-h-[84px] grid-cols-[1.6fr_160px_200px_130px] items-center border-t border-[#F0ECEA] px-8"
             >
-              <p className="text-[15px] font-medium text-[#5A4A47]">
-                {item.id}
-              </p>
-
               <StaffIdentity item={item} />
-
               <RoleBadge item={item} />
 
               <p className="text-[14px] font-medium text-[#5A4A47]">
-                {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {formatDate(item.created_at)}
               </p>
 
               <ActionButtons
@@ -129,41 +163,44 @@ export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter data={staffs} />
+          <PaginationFooter data={staffs} roleFilter={roleFilter} />
         </div>
 
         {/* Mobile Card List */}
         <div className="mb-10 space-y-4 lg:hidden">
-          <div className="mb-4 flex items-center justify-between rounded-[20px] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]">
-            <h2 className="text-[17px] font-extrabold">Team Roster</h2>
-            <div className="flex items-center gap-5">
-              <button className="text-[#271310]">
-                <Filter size={18} />
-              </button>
-              <button className="text-[#271310]">
+          <div className="rounded-[20px] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[17px] font-extrabold">Team Roster</h2>
+              <button onClick={handleExport} className="text-[#271310]">
                 <Download size={18} />
               </button>
             </div>
+
+            <div className="grid grid-cols-[auto_1fr] items-center gap-3">
+              <Filter size={17} />
+              <select
+                value={roleFilter}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className="h-10 rounded-[12px] border border-[#ECE8E6] bg-[#FAFAF9] px-3 text-[13px] font-bold text-[#271310] outline-none"
+              >
+                <option value="all">All Users</option>
+                <option value="staff">Staff Only</option>
+                <option value="admin">Admin Only</option>
+              </select>
+            </div>
           </div>
 
-          {staff.map((item) => (
+          {users.map((item: any) => (
             <div
               key={item.id}
               className="rounded-[22px] border border-[#EFEAE7] bg-white p-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]"
             >
               <div className="flex gap-4">
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random`}
-                  alt={item.name}
-                  className="h-[64px] w-[64px] shrink-0 rounded-[18px] object-cover"
-                />
+                <Avatar item={item} size="lg" />
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[#8B807D]">
-                        {item.id}
-                      </p>
                       <h3 className="truncate text-[16px] font-extrabold">
                         {item.name}
                       </h3>
@@ -175,7 +212,7 @@ export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
                   </div>
 
                   <p className="mb-4 text-[12px] font-medium text-[#5A4A47]">
-                    Registered: {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    Registered: {formatDate(item.created_at)}
                   </p>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -200,27 +237,96 @@ export default function StaffIndex({ auth, staffs }: StaffIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter data={staffs} mobile />
-        </div>
-
-        <div className="rounded-[24px] bg-[#3A1D18] p-6 text-white shadow-[0_18px_42px_rgba(39,19,16,0.16)] md:rounded-[34px] md:p-12">
-          <p className="mb-4 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#DDEED8] md:mb-6">
-            Workspace Optimization
-          </p>
-          <h2 className="text-[17px] font-extrabold">
-            Analyze Shift Performance with AI Insights
-          </h2>
-          <p className="mt-5 max-w-[610px] text-[13px] leading-relaxed text-white/45 md:mt-8 md:text-[15px]">
-            Identify your peak hours and staff efficiently. Our new AI Analytics
-            module helps you predict footfall and coffee orders with 94%
-            accuracy.
-          </p>
-          <button className="mt-6 h-11 rounded-[10px] bg-[#DDEED8] px-6 text-[12px] font-extrabold text-[#271310] md:mt-8 md:h-12 md:px-8 md:text-[13px]">
-            Launch Analytics
-          </button>
+          <PaginationFooter data={staffs} roleFilter={roleFilter} mobile />
         </div>
       </section>
     </AdminLayout>
+  );
+}
+
+function RosterHeader({
+  roleFilter,
+  onFilterChange,
+  onExport,
+}: {
+  roleFilter: string;
+  onFilterChange: (role: string) => void;
+  onExport: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between px-8 py-8">
+      <h2 className="text-[18px] font-extrabold">Team Roster</h2>
+
+      <div className="flex items-center gap-4">
+        <div className="flex h-10 items-center gap-2 rounded-[12px] border border-[#ECE8E6] bg-[#FAFAF9] px-3">
+          <Filter size={16} />
+          <select
+            value={roleFilter}
+            onChange={(e) => onFilterChange(e.target.value)}
+            className="border-0 bg-transparent text-[13px] font-bold text-[#271310] outline-none focus:ring-0"
+          >
+            <option value="all">All Users</option>
+            <option value="staff">Staff Only</option>
+            <option value="admin">Admin Only</option>
+          </select>
+        </div>
+
+        <button
+          onClick={onExport}
+          className="flex h-10 items-center gap-2 rounded-[12px] bg-[#DDEED8] px-4 text-[13px] font-extrabold text-[#53664F]"
+        >
+          <Download size={16} />
+          Export
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StaffIdentity({ item }: { item: any }) {
+  return (
+    <div className="flex items-center gap-4">
+      <Avatar item={item} />
+      <div className="min-w-0">
+        <p className="truncate text-[14px] font-extrabold">{item.name}</p>
+        <p className="truncate text-[12px] font-medium text-[#5A4A47]">
+          {item.email}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ item, size = "sm" }: { item: any; size?: "sm" | "lg" }) {
+  const dimension = size === "lg" ? "h-[64px] w-[64px] rounded-[18px]" : "h-10 w-10 rounded-[10px]";
+
+  return (
+    <img
+      src={
+        item.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || "User")}&background=random`
+      }
+      alt={item.name}
+      className={`${dimension} shrink-0 object-cover`}
+    />
+  );
+}
+
+function RoleBadge({ item }: { item: any }) {
+  const isAdmin = item.role === "admin";
+
+  return (
+    <div>
+      <span
+        className={`inline-flex rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[0.08em] md:px-4 md:text-[10px] ${
+          isAdmin
+            ? "bg-[#FFE3A7] text-[#8C651C]"
+            : "bg-[#DDEED8] text-[#60765D]"
+        }`}
+      >
+        {isAdmin ? "Admin" : "Staff"}
+      </span>
+    </div>
   );
 }
 
@@ -242,54 +348,6 @@ function StatBox({
         {value}
       </h2>
       <p className="mt-5 text-[12px] font-semibold text-[#53664F]">{desc}</p>
-    </div>
-  );
-}
-
-function RosterHeader() {
-  return (
-    <div className="flex items-center justify-between px-8 py-8">
-      <h2 className="text-[18px] font-extrabold">Team Roster</h2>
-      <div className="flex items-center gap-6">
-        <button className="text-[#271310]">
-          <Filter size={18} />
-        </button>
-        <button className="text-[#271310]">
-          <Download size={18} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function StaffIdentity({ item }: { item: any }) {
-  return (
-    <div className="flex items-center gap-4">
-      <img
-        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=random`}
-        alt={item.name}
-        className="h-10 w-10 rounded-[10px] object-cover"
-      />
-      <div>
-        <p className="text-[14px] font-extrabold">{item.name}</p>
-        <p className="text-[12px] font-medium text-[#5A4A47]">{item.email}</p>
-      </div>
-    </div>
-  );
-}
-
-function RoleBadge({ item }: { item: any }) {
-  return (
-    <div>
-      <span
-        className={`inline-flex rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[0.08em] md:px-4 md:text-[10px] ${
-          item.role === "admin"
-            ? "bg-[#FFE3A7] text-[#8C651C]"
-            : "bg-[#DDEED8] text-[#60765D]"
-        }`}
-      >
-        {item.role}
-      </span>
     </div>
   );
 }
@@ -320,7 +378,15 @@ function ActionButtons({
   );
 }
 
-function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolean }) {
+function PaginationFooter({
+  data,
+  roleFilter,
+  mobile = false,
+}: {
+  data: any;
+  roleFilter: string;
+  mobile?: boolean;
+}) {
   if (!data || !data.links) return null;
 
   return (
@@ -331,7 +397,7 @@ function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolea
       ].join(" ")}
     >
       <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-        Showing {data.from || 0} to {data.to || 0} of {data.total || 0} staff
+        Showing {data.from || 0} to {data.to || 0} of {data.total || 0} users
       </p>
 
       <div className="flex items-center gap-1 md:gap-2">
@@ -344,7 +410,10 @@ function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolea
             <Link
               key={index}
               href={link.url}
-              className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-semibold transition md:h-10 md:w-10 ${
+              data={{ role: roleFilter === "all" ? undefined : roleFilter }}
+              preserveScroll
+              preserveState
+              className={`flex h-9 min-w-9 items-center justify-center rounded-[10px] px-3 text-[13px] font-semibold transition md:h-10 ${
                 link.active
                   ? "bg-[#301713] text-white"
                   : "border border-[#E8E3E1] bg-white text-[#5A4A47] hover:bg-[#F4F4F3]"
@@ -359,7 +428,7 @@ function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolea
           ) : (
             <span
               key={index}
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10 md:w-10"
+              className="flex h-9 min-w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 px-3 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10"
             >
               {typeof label === "string" ? (
                 <span dangerouslySetInnerHTML={{ __html: label }} />
@@ -372,4 +441,14 @@ function PaginationFooter({ data, mobile = false }: { data: any, mobile?: boolea
       </div>
     </div>
   );
+}
+
+function formatDate(value?: string) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import {
@@ -7,50 +8,109 @@ import {
   CreditCard,
   Banknote,
   Landmark,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 
+
 interface FinancesProps {
   auth: { user: AdminUser };
+  transactions?: any;
+  metrics?: {
+    totalSales: number;
+    totalSalesChange: string;
+    averageDailySales: number;
+    averageDailySalesChange: string;
+  };
+  selectedMonth?: string;
 }
 
-export default function Finances({ auth }: FinancesProps) {
-  const transactions = [
-    {
-      date: "Oct 24,\n14:32",
-      orderId: "#ORD-\n9021-X",
-      customer: "Marcus\nHolloway",
-      amount: "$24.50",
-      method: "Apple Pay",
-      icon: CreditCard,
-      img: "https://i.pravatar.cc/100?img=13",
-    },
-    {
-      date: "Oct 24,\n12:10",
-      orderId: "#ORD-\n8820-B",
-      customer: "Elena\nRodriguez",
-      amount: "$12.00",
-      method: "Cash",
-      icon: Banknote,
-      img: "https://i.pravatar.cc/100?img=32",
-    },
-    {
-      date: "Oct 24,\n11:45",
-      orderId: "#ORD-\n8715-L",
-      customer: "Jordan Smith",
-      amount: "$115.00",
-      method: "Wire\nTransfer",
-      icon: Landmark,
-      img: "https://i.pravatar.cc/100?img=11",
-    },
-  ];
+export default function Finances({
+  auth,
+  transactions,
+  metrics,
+  selectedMonth = "2023-10",
+}: FinancesProps) {
+  const [month, setMonth] = useState(selectedMonth);
+
+  const fallbackTransactions = {
+    data: [
+      {
+        id: 1,
+        date: "Oct 24, 14:32",
+        order_id: "#ORD-9021-X",
+        customer_name: "Marcus Holloway",
+        amount: 24500,
+        payment_method: "Apple Pay",
+        status: "completed",
+        customer_avatar: "https://i.pravatar.cc/100?img=13",
+      },
+      {
+        id: 2,
+        date: "Oct 24, 12:10",
+        order_id: "#ORD-8820-B",
+        customer_name: "Elena Rodriguez",
+        amount: 12000,
+        payment_method: "Cash",
+        status: "completed",
+        customer_avatar: "https://i.pravatar.cc/100?img=32",
+      },
+      {
+        id: 3,
+        date: "Oct 24, 11:45",
+        order_id: "#ORD-8715-L",
+        customer_name: "Jordan Smith",
+        amount: 115000,
+        payment_method: "Wire Transfer",
+        status: "completed",
+        customer_avatar: "https://i.pravatar.cc/100?img=11",
+      },
+    ],
+    from: 1,
+    to: 3,
+    total: 248,
+    links: [],
+  };
+
+  const currentTransactions = transactions || fallbackTransactions;
+
+  const currentMetrics = metrics || {
+    totalSales: 12840000,
+    totalSalesChange: "+12.5%",
+    averageDailySales: 414193,
+    averageDailySalesChange: "+4.8%",
+  };
+
+  const handleMonthChange = (value: string) => {
+    setMonth(value);
+
+    try {
+      router.get(
+        route("admin.finances" as any),
+        { month: value },
+        {
+          preserveState: true,
+          preserveScroll: true,
+        }
+      );
+    } catch {
+      console.log("Month changed:", value);
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      window.location.href = route("admin.finances.export" as any, {
+        month,
+      });
+    } catch {
+      console.log("Export CSV for month:", month);
+    }
+  };
 
   return (
     <AdminLayout auth={auth} title="Finances" currentRoute="admin.finances">
       <section className="font-['Manrope'] text-[#271310]">
-        {/* Header */}
         <div className="mb-8 flex flex-col gap-5 lg:mb-12 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#5A4A47] md:mb-3 md:text-[13px]">
@@ -62,105 +122,86 @@ export default function Finances({ auth }: FinancesProps) {
           </div>
 
           <div className="grid grid-cols-1 gap-3 rounded-[18px] bg-[#F8F8F7] p-2 sm:grid-cols-[1fr_auto]">
-            <button className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-white px-4 text-[12px] font-semibold shadow-sm md:h-10 md:px-5 md:text-[14px]">
+            <label className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-white px-4 text-[12px] font-semibold shadow-sm md:h-10 md:px-5 md:text-[14px]">
               <Calendar size={16} />
-              <span className="truncate">Oct 01, 2023 - Oct 31, 2023</span>
-            </button>
+              <input
+                type="month"
+                value={month}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="border-0 bg-transparent p-0 text-[12px] font-semibold text-[#271310] focus:outline-none focus:ring-0 md:text-[14px]"
+              />
+            </label>
 
-            <button className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#DDEED8] px-5 text-[12px] font-extrabold text-[#53664F] md:h-10 md:px-6 md:text-[14px]">
+            <button
+              onClick={handleExport}
+              className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#DDEED8] px-5 text-[12px] font-extrabold text-[#53664F] md:h-10 md:px-6 md:text-[14px]"
+            >
               <Download size={15} />
               Export CSV
             </button>
           </div>
         </div>
 
-        {/* Metrics */}
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 xl:grid-cols-4 xl:gap-6">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:gap-6">
           <MetricCard
-            title="Total Net Sales"
-            value="$12,840.00"
-            footer="+12.5%"
-            desc="vs last month"
-          />
-          <MetricCard
-            title="Average Ticket"
-            value="$18.42"
-            footer="↗"
-            desc="Peak performance"
-          />
-          <MetricCard
-            title="Active Subscriptions"
-            value="142"
-            footer="Growing"
-            desc=""
+            title="Total Penjualan"
+            value={`Rp ${Number(currentMetrics.totalSales).toLocaleString(
+              "id-ID"
+            )}`}
+            footer={currentMetrics.totalSalesChange}
+            desc="dibanding bulan lalu"
           />
 
-          <div className="rounded-[22px] bg-[#301713] p-6 text-white shadow-[0_18px_34px_rgba(39,19,16,0.2)] md:rounded-[24px] md:p-7">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-white/45 md:text-[12px]">
-              Refund Rate
-            </p>
-            <h2 className="mt-3 text-[28px] font-extrabold md:text-[30px]">
-              0.42%
-            </h2>
-            <p className="mt-4 text-[12px] italic text-white/35 md:mt-5">
-              Healthy benchmark achieved
-            </p>
-          </div>
+          <MetricCard
+            title="Rata-rata Penjualan Harian"
+            value={`Rp ${Number(
+              currentMetrics.averageDailySales
+            ).toLocaleString("id-ID")}`}
+            footer={currentMetrics.averageDailySalesChange}
+            desc="dalam bulan ini"
+          />
         </div>
 
-        {/* Transactions */}
         <div className="mb-10 overflow-hidden rounded-[24px] bg-[#FAFAF9] p-4 shadow-[0_18px_45px_rgba(39,19,16,0.04)] md:mb-12 md:rounded-[34px] md:p-8">
           <div className="mb-6 flex items-center justify-between gap-4 md:mb-10">
-            <h2 className="text-[20px] font-extrabold md:text-[22px]">
-              Recent Transactions
-            </h2>
-            <button className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#5A4A47] md:text-[13px]">
-              View Archive →
-            </button>
+            <div>
+              <h2 className="text-[20px] font-extrabold md:text-[22px]">
+                Transaction Reports
+              </h2>
+              <p className="mt-1 text-[12px] font-medium text-[#5A4A47]">
+                Data transaksi berdasarkan bulan yang dipilih.
+              </p>
+            </div>
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden lg:block">
-            <div className="grid grid-cols-[120px_130px_1.2fr_130px_160px_150px_60px] px-4 pb-5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#5A4A47]">
-              <span>Date</span>
-              <span>Order ID</span>
-              <span>Customer</span>
-              <span>Total Amount</span>
-              <span>Payment Method</span>
-              <span>Status</span>
-              <span>Action</span>
-            </div>
+          <div className="hidden overflow-x-auto lg:block">
+            <div className="min-w-[900px]">
+              <div className="grid grid-cols-[130px_150px_1.3fr_150px_180px_150px] px-4 pb-5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#5A4A47]">
+                <span>Date</span>
+                <span>Order ID</span>
+                <span>Customer</span>
+                <span>Total Amount</span>
+                <span>Payment Method</span>
+                <span>Status</span>
+              </div>
 
-            <div className="space-y-4">
-              {transactions.map((tx) => (
-                <TransactionRow key={tx.orderId} tx={tx} />
-              ))}
+              <div className="space-y-4">
+                {currentTransactions.data.map((tx: any) => (
+                  <TransactionRow key={tx.id || tx.order_id} tx={tx} />
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Mobile Cards */}
           <div className="space-y-4 lg:hidden">
-            {transactions.map((tx) => (
-              <TransactionCard key={tx.orderId} tx={tx} />
+            {currentTransactions.data.map((tx: any) => (
+              <TransactionCard key={tx.id || tx.order_id} tx={tx} />
             ))}
           </div>
 
-          <PaginationFooter />
-        </div>
-
-        {/* Bottom Cards */}
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 xl:gap-8">
-          <EditorialCard
-            title="Financial Insights"
-            desc="Your workspace performance is up 18% compared to the last quarter."
-            img="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=900&auto=format&fit=crop"
-          />
-
-          <EditorialCard
-            title="Tax Season Readiness"
-            desc="All records are currently reconciled and ready for quarterly export."
-            img="https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?q=80&w=900&auto=format&fit=crop"
-          />
+          <PaginationFooter data={currentTransactions} />
         </div>
       </section>
     </AdminLayout>
@@ -168,124 +209,177 @@ export default function Finances({ auth }: FinancesProps) {
 }
 
 function TransactionRow({ tx }: { tx: any }) {
-  const Icon = tx.icon;
+  const Icon = getPaymentIcon(tx.payment_method);
 
   return (
-    <div className="grid min-h-[78px] grid-cols-[120px_130px_1.2fr_130px_160px_150px_60px] items-center bg-white px-4">
-      <p className="whitespace-pre-line text-[15px] font-extrabold">
-        {tx.date}
-      </p>
+    <div className="grid min-h-[78px] grid-cols-[130px_150px_1.3fr_150px_180px_150px] items-center bg-white px-4">
+      <p className="text-[14px] font-extrabold">{tx.date}</p>
 
-      <p className="whitespace-pre-line text-[15px] font-medium text-[#5A4A47]">
-        {tx.orderId}
+      <p className="text-[14px] font-medium text-[#5A4A47]">
+        {tx.order_id}
       </p>
 
       <div className="flex items-center gap-4">
         <img
-          src={tx.img}
-          alt={tx.customer}
+          src={tx.customer_avatar || "https://i.pravatar.cc/100?img=13"}
+          alt={tx.customer_name}
           className="h-9 w-9 rounded-full object-cover"
         />
-        <p className="whitespace-pre-line text-[15px] font-medium">
-          {tx.customer}
-        </p>
+        <p className="text-[14px] font-medium">{tx.customer_name}</p>
       </div>
 
-      <p className="text-[15px] font-extrabold">{tx.amount}</p>
+      <p className="text-[14px] font-extrabold">
+        Rp {Number(tx.amount).toLocaleString("id-ID")}
+      </p>
 
-      <div className="flex items-center gap-2 text-[15px] font-medium text-[#5A4A47]">
+      <div className="flex items-center gap-2 text-[14px] font-medium text-[#5A4A47]">
         <Icon size={16} />
-        <span className="whitespace-pre-line">{tx.method}</span>
+        <span>{tx.payment_method}</span>
       </div>
 
-      <StatusBadge />
-
-      <button className="flex justify-center">
-        <MoreVertical size={20} />
-      </button>
+      <StatusBadge status={tx.status} />
     </div>
   );
 }
 
 function TransactionCard({ tx }: { tx: any }) {
-  const Icon = tx.icon;
-  const cleanDate = tx.date.replace("\n", " ");
-  const cleanOrderId = tx.orderId.replace("\n", "");
-  const cleanCustomer = tx.customer.replace("\n", " ");
-  const cleanMethod = tx.method.replace("\n", " ");
+  const Icon = getPaymentIcon(tx.payment_method);
 
   return (
     <div className="rounded-[20px] bg-white p-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8B807D]">
-            {cleanOrderId}
+            {tx.order_id}
           </p>
           <h3 className="mt-1 text-[20px] font-extrabold tracking-[-0.5px]">
-            {tx.amount}
+            Rp {Number(tx.amount).toLocaleString("id-ID")}
           </h3>
         </div>
 
-        <button className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F8F8F7]">
-          <MoreVertical size={18} />
-        </button>
+        <StatusBadge status={tx.status} />
       </div>
 
       <div className="mb-4 flex items-center gap-3">
         <img
-          src={tx.img}
-          alt={cleanCustomer}
+          src={tx.customer_avatar || "https://i.pravatar.cc/100?img=13"}
+          alt={tx.customer_name}
           className="h-10 w-10 rounded-full object-cover"
         />
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-extrabold">{cleanCustomer}</p>
-          <p className="text-[12px] font-medium text-[#5A4A47]">{cleanDate}</p>
+          <p className="truncate text-[14px] font-extrabold">
+            {tx.customer_name}
+          </p>
+          <p className="text-[12px] font-medium text-[#5A4A47]">{tx.date}</p>
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-[#F0ECEA] pt-4">
         <div className="flex items-center gap-2 text-[13px] font-semibold text-[#5A4A47]">
           <Icon size={16} />
-          <span>{cleanMethod}</span>
+          <span>{tx.payment_method}</span>
         </div>
-
-        <StatusBadge />
       </div>
     </div>
   );
 }
 
-function StatusBadge() {
+function getPaymentIcon(method: string) {
+  const lower = method?.toLowerCase() || "";
+
+  if (lower.includes("cash")) return Banknote;
+  if (lower.includes("wire") || lower.includes("transfer")) return Landmark;
+
+  return CreditCard;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const isCompleted = status === "completed" || status === "paid";
+
   return (
-    <span className="w-fit rounded-full bg-[#DDEED8] px-3 py-1.5 text-[10px] font-extrabold uppercase text-[#53664F] md:px-4 md:py-2 md:text-[11px]">
-      • Completed
+    <span
+      className={`w-fit rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase md:px-4 md:py-2 md:text-[11px] ${
+        isCompleted
+          ? "bg-[#DDEED8] text-[#53664F]"
+          : "bg-[#FFE3A7] text-[#8C651C]"
+      }`}
+    >
+      • {status || "completed"}
     </span>
   );
 }
 
-function PaginationFooter() {
+function PaginationFooter({ data }: { data: any }) {
+  if (!data) return null;
+
+  const hasLaravelLinks = Array.isArray(data.links) && data.links.length > 0;
+
   return (
     <div className="mt-6 flex items-center justify-between gap-4 px-1 md:mt-10 md:px-4">
       <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-        Showing 1–10 of 248 transactions
+        Showing {data.from || 0}–{data.to || 0} of {data.total || 0} transactions
       </p>
 
       <div className="flex items-center gap-2 md:gap-3">
-        <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
-          <ChevronLeft size={17} />
-        </button>
-        <button className="h-9 w-9 rounded-[9px] bg-[#301713] text-[13px] font-extrabold text-white">
-          1
-        </button>
-        <button className="hidden h-9 w-9 rounded-[9px] bg-white text-[13px] font-extrabold md:block">
-          2
-        </button>
-        <button className="hidden h-9 w-9 rounded-[9px] bg-white text-[13px] font-extrabold md:block">
-          3
-        </button>
-        <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
-          <ChevronRight size={17} />
-        </button>
+        {hasLaravelLinks ? (
+          data.links.map((link: any, index: number) => {
+            let label = link.label;
+
+            if (String(label).includes("Previous")) {
+              label = <ChevronLeft size={17} />;
+            }
+
+            if (String(label).includes("Next")) {
+              label = <ChevronRight size={17} />;
+            }
+
+            return link.url ? (
+              <Link
+                key={index}
+                href={link.url}
+                preserveScroll
+                preserveState
+                className={`flex h-9 min-w-9 items-center justify-center rounded-[9px] px-3 text-[13px] font-extrabold ${
+                  link.active
+                    ? "bg-[#301713] text-white"
+                    : "bg-white text-[#5A4A47]"
+                }`}
+              >
+                {typeof label === "string" ? (
+                  <span dangerouslySetInnerHTML={{ __html: label }} />
+                ) : (
+                  label
+                )}
+              </Link>
+            ) : (
+              <span
+                key={index}
+                className="flex h-9 min-w-9 items-center justify-center rounded-[9px] bg-white/60 px-3 text-[13px] font-extrabold text-[#A69D9A]"
+              >
+                {typeof label === "string" ? (
+                  <span dangerouslySetInnerHTML={{ __html: label }} />
+                ) : (
+                  label
+                )}
+              </span>
+            );
+          })
+        ) : (
+          <>
+            <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
+              <ChevronLeft size={17} />
+            </button>
+            <button className="h-9 w-9 rounded-[9px] bg-[#301713] text-[13px] font-extrabold text-white">
+              1
+            </button>
+            <button className="hidden h-9 w-9 rounded-[9px] bg-white text-[13px] font-extrabold md:block">
+              2
+            </button>
+            <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
+              <ChevronRight size={17} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -307,6 +401,7 @@ function MetricCard({
       <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#5A4A47] md:text-[12px]">
         {title}
       </p>
+
       <h2 className="mt-3 text-[27px] font-extrabold tracking-[-0.8px] md:text-[29px]">
         {value}
       </h2>
@@ -315,39 +410,7 @@ function MetricCard({
         <span className="rounded-full bg-[#DDEED8] px-3 py-1 text-[11px] font-extrabold text-[#53664F]">
           {footer}
         </span>
-        {desc && (
-          <span className="text-[11px] font-medium text-[#6F625F]">
-            {desc}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EditorialCard({
-  title,
-  desc,
-  img,
-}: {
-  title: string;
-  desc: string;
-  img: string;
-}) {
-  return (
-    <div className="relative h-[170px] overflow-hidden rounded-[22px] bg-[#301713] md:h-[190px] md:rounded-[28px]">
-      <img
-        src={img}
-        alt={title}
-        className="absolute inset-0 h-full w-full object-cover opacity-50"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#301713] via-[#301713]/35 to-transparent" />
-
-      <div className="relative z-10 flex h-full flex-col justify-end p-6 text-white md:p-8">
-        <h3 className="text-[22px] font-extrabold md:text-[25px]">{title}</h3>
-        <p className="mt-2 max-w-[430px] text-[13px] leading-relaxed text-white/65 md:text-[15px]">
-          {desc}
-        </p>
+        <span className="text-[11px] font-medium text-[#6F625F]">{desc}</span>
       </div>
     </div>
   );
