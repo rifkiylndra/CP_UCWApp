@@ -58,7 +58,7 @@ export default function StaffLayout({
                 </div>
             </header>
 
-            <StaffSidebar currentRoute={currentRoute} />
+            <StaffSidebar currentRoute={currentRoute} user={auth.user} />
 
             <main className="min-h-screen bg-[#F9F9F8] px-4 pb-[92px] pt-[88px] lg:ml-[272px] lg:px-8 lg:pb-8 lg:pt-[108px]">
                 {children}

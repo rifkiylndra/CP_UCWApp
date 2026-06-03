@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\StaffExport;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StaffController extends Controller
 {
@@ -90,5 +92,15 @@ class StaffController extends Controller
         $staff->delete();
 
         return redirect()->back()->with('success', 'Staff deleted successfully');
+    }
+
+    public function export(Request $request)
+    {
+        $role = $request->input('role');
+
+        return Excel::download(
+            new StaffExport($role),
+            'staff-list.xlsx'
+        );
     }
 }

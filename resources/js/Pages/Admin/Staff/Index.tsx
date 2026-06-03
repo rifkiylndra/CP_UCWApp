@@ -3,6 +3,7 @@ import { router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import AddUserModal from "@/Components/Modals/AddAdminModal";
+import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
 import {
   UserPlus,
   ShieldPlus,
@@ -27,6 +28,8 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
   const [modalRole, setModalRole] = useState<"staff" | "admin">("staff");
   const [roleFilter, setRoleFilter] = useState(filters?.role || "all");
+  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const users = staffs?.data || [];
 
@@ -52,10 +55,29 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
     setIsStaffModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus user ini?")) {
-      router.delete(route("admin.staff.destroy", id as any));
-    }
+  const handleDelete = (item: any) => {
+    setUserToDelete(item);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (isDeleting) return;
+
+    setUserToDelete(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+
+    router.delete(route("admin.staff.destroy", userToDelete.id as any), {
+      onSuccess: () => {
+        setUserToDelete(null);
+      },
+      onFinish: () => {
+        setIsDeleting(false);
+      },
+    });
   };
 
   const handleFilterChange = (role: string) => {
@@ -75,15 +97,9 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
     }
   };
 
-  const handleExport = () => {
-    try {
-      window.location.href = route("admin.staff.export" as any, {
-        role: roleFilter === "all" ? undefined : roleFilter,
-      });
-    } catch {
-      console.log("Export staff role:", roleFilter);
-    }
-  };
+  const exportHref = route("admin.staff.export" as any, {
+    role: roleFilter === "all" ? undefined : roleFilter,
+  });
 
   return (
     <AdminLayout auth={auth} title="Staff Management" currentRoute="admin.staff">
@@ -92,6 +108,14 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
         onClose={() => setIsStaffModalOpen(false)}
         staffToEdit={selectedStaff}
         defaultRole={modalRole}
+      />
+      <DeleteConfirmModal
+        isOpen={Boolean(userToDelete)}
+        title="Delete Confirmation"
+        message={`Are you sure you want to delete "${userToDelete?.name ?? "this user"}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
       />
 
       <section className="font-['Manrope'] text-[#271310]">
@@ -134,7 +158,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
           <RosterHeader
             roleFilter={roleFilter}
             onFilterChange={handleFilterChange}
-            onExport={handleExport}
+            exportHref={exportHref}
           />
 
           <div className="grid grid-cols-[1.6fr_160px_200px_130px] bg-[#FAFAF9] px-8 py-5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8B807D]">
@@ -158,7 +182,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
 
               <ActionButtons
                 onEdit={() => handleEdit(item)}
-                onDelete={() => handleDelete(item.id)}
+                onDelete={() => handleDelete(item)}
               />
             </div>
           ))}
@@ -171,9 +195,9 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
           <div className="rounded-[20px] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-[17px] font-extrabold">Team Roster</h2>
-              <button onClick={handleExport} className="text-[#271310]">
+              <a href={exportHref} className="text-[#271310]">
                 <Download size={18} />
-              </button>
+              </a>
             </div>
 
             <div className="grid grid-cols-[auto_1fr] items-center gap-3">
@@ -225,7 +249,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
                     </button>
 
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => handleDelete(item)}
                       className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#F3DEDE] bg-[#FFF8F8] text-[12px] font-extrabold text-[#B42318]"
                     >
                       <Trash2 size={14} />
@@ -247,11 +271,11 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
 function RosterHeader({
   roleFilter,
   onFilterChange,
-  onExport,
+  exportHref,
 }: {
   roleFilter: string;
   onFilterChange: (role: string) => void;
-  onExport: () => void;
+  exportHref: string;
 }) {
   return (
     <div className="flex items-center justify-between px-8 py-8">
@@ -271,13 +295,13 @@ function RosterHeader({
           </select>
         </div>
 
-        <button
-          onClick={onExport}
+        <a
+          href={exportHref}
           className="flex h-10 items-center gap-2 rounded-[12px] bg-[#DDEED8] px-4 text-[13px] font-extrabold text-[#53664F]"
         >
           <Download size={16} />
           Export
-        </button>
+        </a>
       </div>
     </div>
   );

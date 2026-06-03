@@ -63,6 +63,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Staff Management
     Route::get('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'index'])->name('staff');
+    Route::get('/staff/export', [\App\Http\Controllers\Admin\StaffController::class, 'export'])->name('staff.export');
     Route::post('/staff', [\App\Http\Controllers\Admin\StaffController::class, 'store'])->name('staff.store');
     Route::put('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'update'])->name('staff.update');
     Route::delete('/staff/{staff}', [\App\Http\Controllers\Admin\StaffController::class, 'destroy'])->name('staff.destroy');

@@ -4,6 +4,7 @@ import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import MenuModal from "@/Components/Modals/AddMenuModal";
 import MenuCategoryModal from "@/Components/Modals/MenuCategoryModal";
+import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
 import {
     Filter,
     Plus,
@@ -26,6 +27,8 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
     const [openModal, setOpenModal] = useState(false);
     const [editData, setEditData] = useState<any | null>(null);
     const [openCategoryModal, setOpenCategoryModal] = useState(false);
+    const [menuToDelete, setMenuToDelete] = useState<any | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Pakai data dari prop, fallback ke array kosong kalau belum ada data
     const items = menus?.data || [];
@@ -40,10 +43,29 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
         setOpenModal(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm("Apakah Anda yakin ingin menghapus menu ini?")) {
-            router.delete(route("admin.menu.destroy", id as any));
-        }
+    const handleDelete = (menu: any) => {
+        setMenuToDelete(menu);
+    };
+
+    const handleCloseDeleteModal = () => {
+        if (isDeleting) return;
+
+        setMenuToDelete(null);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!menuToDelete) return;
+
+        setIsDeleting(true);
+
+        router.delete(route("admin.menu.destroy", menuToDelete.id as any), {
+            onSuccess: () => {
+                setMenuToDelete(null);
+            },
+            onFinish: () => {
+                setIsDeleting(false);
+            },
+        });
     };
 
     return (
@@ -62,6 +84,14 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                 open={openCategoryModal}
                 onClose={() => setOpenCategoryModal(false)}
                 categories={categories}
+            />
+            <DeleteConfirmModal
+                isOpen={Boolean(menuToDelete)}
+                title="Delete Confirmation"
+                message={`Are you sure you want to delete "${menuToDelete?.name ?? "this menu"}"? This action cannot be undone.`}
+                isDeleting={isDeleting}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
             />
 
             <section className="font-['Manrope'] text-[#271310]">
@@ -148,7 +178,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
 
                             <ActionButtons
                                 onEdit={() => handleEdit(item)}
-                                onDelete={() => handleDelete(item.id)}
+                                onDelete={() => handleDelete(item)}
                             />
                         </div>
                     ))}
@@ -209,9 +239,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                                         </button>
 
                                         <button
-                                            onClick={() =>
-                                                handleDelete(item.id)
-                                            }
+                                            onClick={() => handleDelete(item)}
                                             className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#F3DEDE] bg-[#FFF8F8] text-[12px] font-extrabold text-[#B42318]"
                                         >
                                             <Trash2 size={14} />

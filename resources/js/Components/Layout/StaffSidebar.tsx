@@ -1,23 +1,32 @@
 import { Link } from "@inertiajs/react";
-import { route } from "ziggy-js";
-import { LayoutDashboard, ReceiptText } from "lucide-react";
+import type { StaffUser } from "@/types/staff";
+import { LayoutDashboard, ReceiptText, LogOut } from "lucide-react";
 
 interface Props {
     currentRoute: string;
+    user: StaffUser;
 }
 
-export default function StaffSidebar({ currentRoute }: Props) {
+export default function StaffSidebar({ currentRoute, user }: Props) {
+    const getSafeRoute = (routeName: string) => {
+        try {
+            return route(routeName as any);
+        } catch {
+            return "#";
+        }
+    };
+
     const navItems = [
         {
             key: "dashboard",
             label: "Dashboard",
-            href: route("staff.dashboard"),
+            href: getSafeRoute("staff.dashboard"),
             icon: LayoutDashboard,
         },
         {
             key: "transactions",
             label: "History",
-            href: route("staff.transactions"),
+            href: getSafeRoute("staff.transactions"),
             icon: ReceiptText,
         },
     ];
@@ -48,6 +57,44 @@ export default function StaffSidebar({ currentRoute }: Props) {
                         );
                     })}
                 </nav>
+
+                <div className="mt-auto pt-6">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#EAE7E4]">
+                                {user.avatar || user.avatarUrl ? (
+                                    <img
+                                        src={user.avatar || user.avatarUrl}
+                                        alt={user.name}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-sm font-extrabold text-[#271310]">
+                                        {user.name?.charAt(0)?.toUpperCase() || "S"}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="min-w-0">
+                                <p className="truncate text-[13px] font-extrabold text-[#271310]">
+                                    {user.name}
+                                </p>
+                                <p className="truncate text-[9px] font-bold uppercase tracking-wide text-[#50444299]">
+                                    {user.username || user.role}
+                                </p>
+                            </div>
+                        </div>
+
+                        <Link
+                            href={route("logout")}
+                            method="post"
+                            as="button"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#A69D9A] transition hover:bg-[#F4F4F3] hover:text-[#B42318]"
+                        >
+                            <LogOut size={18} />
+                        </Link>
+                    </div>
+                </div>
             </aside>
 
             {/* Mobile Bottom Nav */}

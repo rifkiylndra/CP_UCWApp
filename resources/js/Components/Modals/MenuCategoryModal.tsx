@@ -1,6 +1,7 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { router, useForm } from "@inertiajs/react";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
+import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
 
 interface MenuCategoryModalProps {
     open: boolean;
@@ -14,6 +15,8 @@ export default function MenuCategoryModal({
     categories = [],
 }: MenuCategoryModalProps) {
     const [editingCategory, setEditingCategory] = useState<any | null>(null);
+    const [categoryToDelete, setCategoryToDelete] = useState<any | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         name: "",
@@ -61,12 +64,30 @@ export default function MenuCategoryModal({
     };
 
     const handleDelete = (category: any) => {
-        if (!confirm(`Hapus kategori "${category.name}"?`)) return;
+        setCategoryToDelete(category);
+    };
+
+    const handleCloseDeleteModal = () => {
+        if (isDeleting) return;
+
+        setCategoryToDelete(null);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!categoryToDelete) return;
+
+        setIsDeleting(true);
 
         try {
             router.delete(
-                route("admin.menu-categories.destroy" as any, category.id),
+                route(
+                    "admin.menu-categories.destroy" as any,
+                    categoryToDelete.id,
+                ),
                 {
+                    onSuccess: () => {
+                        setCategoryToDelete(null);
+                    },
                     onError: (errors) => {
                         const message =
                             errors.category ||
@@ -74,10 +95,14 @@ export default function MenuCategoryModal({
 
                         window.alert(message);
                     },
+                    onFinish: () => {
+                        setIsDeleting(false);
+                    },
                 },
             );
         } catch {
             console.warn("Route kategori belum tersedia.");
+            setIsDeleting(false);
         }
     };
 
@@ -87,9 +112,18 @@ export default function MenuCategoryModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[999] overflow-y-auto bg-black/20 backdrop-blur-[10px]">
-            <div className="flex min-h-full items-center justify-center p-4 md:p-8">
-                <div className="relative max-h-[calc(100vh-32px)] w-full max-w-[540px] overflow-y-auto rounded-[28px] bg-[#F6F5F3] px-5 py-6 shadow-[0_30px_90px_rgba(39,19,16,0.22)] md:max-h-[calc(100vh-64px)] md:rounded-[32px] md:px-8 md:py-8">
+        <>
+            <DeleteConfirmModal
+                isOpen={Boolean(categoryToDelete)}
+                title="Delete Confirmation"
+                message={`Are you sure you want to delete "${categoryToDelete?.name ?? "this category"}"? This action cannot be undone.`}
+                isDeleting={isDeleting}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+            />
+            <div className="fixed inset-0 z-[999] overflow-y-auto bg-black/20 backdrop-blur-[10px]">
+                <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+                    <div className="relative max-h-[calc(100vh-32px)] w-full max-w-[540px] overflow-y-auto rounded-[28px] bg-[#F6F5F3] px-5 py-6 shadow-[0_30px_90px_rgba(39,19,16,0.22)] md:max-h-[calc(100vh-64px)] md:rounded-[32px] md:px-8 md:py-8">
                     <button
                         onClick={onClose}
                         className="absolute right-5 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#271310] md:right-8 md:top-8"
@@ -211,6 +245,7 @@ export default function MenuCategoryModal({
                     </form>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 }

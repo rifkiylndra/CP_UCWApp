@@ -12,9 +12,10 @@ export interface StaffUser {
     id: string;
     name: string;
     username: string;
-    role: StaffRole;
+    role: StaffRole | string;
     position: string;        // Contoh: "HEAD BARISTA"
     avatarUrl?: string;
+    avatar?: string;
     shiftInfo?: string;     // Contoh: "Active Shift: 06.00-14.00"
     brewStation?: string;   // Contoh: "Brew Station 1"
 }
