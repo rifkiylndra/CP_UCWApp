@@ -75,7 +75,7 @@ export default function TopBar({
 
             {showCart && (
                 <Link
-                    href={route('customer.cart', { tableId })}
+                    href={route('customer.cart')}
                     className="relative w-9 h-9 flex items-center justify-center rounded-full shrink-0 transition-opacity active:opacity-60"
                     style={{ backgroundColor: 'var(--color-ucw-border)' }}
                     aria-label={`Cart (${cartCount} items)`}

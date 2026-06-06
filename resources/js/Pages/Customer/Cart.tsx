@@ -15,8 +15,10 @@ interface Props {
 const PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
 
-export default function Cart({ tableId, tableNumber = "05" }: Props) {
-    const { items, subtotal, tax, total, totalItems, adjustQuantity, updateNotes } = useCart();
+export default function Cart({ tableId, tableNumber = "" }: Props) {
+    const { items, subtotal, total, totalItems, adjustQuantity, updateNotes, tableNumber: storedTableNumber } = useCart();
+    const displayTableNumber = storedTableNumber || tableNumber;
+    const subtitle = displayTableNumber ? `Table ${displayTableNumber} • Dine In` : "Review your items";
 
     // adjust() and updateNotes() are now handled by useCart()
 
@@ -30,9 +32,9 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                         <TopBar
                             tableId={tableId}
                             title="Review Order"
-                            subtitle={`Table ${tableNumber} • Dine In`}
+                            subtitle={subtitle}
                             showBack
-                            backHref={route("customer.menu", { tableId })}
+                            backHref={route("customer.menu")}
                         />
 
                         <EmptyCart tableId={tableId} />
@@ -53,8 +55,8 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                             <CustomerDesktopHeader
                                 tableId={tableId}
                                 title="Review Order"
-                                subtitle={`Table ${tableNumber} • Dine In`}
-                                backHref={route("customer.menu", { tableId })}
+                                subtitle={subtitle}
+                                backHref={route("customer.menu")}
                                 active="cart"
                             />
 
@@ -79,9 +81,9 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                     <TopBar
                         tableId={tableId}
                         title="Review Order"
-                        subtitle={`Table ${tableNumber} • Dine In`}
+                        subtitle={subtitle}
                         showBack
-                        backHref={route("customer.menu", { tableId })}
+                        backHref={route("customer.menu")}
                     />
 
                     <div className="flex flex-col flex-1 pb-52">
@@ -131,7 +133,6 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
 
                         <PriceSummary
                             subtotal={subtotal}
-                            tax={tax}
                             total={total}
                             className="mx-5 mt-6"
                         />
@@ -162,8 +163,8 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Review Order"
-                            subtitle={`Table ${tableNumber} • Dine In`}
-                            backHref={route("customer.menu", { tableId })}
+                            subtitle={subtitle}
+                            backHref={route("customer.menu")}
                             active="cart"
                         />
 
@@ -248,7 +249,7 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                                 className="text-xs"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
-                                Table {tableNumber} · {totalItems} item
+                                {displayTableNumber ? `Table ${displayTableNumber} · ` : ""}{totalItems} item
                                 {totalItems !== 1 ? "s" : ""}
                             </p>
                         </div>
@@ -266,14 +267,14 @@ export default function Cart({ tableId, tableNumber = "05" }: Props) {
                                 paddingTop: "20px",
                             }}
                         >
-                            <PriceSummary subtotal={subtotal} tax={tax} total={total} compact />
+                            <PriceSummary subtotal={subtotal} total={total} compact />
 
                             <div className="mt-6">
                                 <CheckoutButton tableId={tableId} />
                             </div>
 
                             <Link
-                                href={route("customer.menu", { tableId })}
+                                href={route("customer.menu")}
                                 className="w-full flex items-center justify-center mt-3 h-10 rounded-xl text-sm font-medium transition-opacity active:opacity-60"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -334,7 +335,7 @@ function EmptyCart({
             </p>
 
             <Link
-                href={route("customer.menu", { tableId })}
+                href={route("customer.menu")}
                 className="px-6 h-11 rounded-xl text-sm font-semibold flex items-center text-white"
                 style={{ backgroundColor: "var(--color-ucw-dark)" }}
             >
@@ -526,13 +527,11 @@ function MiniCartItem({ item }: { item: CartItem }) {
 
 function PriceSummary({
     subtotal,
-    tax,
     total,
     className = "",
     compact = false,
 }: {
     subtotal: number;
-    tax: number;
     total: number;
     className?: string;
     compact?: boolean;
@@ -551,21 +550,6 @@ function PriceSummary({
                     style={{ fontSize: "14px", color: "var(--color-ucw-text)" }}
                 >
                     {formatIDR(subtotal)}
-                </span>
-            </div>
-
-            <div className="flex justify-between items-center mb-4">
-                <span
-                    className="font-semibold uppercase tracking-[0.12em]"
-                    style={{ fontSize: "11px", color: "var(--color-ucw-text-muted)" }}
-                >
-                    TAX (11%)
-                </span>
-                <span
-                    className="font-semibold"
-                    style={{ fontSize: "14px", color: "var(--color-ucw-text)" }}
-                >
-                    {formatIDR(tax)}
                 </span>
             </div>
 
@@ -605,7 +589,7 @@ function AddMoreLink({
 }) {
     return (
         <Link
-            href={route("customer.menu", { tableId })}
+            href={route("customer.menu")}
             className={`flex items-center justify-center gap-1.5 h-11 rounded-xl text-sm font-medium transition-opacity active:opacity-60 ${className}`}
             style={{
                 border: "1.5px dashed var(--color-ucw-border-dark)",
@@ -631,7 +615,7 @@ function AddMoreLink({
 function CheckoutButton({ tableId }: { tableId: string }) {
     return (
         <Link
-            href={route("customer.order-type", { tableId })}
+            href={route("customer.order-type")}
             className="w-full flex items-center justify-between px-6 rounded-2xl font-bold transition-all active:scale-[0.98] text-white"
             style={{
                 height: "56px",

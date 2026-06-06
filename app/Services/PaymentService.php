@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Events\OrderStatusUpdated;
+use App\Events\PaymentStatusUpdated;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -169,13 +171,60 @@ class PaymentService
     }
 
     /**
-     * Process cash payment
-     * 
-     * @param Order $order
-     * @param float $amountReceived
-     * @return array
+     * Create a cash payment that must be verified manually by staff.
      */
-    public function processCashPayment(Order $order, float $amountReceived): array
+    public function createCashPayment(Order $order): array
+    {
+        try {
+            $payment = Payment::updateOrCreate(
+                [
+                    'order_id' => $order->id,
+                    'payment_method' => 'cash',
+                    'payment_status' => 'waiting_verification',
+                ],
+                [
+                    'provider' => 'manual',
+                    'provider_reference' => $order->order_ref,
+                    'amount' => $order->total_price,
+                    'total_payment' => $order->total_price,
+                ]
+            );
+
+            $order->update([
+                'payment_method' => 'cash',
+                'payment_status' => 'waiting_verification',
+            ]);
+
+            event(new PaymentStatusUpdated($order));
+
+            Log::info('Cash payment waiting verification', [
+                'order_id' => $order->id,
+                'order_ref' => $order->order_ref,
+                'payment_id' => $payment->id,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Pembayaran tunai menunggu verifikasi staff',
+                'payment_id' => $payment->id,
+                'payment_status' => 'waiting_verification',
+                'order_ref' => $order->order_ref,
+                'total_price' => $order->total_price,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Cash payment create error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Gagal mencatat pembayaran tunai: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Verify cash payment manually by staff.
+     */
+    public function verifyCashPayment(Order $order, float $amountReceived): array
     {
         try {
             $change = $amountReceived - $order->total_price;
@@ -189,15 +238,40 @@ class PaymentService
                 ];
             }
             
-            $payment = Payment::create([
-                'order_id' => $order->id,
-                'payment_method' => 'cash',
+            $payment = $order->payments()
+                ->where('payment_method', 'cash')
+                ->latest()
+                ->first();
+
+            if (!$payment) {
+                $payment = new Payment([
+                    'order_id' => $order->id,
+                    'payment_method' => 'cash',
+                ]);
+            }
+
+            $payment->fill([
+                'provider' => 'manual',
+                'provider_reference' => $order->order_ref,
                 'payment_status' => 'paid',
                 'amount' => $order->total_price,
+                'total_payment' => $order->total_price,
                 'paid_at' => now(),
-            ]);
+                'completed_at' => now(),
+            ])->save();
             
-            $order->update(['payment_status' => 'paid']);
+            $oldOrderStatus = $order->order_status;
+
+            $order->update([
+                'payment_method' => 'cash',
+                'payment_status' => 'paid',
+                'order_status' => $order->order_status === 'pending' ? 'confirmed' : $order->order_status,
+            ]);
+
+            event(new PaymentStatusUpdated($order));
+            if ($oldOrderStatus !== $order->order_status) {
+                event(new OrderStatusUpdated($order));
+            }
             
             Log::info('Cash payment processed', [
                 'order_id' => $order->id,
@@ -223,6 +297,14 @@ class PaymentService
                 'message' => 'Gagal memproses pembayaran tunai: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Backward compatible alias for older call sites.
+     */
+    public function processCashPayment(Order $order, float $amountReceived): array
+    {
+        return $this->verifyCashPayment($order, $amountReceived);
     }
 
     /**

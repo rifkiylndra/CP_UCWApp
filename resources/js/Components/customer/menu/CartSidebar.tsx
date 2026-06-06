@@ -44,7 +44,7 @@ export default function CartSidebar({
                 className="mb-5 text-xs"
                 style={{ color: 'var(--color-ucw-text-muted)' }}
             >
-                Table 05 · Dine in
+                Review items before checkout
             </p>
 
             {cartItems.length === 0 ? (
@@ -154,7 +154,7 @@ export default function CartSidebar({
                         </div>
 
                         <Link
-                            href={route('customer.cart', { tableId })}
+                            href={route('customer.cart')}
                             className="w-full flex items-center justify-center gap-2 rounded-[14px] font-bold text-sm text-white transition-all active:scale-[0.97]"
                             style={{
                                 height: '48px',

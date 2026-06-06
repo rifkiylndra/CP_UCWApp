@@ -36,6 +36,8 @@ class OrderController extends Controller
 
         return Inertia::render('Customer/Cart', [
             'table' => $table,
+            'tableId' => $table?->id ?? '',
+            'tableNumber' => $table?->table_number ?? '',
         ]);
     }
 
@@ -53,8 +55,10 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'order_id' => $order->id,
+                'order_ref' => $order->order_ref,
+                'total' => (float) $order->total_price,
                 'message' => 'Pesanan berhasil dibuat',
-                'redirect_url' => route('customer.payment', ['order' => $order->id])
+                'redirect_url' => route('customer.payment', ['order' => $order->order_ref])
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -67,23 +71,50 @@ class OrderController extends Controller
     /**
      * Display order status page
      */
-    public function status($orderId)
+    public function status($orderRef)
     {
-        $order = Order::with(['table', 'orderDetails.menu', 'payments'])
-            ->findOrFail($orderId);
+        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.status')) {
+            return $redirect;
+        }
+
+        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
+        $latestPayment = $order->payments()->latest()->first();
 
         return Inertia::render('Customer/OrderStatus', [
             'order' => $order,
+            'tableId' => $order->table_id ?? '',
+            'tableNumber' => $order->table?->table_number ?? '',
+            'orderId' => (string) $order->id,
+            'orderRef' => $order->order_ref,
+            'total' => $order->total_price,
+            'createdAt' => $order->created_at?->toIso8601String(),
+            'estimatedServeTime' => $order->estimated_serve_time,
+            'paymentMethod' => $order->payment_method,
+            'paymentStatus' => $order->payment_status,
+            'orderStatus' => $order->order_status,
+            'pakasirMethod' => $this->pakasirMethodFromPaymentMethod($latestPayment?->payment_method ?? $order->payment_method),
+            'paymentNumber' => $latestPayment?->payment_number,
+            'totalPayment' => $latestPayment?->total_payment,
+            'expiredAt' => $latestPayment?->expired_at?->toIso8601String(),
+            'items' => $order->orderDetails->map(function ($detail) {
+                return [
+                    'id' => (string) $detail->id,
+                    'menuId' => (string) $detail->menu_id,
+                    'name' => $detail->menu?->name,
+                    'quantity' => $detail->quantity,
+                    'note' => $detail->note,
+                    'subtotal' => (float) $detail->subtotal,
+                ];
+            })->toArray(),
         ]);
     }
 
     /**
      * Get order details
      */
-    public function show($orderId)
+    public function show($orderRef)
     {
-        $order = Order::with(['table', 'orderDetails.menu', 'payments'])
-            ->findOrFail($orderId);
+        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
 
         return response()->json($order);
     }
@@ -105,9 +136,9 @@ class OrderController extends Controller
     /**
      * Cancel order
      */
-    public function cancel($orderId)
+    public function cancel($orderRef)
     {
-        $order = Order::findOrFail($orderId);
+        $order = $this->findCustomerOrder($orderRef);
         
         // Only allow cancellation if order is still pending
         if ($order->order_status !== 'pending') {
@@ -158,5 +189,32 @@ class OrderController extends Controller
                 'is_fallback' => true
             ]);
         }
+    }
+
+    private function pakasirMethodFromPaymentMethod(?string $paymentMethod): ?string
+    {
+        return match ($paymentMethod) {
+            'qris_pakasir' => 'qris',
+            'bri_va_pakasir' => 'bri_va',
+            default => null,
+        };
+    }
+
+    private function findCustomerOrder(string $orderRef, array $with = []): Order
+    {
+        return Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+    }
+
+    private function redirectNumericOrderToRef(string $orderRef, string $route)
+    {
+        if (!ctype_digit($orderRef)) {
+            return null;
+        }
+
+        $order = Order::find($orderRef);
+
+        return $order
+            ? redirect()->route($route, ['order' => $order->order_ref])
+            : null;
     }
 }

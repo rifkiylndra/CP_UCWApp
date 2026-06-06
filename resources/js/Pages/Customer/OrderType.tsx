@@ -14,15 +14,30 @@ interface Props {
 
 export default function OrderTypePage({
     tableId,
-    tableNumber = "05",
+    tableNumber: initialTableNumber = "",
 }: Props) {
-    const { orderType, setOrderType, customerName, setCustomerName, totalItems } = useCart();
+    const {
+        orderType,
+        setOrderType,
+        customerName,
+        setCustomerName,
+        tableNumber,
+        setTableNumber,
+    } = useCart();
     const [nameError, setNameError] = useState("");
+    const [tableNumberError, setTableNumberError] = useState("");
+
+    const displayTableNumber = tableNumber || initialTableNumber;
 
     const selected = orderType === 'takeaway' ? 'takeaway' : (orderType === 'dine_in' ? 'dine-in' : null);
 
     function handleConfirm() {
         if (!selected) return;
+
+        if (selected === "dine-in" && !tableNumber.trim()) {
+            setTableNumberError("Please enter your table number.");
+            return;
+        }
 
         if (selected === "takeaway" && !customerName.trim()) {
             setNameError("Please enter your name.");
@@ -30,7 +45,8 @@ export default function OrderTypePage({
         }
 
         setNameError("");
-        router.visit(route("customer.estimate", { tableId }));
+        setTableNumberError("");
+        router.visit(route("customer.estimate"));
     }
 
     return (
@@ -46,9 +62,9 @@ export default function OrderTypePage({
                     <TopBar
                         tableId={tableId}
                         title="Order Details"
-                        subtitle={`Table ${tableNumber} • Dine In`}
+                        subtitle={displayTableNumber ? `Table ${displayTableNumber} • Dine In` : "Choose order type"}
                         showBack
-                        backHref={route("customer.cart", { tableId })}
+                        backHref={route("customer.cart")}
                     />
 
                     <div className="flex flex-col flex-1 px-5 pb-36">
@@ -61,9 +77,15 @@ export default function OrderTypePage({
                             <DineInCard
                                 selected={selected === "dine-in"}
                                 tableNumber={tableNumber}
+                                tableNumberError={tableNumberError}
                                 onSelect={() => {
                                     setOrderType("dine_in");
                                     setNameError("");
+                                    setTableNumberError("");
+                                }}
+                                onTableNumberChange={(value) => {
+                                    setTableNumber(value);
+                                    setTableNumberError("");
                                 }}
                             />
 
@@ -74,6 +96,7 @@ export default function OrderTypePage({
                                 onSelect={() => {
                                     setOrderType("takeaway");
                                     setNameError("");
+                                    setTableNumberError("");
                                 }}
                                 onNameChange={(value) => {
                                     setCustomerName(value);
@@ -108,8 +131,8 @@ export default function OrderTypePage({
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Order Details"
-                            subtitle={`Table ${tableNumber} • Choose order type`}
-                            backHref={route("customer.cart", { tableId })}
+                            subtitle={displayTableNumber ? `Table ${displayTableNumber} • Choose order type` : "Choose order type"}
+                            backHref={route("customer.cart")}
                             active="cart"
                         />
 
@@ -124,9 +147,15 @@ export default function OrderTypePage({
                                 <DineInCard
                                     selected={selected === "dine-in"}
                                     tableNumber={tableNumber}
+                                    tableNumberError={tableNumberError}
                                     onSelect={() => {
                                         setOrderType("dine_in");
                                         setNameError("");
+                                        setTableNumberError("");
+                                    }}
+                                    onTableNumberChange={(value) => {
+                                        setTableNumber(value);
+                                        setTableNumberError("");
                                     }}
                                     desktop
                                 />
@@ -138,6 +167,7 @@ export default function OrderTypePage({
                                     onSelect={() => {
                                         setOrderType("takeaway");
                                         setNameError("");
+                                        setTableNumberError("");
                                     }}
                                     onNameChange={(value) => {
                                         setCustomerName(value);
@@ -183,7 +213,7 @@ export default function OrderTypePage({
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
                             <SelectedSummary
                                 selected={selected as 'dine-in' | 'takeaway' | null}
-                                tableNumber={tableNumber}
+                                tableNumber={displayTableNumber}
                                 name={customerName}
                             />
 
@@ -197,7 +227,7 @@ export default function OrderTypePage({
                             />
 
                             <Link
-                                href={route("customer.cart", { tableId })}
+                                href={route("customer.cart")}
                                 className="w-full flex items-center justify-center mt-3 h-10 text-sm font-medium"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -253,12 +283,16 @@ function PageHeading({ desktop = false }: { desktop?: boolean }) {
 function DineInCard({
     selected,
     tableNumber,
+    tableNumberError,
     onSelect,
+    onTableNumberChange,
     desktop = false,
 }: {
     selected: boolean;
     tableNumber: string;
+    tableNumberError: string;
     onSelect: () => void;
+    onTableNumberChange: (value: string) => void;
     desktop?: boolean;
 }) {
     return (
@@ -301,30 +335,77 @@ function DineInCard({
                 Enjoy your drink in our curated creative space.
             </p>
 
-            <div
-                className="flex items-center justify-between px-4 py-3 rounded-xl"
-                style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
-            >
-                <span
-                    className="font-semibold uppercase tracking-[0.12em]"
-                    style={{
-                        fontSize: "10px",
-                        color: "var(--color-ucw-text-muted)",
-                    }}
+            {selected ? (
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex flex-col gap-1.5"
                 >
-                    YOUR SPOT
-                </span>
+                    <label
+                        className="font-semibold uppercase tracking-[0.12em]"
+                        style={{
+                            fontSize: "10px",
+                            color: "var(--color-ucw-text-muted)",
+                        }}
+                    >
+                        TABLE NUMBER
+                    </label>
 
-                <span
-                    className="font-black"
-                    style={{
-                        fontSize: "15px",
-                        color: "var(--color-ucw-dark)",
-                    }}
+                    <input
+                        type="text"
+                        placeholder="Enter table number"
+                        value={tableNumber}
+                        onChange={(e) => onTableNumberChange(e.target.value)}
+                        autoFocus
+                        className="w-full h-12 px-4 rounded-xl outline-none transition-colors"
+                        style={{
+                            fontSize: "14px",
+                            backgroundColor: "var(--color-ucw-bg-warm)",
+                            border: `1.5px solid ${
+                                tableNumberError
+                                    ? "var(--color-ucw-red)"
+                                    : "var(--color-ucw-border)"
+                            }`,
+                            color: "var(--color-ucw-text)",
+                        }}
+                    />
+
+                    {tableNumberError && (
+                        <p
+                            style={{
+                                fontSize: "11px",
+                                color: "var(--color-ucw-red)",
+                            }}
+                        >
+                            {tableNumberError}
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div
+                    className="flex items-center justify-between px-4 py-3 rounded-xl"
+                    style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
                 >
-                    Table {tableNumber}
-                </span>
-            </div>
+                    <span
+                        className="font-semibold uppercase tracking-[0.12em]"
+                        style={{
+                            fontSize: "10px",
+                            color: "var(--color-ucw-text-muted)",
+                        }}
+                    >
+                        YOUR SPOT
+                    </span>
+
+                    <span
+                        className="font-black"
+                        style={{
+                            fontSize: "15px",
+                            color: "var(--color-ucw-dark)",
+                        }}
+                    >
+                        Table {tableNumber || "-"}
+                    </span>
+                </div>
+            )}
         </button>
     );
 }
@@ -516,7 +597,9 @@ function SelectedSummary({
                             style={{ color: "var(--color-ucw-text-muted)" }}
                         >
                             {selected === "dine-in"
-                                ? `Table ${tableNumber}`
+                                ? tableNumber
+                                  ? `Table ${tableNumber}`
+                                  : "Enter table number"
                                 : name
                                   ? `Name: ${name}`
                                   : "Enter your name"}

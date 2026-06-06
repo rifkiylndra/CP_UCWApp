@@ -16,8 +16,8 @@ export default function CustomerDesktopHeader({
     tableId,
 }: Props) {
     const tabs = [
-        { key: 'menu', label: 'Menu', href: route('customer.menu', { tableId }) },
-        { key: 'cart', label: 'Cart', href: route('customer.cart', { tableId }) },
+        { key: 'menu', label: 'Menu', href: route('customer.menu') },
+        { key: 'cart', label: 'Cart', href: route('customer.cart') },
         { key: 'track', label: 'Track', href: '#' },
     ];
 

@@ -18,40 +18,62 @@ const PLACEHOLDER =
 
 export default function Estimate({
     tableId,
-    tableNumber = "05",
+    tableNumber: initialTableNumber = "",
 }: Props) {
-    const { items, subtotal, tax: serviceFee, total, totalItems, customerName, orderType } = useCart();
+    const {
+        items,
+        subtotal,
+        total,
+        totalItems,
+        customerName,
+        orderType,
+        tableNumber,
+    } = useCart();
     
     const [estimatedMinMin, setEstimatedMinMin] = useState<number>(10);
     const [estimatedMinMax, setEstimatedMinMax] = useState<number>(15);
     const [isLoadingEstimate, setIsLoadingEstimate] = useState(true);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+
+    const displayTableNumber = tableNumber || initialTableNumber;
 
     const handleCreateOrder = async () => {
         if (isCreatingOrder) return;
         setIsCreatingOrder(true);
+        setErrorMessage("");
+
         try {
             const payload = {
-                table_id: tableId,
-                customer_name: customerName,
+                table_number: orderType === "dine_in" ? tableNumber.trim() : null,
+                customer_name: customerName.trim() || null,
                 order_type: orderType || 'dine_in',
                 items: items.map(i => ({
-                    menu_id: i.menuId,
+                    menu_id: Number(i.menuId || i.id),
                     quantity: i.quantity,
-                    price: i.price,
-                    note: i.notes || ''
+                    note: i.notes?.trim() || null
                 }))
             };
             
             const res = await axios.post('/customer/order', payload);
             if (res.data.success && res.data.redirect_url) {
+                sessionStorage.setItem(`ucw-order-${res.data.order_id}`, JSON.stringify(res.data));
                 window.location.href = res.data.redirect_url;
             } else {
-                console.error("Order creation failed", res.data);
+                setErrorMessage(res.data.message || "Order could not be created.");
                 setIsCreatingOrder(false);
             }
         } catch (error) {
             console.error("Order error", error);
+            if (axios.isAxiosError(error)) {
+                const errors = error.response?.data?.errors;
+                const firstError = errors ? Object.values(errors).flat()[0] : null;
+                setErrorMessage(
+                    String(firstError || error.response?.data?.message || "Order could not be created. Please check your details.")
+                );
+            } else {
+                setErrorMessage("Order could not be created. Please try again.");
+            }
             setIsCreatingOrder(false);
         }
     };
@@ -60,7 +82,7 @@ export default function Estimate({
         if (items.length === 0) return;
         
         axios.post('/customer/api/estimate', {
-            items: items.map(i => ({ menu_id: i.id, quantity: i.quantity }))
+            items: items.map(i => ({ menu_id: Number(i.menuId || i.id), quantity: i.quantity }))
         })
         .then(res => {
             if (res.data) {
@@ -85,9 +107,9 @@ export default function Estimate({
                     <TopBar
                         tableId={tableId}
                         title="Confirm Order"
-                        subtitle={`Table ${tableNumber} • ${totalItems} item${totalItems !== 1 ? "s" : ""}`}
+                        subtitle={`${orderType === "takeaway" ? "Takeaway" : displayTableNumber ? `Table ${displayTableNumber}` : "Dine In"} • ${totalItems} item${totalItems !== 1 ? "s" : ""}`}
                         showBack
-                        backHref={route("customer.order-type", { tableId })}
+                        backHref={route("customer.order-type")}
                     />
 
                     <div className="flex flex-col flex-1 px-5 pb-36">
@@ -104,13 +126,11 @@ export default function Estimate({
 
                         <SelectionList
                             items={items}
-                            tableId={tableId}
                             className="mt-6"
                         />
 
                         <PriceSummary
                             subtotal={subtotal}
-                            serviceFee={serviceFee}
                             total={total}
                             className="mt-6"
                         />
@@ -123,6 +143,7 @@ export default function Estimate({
                                 "linear-gradient(to top, var(--color-ucw-bg) 65%, transparent)",
                         }}
                     >
+                        {errorMessage && <OrderError message={errorMessage} />}
                         <PaymentButton onClick={handleCreateOrder} isLoading={isCreatingOrder} />
                         <TrustNote />
                     </div>
@@ -137,8 +158,8 @@ export default function Estimate({
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Confirm Order"
-                            subtitle={`Table ${tableNumber} • Review estimate`}
-                            backHref={route("customer.order-type", { tableId })}
+                            subtitle={`${orderType === "takeaway" ? "Takeaway" : displayTableNumber ? `Table ${displayTableNumber}` : "Dine In"} • Review estimate`}
+                            backHref={route("customer.order-type")}
                             active="cart"
                         />
 
@@ -188,9 +209,7 @@ export default function Estimate({
                                     </p>
 
                                     <Link
-                                        href={route("customer.cart", {
-                                            tableId,
-                                        })}
+                                        href={route("customer.cart")}
                                         className="inline-flex items-center mt-4 text-sm font-semibold transition-opacity active:opacity-60"
                                         style={{
                                             color: "var(--color-ucw-dark)",
@@ -246,18 +265,18 @@ export default function Estimate({
                         >
                             <PriceSummary
                                 subtotal={subtotal}
-                                serviceFee={serviceFee}
                                 total={total}
                                 compact
                             />
 
                             <div className="mt-6">
                                 <PaymentButton onClick={handleCreateOrder} isLoading={isCreatingOrder} />
+                                {errorMessage && <OrderError message={errorMessage} />}
                                 <TrustNote />
                             </div>
 
                             <Link
-                                href={route("customer.cart", { tableId })}
+                                href={route("customer.cart")}
                                 className="w-full flex items-center justify-center mt-3 h-10 text-sm font-medium"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -426,12 +445,10 @@ function EstimationCard({
 
 function SelectionList({
     items,
-    tableId,
     className = "",
     desktop = false,
 }: {
     items: any[];
-    tableId: string;
     className?: string;
     desktop?: boolean;
 }) {
@@ -456,7 +473,7 @@ function SelectionList({
                 </h2>
 
                 <Link
-                    href={route("customer.cart", { tableId })}
+                    href={route("customer.cart")}
                     className="font-semibold transition-opacity active:opacity-60"
                     style={{
                         fontSize: "13px",
@@ -542,13 +559,11 @@ function MiniItemList({ items }: { items: any[] }) {
 
 function PriceSummary({
     subtotal,
-    serviceFee,
     total,
     className = "",
     compact = false,
 }: {
     subtotal: number;
-    serviceFee: number;
     total: number;
     className?: string;
     compact?: boolean;
@@ -571,25 +586,6 @@ function PriceSummary({
                     style={{ fontSize: "14px", color: "var(--color-ucw-text)" }}
                 >
                     {formatIDR(subtotal)}
-                </span>
-            </div>
-
-            <div className="flex items-center justify-between mb-5">
-                <span
-                    className="font-semibold uppercase tracking-[0.12em]"
-                    style={{
-                        fontSize: "11px",
-                        color: "var(--color-ucw-text-muted)",
-                    }}
-                >
-                    SERVICE FEE
-                </span>
-
-                <span
-                    className="font-semibold"
-                    style={{ fontSize: "14px", color: "var(--color-ucw-text)" }}
-                >
-                    {formatIDR(serviceFee)}
                 </span>
             </div>
 
@@ -657,6 +653,25 @@ function PaymentButton({ onClick, isLoading }: { onClick: () => void; isLoading:
                 </svg>
             )}
         </button>
+    );
+}
+
+function OrderError({ message }: { message: string }) {
+    return (
+        <div
+            className="rounded-2xl px-4 py-3 mb-3"
+            style={{
+                backgroundColor: "var(--color-ucw-amber-bg)",
+                border: "1px solid var(--color-ucw-amber)",
+            }}
+        >
+            <p
+                className="font-semibold"
+                style={{ fontSize: "12px", color: "#92620A" }}
+            >
+                {message}
+            </p>
+        </div>
     );
 }
 

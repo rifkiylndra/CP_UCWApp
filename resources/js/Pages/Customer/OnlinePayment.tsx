@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Head, Link, router } from "@inertiajs/react";
+import QRCode from "react-qr-code";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import { formatIDR } from "@/lib/currency";
+import type { CustomerPaymentStatusResponse, PakasirMethod, PaymentMethod as BackendPaymentMethod, PaymentStatus, PakasirPaymentResponse } from "@/types/customer";
 
 interface Props {
     tableId: string;
@@ -11,25 +14,158 @@ interface Props {
     orderId?: string;
     orderRef?: string;
     total?: number;
+    paymentMethod?: BackendPaymentMethod | null;
+    paymentStatus?: PaymentStatus;
+    pakasirMethod?: PakasirMethod | null;
+    paymentNumber?: string | null;
+    totalPayment?: number | null;
+    expiredAt?: string | null;
 }
 
-type PaymentMethod = "qris" | "bank";
+type PaymentMethod = "qris" | "bri_va";
+
+function readStoredPayment(orderId?: string): Partial<PakasirPaymentResponse> {
+    if (!orderId || typeof window === "undefined") return {};
+
+    try {
+        return JSON.parse(sessionStorage.getItem(`ucw-payment-${orderId}`) || "{}");
+    } catch {
+        return {};
+    }
+}
+
+function methodFromPaymentMethod(method?: BackendPaymentMethod | null): PaymentMethod | null {
+    if (method === "qris_pakasir") return "qris";
+    if (method === "bri_va_pakasir") return "bri_va";
+    return null;
+}
 
 export default function OnlinePayment({
     tableId,
-    tableNumber = "05",
-    orderId = "ORD-8829",
-    orderRef = "EB-94021",
-    total = 245000,
+    tableNumber = "",
+    orderId,
+    orderRef,
+    total,
+    paymentMethod,
+    paymentStatus,
+    pakasirMethod,
+    paymentNumber,
+    totalPayment,
+    expiredAt,
 }: Props) {
-    const [selected, setSelected] = useState<PaymentMethod>("qris");
-    const [paid, setPaid] = useState(false);
+    const stored = useMemo(() => readStoredPayment(orderId), [orderId]);
+    const initialMethod =
+        pakasirMethod ||
+        methodFromPaymentMethod(paymentMethod) ||
+        stored.pakasirMethod ||
+        "qris";
+    const [selected, setSelected] = useState<PaymentMethod>(initialMethod);
+    const [copied, setCopied] = useState(false);
+    const [currentPaymentStatus, setCurrentPaymentStatus] = useState<PaymentStatus>(
+        paymentStatus ?? stored.paymentStatus ?? "unpaid",
+    );
+    const [paymentMessage, setPaymentMessage] = useState("Waiting for Pakasir payment confirmation.");
+    const [isRecreatingPayment, setIsRecreatingPayment] = useState(false);
 
-    function handlePaid() {
-        setPaid(true);
-        setTimeout(() => {
-            router.visit(route("customer.status", { tableId, orderId }));
-        }, 800);
+    const resolvedOrderId = String(orderId || stored.orderId || "");
+    const resolvedOrderRef = orderRef || stored.orderRef || "-";
+    const resolvedTotal = total ?? stored.total ?? 0;
+    const resolvedPaymentNumber = paymentNumber ?? stored.paymentNumber ?? "";
+    const resolvedTotalPayment = totalPayment ?? stored.totalPayment ?? resolvedTotal;
+    const resolvedExpiredAt = expiredAt ?? stored.expiredAt ?? null;
+    const isPaymentRetryable = currentPaymentStatus === "expired" || currentPaymentStatus === "failed";
+
+    useEffect(() => {
+        if (!resolvedOrderRef || resolvedOrderRef === "-") return;
+
+        let cancelled = false;
+
+        async function pollPaymentStatus() {
+            try {
+                const res = await axios.get<CustomerPaymentStatusResponse>(
+                    `/customer/order/${encodeURIComponent(resolvedOrderRef)}/payment/status`,
+                );
+
+                if (cancelled) return;
+
+                const nextPaymentStatus = res.data.paymentStatus ?? res.data.payment_status;
+
+                if (nextPaymentStatus) {
+                    setCurrentPaymentStatus(nextPaymentStatus);
+                }
+
+                if (nextPaymentStatus === "paid") {
+                    router.visit(route("customer.order.status", { order: resolvedOrderRef }));
+                    return;
+                }
+
+                if (nextPaymentStatus === "expired") {
+                    setPaymentMessage("Payment has expired. Please create a new payment.");
+                    return;
+                }
+
+                if (nextPaymentStatus === "failed") {
+                    setPaymentMessage("Payment failed. Please create a new payment.");
+                    return;
+                }
+
+                setPaymentMessage("Waiting for Pakasir payment confirmation.");
+            } catch {
+                if (!cancelled && currentPaymentStatus === "unpaid") {
+                    setPaymentMessage("Still waiting for payment confirmation. We will retry shortly.");
+                }
+            }
+        }
+
+        pollPaymentStatus();
+        const interval = window.setInterval(pollPaymentStatus, 7000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [resolvedOrderRef, currentPaymentStatus]);
+
+    function handleTrackOrder() {
+        if (!resolvedOrderRef || resolvedOrderRef === "-") return;
+        router.visit(route("customer.status", { order: resolvedOrderRef }));
+    }
+
+    async function handleCopyPaymentNumber() {
+        if (!resolvedPaymentNumber) return;
+
+        await navigator.clipboard.writeText(resolvedPaymentNumber);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1600);
+    }
+
+    async function handlePayAgain() {
+        if (!resolvedOrderRef || resolvedOrderRef === "-") return;
+
+        setIsRecreatingPayment(true);
+        setPaymentMessage("");
+
+        try {
+            const res = await axios.post<PakasirPaymentResponse>(
+                route("customer.payment.pakasir.order", { order: resolvedOrderRef }),
+                { method: selected },
+            );
+
+            sessionStorage.setItem(`ucw-payment-${resolvedOrderRef}`, JSON.stringify(res.data));
+            setCurrentPaymentStatus(res.data.paymentStatus || "unpaid");
+            router.visit(route("customer.payment.online", { order: resolvedOrderRef }));
+        } catch (error: unknown) {
+            const message =
+                typeof error === "object" &&
+                error !== null &&
+                "response" in error &&
+                typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+                    ? (error as { response: { data: { message: string } } }).response.data.message
+                    : "Could not create a new payment. Please try again.";
+
+            setPaymentMessage(message);
+            setIsRecreatingPayment(false);
+        }
     }
 
     return (
@@ -45,13 +181,13 @@ export default function OnlinePayment({
                     <TopBar
                         tableId={tableId}
                         title="Online Payment"
-                        subtitle={`Table ${tableNumber} • ${formatIDR(total)}`}
+                        subtitle={tableNumber ? `Table ${tableNumber} • ${formatIDR(resolvedTotalPayment)}` : formatIDR(resolvedTotalPayment)}
                         showBack
-                        backHref={route("customer.payment", { tableId })}
+                        backHref={route("customer.payment", { order: resolvedOrderRef })}
                     />
 
                     <div className="flex-1 px-5 pb-36">
-                        <PaymentHeader total={total} orderRef={orderRef} />
+                        <PaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} />
 
                         <div className="flex flex-col gap-3 mt-6">
                             <PaymentMethodCard
@@ -61,21 +197,34 @@ export default function OnlinePayment({
                             />
 
                             <PaymentMethodCard
-                                method="bank"
-                                selected={selected === "bank"}
-                                onSelect={() => setSelected("bank")}
+                                method="bri_va"
+                                selected={selected === "bri_va"}
+                                onSelect={() => setSelected("bri_va")}
                             />
                         </div>
 
                         <div className="mt-6">
                             {selected === "qris" ? (
-                                <QrisPanel />
+                                <QrisPanel
+                                    paymentNumber={resolvedPaymentNumber}
+                                    orderRef={resolvedOrderRef}
+                                    totalPayment={resolvedTotalPayment}
+                                    expiredAt={resolvedExpiredAt}
+                                />
                             ) : (
-                                <BankNagariPanel total={total} orderRef={orderRef} />
+                                <BriVaPanel
+                                    paymentNumber={resolvedPaymentNumber}
+                                    orderRef={resolvedOrderRef}
+                                    totalPayment={resolvedTotalPayment}
+                                    expiredAt={resolvedExpiredAt}
+                                    copied={copied}
+                                    onCopy={handleCopyPaymentNumber}
+                                />
                             )}
                         </div>
 
                         <PaymentInstructions method={selected} />
+                        <PaymentNotice status={currentPaymentStatus} message={paymentMessage} />
                     </div>
 
                     <div
@@ -85,7 +234,15 @@ export default function OnlinePayment({
                                 "linear-gradient(to top, var(--color-ucw-bg) 65%, transparent)",
                         }}
                     >
-                        <PaidButton paid={paid} onPaid={handlePaid} />
+                        {isPaymentRetryable ? (
+                            <TrackPaymentButton
+                                label={isRecreatingPayment ? "Creating Payment..." : "Pay Again"}
+                                onTrack={handlePayAgain}
+                                disabled={isRecreatingPayment}
+                            />
+                        ) : (
+                            <TrackPaymentButton onTrack={handleTrackOrder} />
+                        )}
                         <p
                             className="text-center mt-3 uppercase tracking-[0.12em]"
                             style={{
@@ -93,7 +250,7 @@ export default function OnlinePayment({
                                 color: "var(--color-ucw-text-muted)",
                             }}
                         >
-                            PAYMENT WILL BE VERIFIED BY STAFF
+                            {formatPaymentStatus(currentPaymentStatus)}
                         </p>
                     </div>
                 </div>
@@ -107,13 +264,13 @@ export default function OnlinePayment({
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Online Payment"
-                            subtitle={`Table ${tableNumber} • Order #${orderRef}`}
-                            backHref={route("customer.payment", { tableId })}
+                            subtitle={tableNumber ? `Table ${tableNumber} • Order #${resolvedOrderRef}` : `Order #${resolvedOrderRef}`}
+                            backHref={route("customer.payment", { order: resolvedOrderRef })}
                             active="cart"
                         />
 
                         <div className="flex-1 max-w-4xl mx-auto w-full px-8 lg:px-10 py-8">
-                            <PaymentHeader total={total} orderRef={orderRef} desktop />
+                            <PaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} desktop />
 
                             <div className="grid grid-cols-2 gap-5 mt-7">
                                 <PaymentMethodCard
@@ -124,20 +281,30 @@ export default function OnlinePayment({
                                 />
 
                                 <PaymentMethodCard
-                                    method="bank"
-                                    selected={selected === "bank"}
-                                    onSelect={() => setSelected("bank")}
+                                    method="bri_va"
+                                    selected={selected === "bri_va"}
+                                    onSelect={() => setSelected("bri_va")}
                                     desktop
                                 />
                             </div>
 
                             <div className="mt-6">
                                 {selected === "qris" ? (
-                                    <QrisPanel desktop />
+                                    <QrisPanel
+                                        paymentNumber={resolvedPaymentNumber}
+                                        orderRef={resolvedOrderRef}
+                                        totalPayment={resolvedTotalPayment}
+                                        expiredAt={resolvedExpiredAt}
+                                        desktop
+                                    />
                                 ) : (
-                                    <BankNagariPanel
-                                        total={total}
-                                        orderRef={orderRef}
+                                    <BriVaPanel
+                                        paymentNumber={resolvedPaymentNumber}
+                                        orderRef={resolvedOrderRef}
+                                        totalPayment={resolvedTotalPayment}
+                                        expiredAt={resolvedExpiredAt}
+                                        copied={copied}
+                                        onCopy={handleCopyPaymentNumber}
                                         desktop
                                     />
                                 )}
@@ -169,7 +336,7 @@ export default function OnlinePayment({
                                 className="text-xs"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
-                                Staff will verify your payment manually.
+                                Pakasir will confirm QRIS and BRI VA payments automatically.
                             </p>
                         </div>
 
@@ -194,7 +361,7 @@ export default function OnlinePayment({
                                     className="font-black"
                                     style={{ fontSize: "28px", color: "white" }}
                                 >
-                                    {formatIDR(total)}
+                                    {formatIDR(resolvedTotalPayment)}
                                 </p>
 
                                 <p
@@ -204,18 +371,27 @@ export default function OnlinePayment({
                                         color: "rgba(255,255,255,0.45)",
                                     }}
                                 >
-                                    Order #{orderRef}
+                                    Order #{resolvedOrderRef}
                                 </p>
                             </div>
 
                             <PaymentInstructions method={selected} compact />
+                            <PaymentNotice status={currentPaymentStatus} message={paymentMessage} />
                         </div>
 
                         <div className="px-8 pb-8">
-                            <PaidButton paid={paid} onPaid={handlePaid} />
+                            {isPaymentRetryable ? (
+                                <TrackPaymentButton
+                                    label={isRecreatingPayment ? "Creating Payment..." : "Pay Again"}
+                                    onTrack={handlePayAgain}
+                                    disabled={isRecreatingPayment}
+                                />
+                            ) : (
+                                <TrackPaymentButton onTrack={handleTrackOrder} />
+                            )}
 
                             <Link
-                                href={route("customer.payment", { tableId })}
+                                href={route("customer.payment", { order: resolvedOrderRef })}
                                 className="w-full flex items-center justify-center mt-3 h-10 text-sm font-medium"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -352,7 +528,7 @@ function PaymentMethodCard({
                 className="font-black mb-1"
                 style={{ fontSize: "20px", color: "var(--color-ucw-dark)" }}
             >
-                {isQris ? "QRIS" : "Transfer Bank Nagari"}
+                {isQris ? "QRIS" : "BRI Virtual Account"}
             </h3>
 
             <p
@@ -363,66 +539,24 @@ function PaymentMethodCard({
                 }}
             >
                 {isQris
-                    ? "Cafe will provide the QRIS code for this order."
-                    : "Transfer directly to the cafe's Bank Nagari account."}
+                    ? "Scan the QRIS code generated for this order."
+                    : "Pay to the BRI virtual account generated for this order."}
             </p>
         </button>
     );
 }
 
-function QrisPanel({ desktop = false }: { desktop?: boolean }) {
-    return (
-        <div
-            className="rounded-3xl p-5"
-            style={{
-                backgroundColor: "white",
-                border: "1px solid var(--color-ucw-border)",
-            }}
-        >
-            <h2
-                className="font-black mb-2"
-                style={{ fontSize: "18px", color: "var(--color-ucw-dark)" }}
-            >
-                Ask staff for QRIS
-            </h2>
-
-            <p
-                className="leading-relaxed mb-5"
-                style={{ fontSize: "13px", color: "var(--color-ucw-text-muted)" }}
-            >
-                Please show this screen to the cashier or staff. They will show the
-                official QRIS code for your payment.
-            </p>
-
-            <div
-                className="rounded-2xl p-5 text-center"
-                style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
-            >
-                <div
-                    className="mx-auto w-28 h-28 rounded-2xl flex items-center justify-center mb-4"
-                    style={{ backgroundColor: "var(--color-ucw-border)" }}
-                >
-                    <QrisIcon active={false} large />
-                </div>
-
-                <p
-                    className="font-bold uppercase tracking-[0.12em]"
-                    style={{ fontSize: "10px", color: "var(--color-ucw-text-muted)" }}
-                >
-                    QRIS WILL BE PROVIDED BY STAFF
-                </p>
-            </div>
-        </div>
-    );
-}
-
-function BankNagariPanel({
-    total,
+function QrisPanel({
+    paymentNumber,
     orderRef,
+    totalPayment,
+    expiredAt,
     desktop = false,
 }: {
-    total: number;
+    paymentNumber: string;
     orderRef: string;
+    totalPayment: number;
+    expiredAt?: string | null;
     desktop?: boolean;
 }) {
     return (
@@ -437,30 +571,105 @@ function BankNagariPanel({
                 className="font-black mb-2"
                 style={{ fontSize: "18px", color: "var(--color-ucw-dark)" }}
             >
-                Bank Nagari Transfer
+                Scan QRIS
             </h2>
 
             <p
                 className="leading-relaxed mb-5"
                 style={{ fontSize: "13px", color: "var(--color-ucw-text-muted)" }}
             >
-                Transfer the exact total amount to the cafe account below.
+                Scan this QRIS code and complete the exact payment amount.
+            </p>
+
+            <div
+                className="rounded-2xl p-5 text-center"
+                style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
+            >
+                <div
+                    className="mx-auto w-44 h-44 rounded-2xl flex items-center justify-center mb-4 p-4"
+                    style={{ backgroundColor: "white" }}
+                >
+                    {paymentNumber ? (
+                        <QRCode value={paymentNumber} size={144} />
+                    ) : (
+                        <QrisIcon active={false} large />
+                    )}
+                </div>
+
+                <BankInfoRow label="Order" value={orderRef} />
+                <BankInfoRow label="Amount" value={formatIDR(totalPayment)} important />
+                <BankInfoRow label="Expires" value={formatExpiry(expiredAt)} />
+            </div>
+        </div>
+    );
+}
+
+function BriVaPanel({
+    paymentNumber,
+    orderRef,
+    totalPayment,
+    expiredAt,
+    copied,
+    onCopy,
+    desktop = false,
+}: {
+    paymentNumber: string;
+    orderRef: string;
+    totalPayment: number;
+    expiredAt?: string | null;
+    copied: boolean;
+    onCopy: () => void;
+    desktop?: boolean;
+}) {
+    return (
+        <div
+            className="rounded-3xl p-5"
+            style={{
+                backgroundColor: "white",
+                border: "1px solid var(--color-ucw-border)",
+            }}
+        >
+            <h2
+                className="font-black mb-2"
+                style={{ fontSize: "18px", color: "var(--color-ucw-dark)" }}
+            >
+                BRI Virtual Account
+            </h2>
+
+            <p
+                className="leading-relaxed mb-5"
+                style={{ fontSize: "13px", color: "var(--color-ucw-text-muted)" }}
+            >
+                Transfer the exact total amount to the virtual account below.
             </p>
 
             <div className="flex flex-col gap-3">
-                <BankInfoRow label="Bank" value="Bank Nagari" />
-                <BankInfoRow label="Account Name" value="Unand Co-Workspace Cafe" />
-                <BankInfoRow label="Account Number" value="1234 5678 9012" important />
-                <BankInfoRow label="Amount" value={formatIDR(total)} important />
+                <BankInfoRow label="Bank" value="BRI Virtual Account" />
+                <BankInfoRow label="VA Number" value={paymentNumber || "-"} important />
+                <BankInfoRow label="Amount" value={formatIDR(totalPayment)} important />
                 <BankInfoRow label="Reference" value={orderRef} />
+                <BankInfoRow label="Expires" value={formatExpiry(expiredAt)} />
             </div>
+
+            <button
+                onClick={onCopy}
+                disabled={!paymentNumber}
+                className="mt-4 w-full h-11 rounded-xl font-bold transition-all active:scale-[0.98]"
+                style={{
+                    backgroundColor: "var(--color-ucw-bg-warm)",
+                    border: "1px solid var(--color-ucw-border)",
+                    color: "var(--color-ucw-dark)",
+                }}
+            >
+                {copied ? "VA Copied" : "Copy VA Number"}
+            </button>
 
             <p
                 className="mt-5 leading-relaxed"
                 style={{ fontSize: "12px", color: "var(--color-ucw-text-muted)" }}
             >
-                After transfer, press <b>I have paid</b>. Staff will verify your
-                payment before preparing the order.
+                Pakasir will confirm this payment automatically after the transfer
+                is completed.
             </p>
         </div>
     );
@@ -540,14 +749,14 @@ function SelectedMethodSummary({ selected }: { selected: PaymentMethod }) {
                         className="font-bold text-sm"
                         style={{ color: "var(--color-ucw-dark)" }}
                     >
-                        {isQris ? "QRIS Staff Cafe" : "Bank Nagari"}
+                        {isQris ? "QRIS Pakasir" : "BRI Virtual Account"}
                     </p>
 
                     <p
                         className="text-xs mt-0.5"
                         style={{ color: "var(--color-ucw-text-muted)" }}
                     >
-                        {isQris ? "Ask staff for QR" : "Manual bank transfer"}
+                        {isQris ? "Scan generated QRIS" : "Use generated VA number"}
                     </p>
                 </div>
             </div>
@@ -565,14 +774,14 @@ function PaymentInstructions({
     const steps =
         method === "qris"
             ? [
-                  "Show this payment screen to staff.",
-                  "Scan the QRIS code provided by the cafe.",
-                  "Press I have paid after completing payment.",
+                  "Scan the QRIS code shown on this screen.",
+                  "Pay the exact total amount.",
+                  "Track your order while Pakasir confirms payment.",
               ]
             : [
-                  "Transfer to Bank Nagari account shown above.",
-                  "Use the order reference in transfer notes if possible.",
-                  "Press I have paid after completing payment.",
+                  "Transfer to the BRI virtual account shown above.",
+                  "Pay the exact total amount before expiry.",
+                  "Track your order while Pakasir confirms payment.",
               ];
 
     return (
@@ -616,28 +825,61 @@ function PaymentInstructions({
     );
 }
 
-function PaidButton({
-    paid,
-    onPaid,
+function PaymentNotice({
+    status,
+    message,
 }: {
-    paid: boolean;
-    onPaid: () => void;
+    status: PaymentStatus;
+    message: string;
+}) {
+    if (!message) return null;
+
+    const isProblem = status === "expired" || status === "failed";
+
+    return (
+        <div
+            className="mt-5 rounded-2xl px-4 py-3"
+            style={{
+                backgroundColor: isProblem ? "var(--color-ucw-amber-bg)" : "white",
+                border: `1px solid ${isProblem ? "var(--color-ucw-amber)" : "var(--color-ucw-border)"}`,
+            }}
+        >
+            <p
+                className="font-semibold"
+                style={{
+                    fontSize: "12px",
+                    color: isProblem ? "#92620A" : "var(--color-ucw-text-muted)",
+                }}
+            >
+                {message}
+            </p>
+        </div>
+    );
+}
+
+function TrackPaymentButton({
+    onTrack,
+    label = "Track Payment Status",
+    disabled = false,
+}: {
+    onTrack: () => void;
+    label?: string;
+    disabled?: boolean;
 }) {
     return (
         <button
-            onClick={onPaid}
-            disabled={paid}
+            onClick={onTrack}
+            disabled={disabled}
             className="w-full flex items-center justify-center gap-2.5 rounded-2xl font-bold transition-all active:scale-[0.98] text-white"
             style={{
                 height: "54px",
                 fontSize: "15px",
-                backgroundColor: paid
-                    ? "var(--color-ucw-green)"
-                    : "var(--color-ucw-dark)",
+                backgroundColor: "var(--color-ucw-dark)",
                 boxShadow: "0 4px 20px rgba(45,26,14,0.22)",
+                opacity: disabled ? 0.7 : 1,
             }}
         >
-            {paid ? "Confirmed!" : "I have paid"}
+            {label}
 
             <svg
                 width="16"
@@ -648,10 +890,33 @@ function PaidButton({
                 strokeWidth="3"
                 strokeLinecap="round"
             >
-                <polyline points="20 6 9 17 4 12" />
+                <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
         </button>
     );
+}
+
+function formatExpiry(expiredAt?: string | null) {
+    if (!expiredAt) return "-";
+
+    return new Date(expiredAt).toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function formatPaymentStatus(status?: PaymentStatus) {
+    const labels: Record<PaymentStatus, string> = {
+        unpaid: "Waiting Payment",
+        waiting_verification: "Waiting Verification",
+        paid: "Payment Received",
+        failed: "Payment Failed",
+        expired: "Payment Expired",
+    };
+
+    return labels[status || "unpaid"];
 }
 
 function SelectedPill() {

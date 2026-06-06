@@ -6,7 +6,7 @@ use Inertia\Inertia;
 
 // ==================== PUBLIC ROUTES ====================
 // Root redirect ke landing page customer (Sesuai Frontend)
-Route::get('/', fn () => redirect()->route('customer.landing', ['tableId' => 'T01']))->name('welcome');
+Route::get('/', fn () => redirect()->route('customer.landing'))->name('welcome');
 
 // ==================== AUTHENTICATION (UNIVERSAL) ====================
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -100,9 +100,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // ==================== CUSTOMER ROUTES ====================
 Route::prefix('customer')->name('customer.')->group(function () {
     // Landing page
-    Route::get('/landing', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/Landing', [
-        'tableId' => $request->query('tableId', 'T01')
+    Route::get('/', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/Landing', [
+        'tableId' => $request->query('tableId', '')
     ]))->name('landing');
+    Route::get('/landing', fn () => redirect()->route('customer.landing'));
     
     // Menu page (accessed via QR code)
     Route::get('/menu', [\App\Http\Controllers\Customer\MenuController::class, 'index'])->name('menu');
@@ -115,6 +116,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
     
     // Order status tracking
     Route::get('/order/{order}/status', [\App\Http\Controllers\Customer\OrderController::class, 'status'])->name('order.status');
+    Route::get('/status/{order}', [\App\Http\Controllers\Customer\OrderController::class, 'status'])->name('status');
     
     // Get order details (API)
     Route::get('/order/{order}', [\App\Http\Controllers\Customer\OrderController::class, 'show'])->name('order.show');
@@ -133,9 +135,61 @@ Route::prefix('customer')->name('customer.')->group(function () {
     // Payment
     Route::get('/order/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'index'])->name('payment');
     Route::post('/order/{order}/payment/process', [\App\Http\Controllers\Customer\PaymentController::class, 'process'])->name('payment.process');
+    Route::post('/order/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPaymentByOrder'])->name('payment.pakasir.order');
+    Route::post('/{tableId}/orders/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPayment'])->name('payment.pakasir');
     Route::get('/order/{order}/payment/success', [\App\Http\Controllers\Customer\PaymentController::class, 'success'])->name('payment.success');
     Route::get('/order/{order}/payment/error', [\App\Http\Controllers\Customer\PaymentController::class, 'error'])->name('payment.error');
     Route::get('/order/{order}/payment/status', [\App\Http\Controllers\Customer\PaymentController::class, 'checkStatus'])->name('payment.status');
+    Route::get('/order/{order}/payment/cash', function (\Illuminate\Http\Request $request, string $order) {
+        $model = ctype_digit($order)
+            ? \App\Models\Order::with(['table', 'payments'])->findOrFail($order)
+            : \App\Models\Order::with(['table', 'payments'])->where('order_ref', $order)->firstOrFail();
+
+        if (ctype_digit($order)) {
+            return redirect()->route('customer.payment.cash', ['order' => $model->order_ref]);
+        }
+
+        $payment = $model->payments()->latest()->first();
+
+        return Inertia::render('Customer/CashConfirmation', [
+            'tableId' => $request->query('tableId', $model->table_id ?? ''),
+            'tableNumber' => $model->table?->table_number ?? '',
+            'orderId' => (string) $model->id,
+            'orderRef' => $model->order_ref,
+            'total' => $model->total_price,
+            'paymentMethod' => $model->payment_method,
+            'paymentStatus' => $model->payment_status ?? $payment?->payment_status,
+        ]);
+    })->name('payment.cash');
+    Route::get('/order/{order}/payment/online', function (\Illuminate\Http\Request $request, string $order) {
+        $model = ctype_digit($order)
+            ? \App\Models\Order::with(['table', 'payments'])->findOrFail($order)
+            : \App\Models\Order::with(['table', 'payments'])->where('order_ref', $order)->firstOrFail();
+
+        if (ctype_digit($order)) {
+            return redirect()->route('customer.payment.online', ['order' => $model->order_ref]);
+        }
+
+        $payment = $model->payments()->latest()->first();
+
+        return Inertia::render('Customer/OnlinePayment', [
+            'tableId' => $request->query('tableId', $model->table_id ?? ''),
+            'tableNumber' => $model->table?->table_number ?? '',
+            'orderId' => (string) $model->id,
+            'orderRef' => $model->order_ref,
+            'total' => $model->total_price,
+            'paymentMethod' => $model->payment_method ?? $payment?->payment_method,
+            'paymentStatus' => $model->payment_status ?? $payment?->payment_status,
+            'pakasirMethod' => match ($payment?->payment_method ?? $model?->payment_method) {
+                'qris_pakasir' => 'qris',
+                'bri_va_pakasir' => 'bri_va',
+                default => null,
+            },
+            'paymentNumber' => $payment?->payment_number,
+            'totalPayment' => $payment?->total_payment,
+            'expiredAt' => $payment?->expired_at?->toIso8601String(),
+        ]);
+    })->name('payment.online');
     
     // Midtrans callback (public endpoint)
     Route::post('/payment/callback', [\App\Http\Controllers\Customer\PaymentController::class, 'callback'])->name('payment.callback');
@@ -149,28 +203,102 @@ Route::prefix('customer')->name('customer.')->group(function () {
     
     // Additional Customer Flow Routes (Inertia Direct Renders for Static Views)
     Route::get('/order-type', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/OrderType', [
-        'tableId' => $request->query('tableId', 'T01')
+        'tableId' => $request->query('tableId', '')
     ]))->name('order-type');
     
     Route::get('/estimate', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/Estimate', [
-        'tableId' => $request->query('tableId', 'T01')
+        'tableId' => $request->query('tableId', '')
     ]))->name('estimate');
     
-    Route::get('/payment/cash', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/CashConfirmation', [
-        'tableId' => $request->query('tableId', 'T01')
-    ]))->name('payment.cash');
+    Route::get('/payment/cash', function (\Illuminate\Http\Request $request) {
+        $orderKey = $request->query('orderRef') ?? $request->query('order') ?? $request->query('orderId');
+        $order = $orderKey
+            ? (ctype_digit((string) $orderKey)
+                ? \App\Models\Order::find($orderKey)
+                : \App\Models\Order::where('order_ref', $orderKey)->first())
+            : null;
+
+        return $order
+            ? redirect()->route('customer.payment.cash', ['order' => $order->order_ref])
+            : redirect()->route('customer.cart');
+    });
     
-    Route::get('/payment/online', fn (\Illuminate\Http\Request $request) => Inertia::render('Customer/OnlinePayment', [
-        'tableId' => $request->query('tableId', 'T01')
-    ]))->name('payment.online');
+    Route::get('/payment/online', function (\Illuminate\Http\Request $request) {
+        $orderKey = $request->query('orderRef') ?? $request->query('order') ?? $request->query('orderId');
+        $order = $orderKey
+            ? (ctype_digit((string) $orderKey)
+                ? \App\Models\Order::find($orderKey)
+                : \App\Models\Order::where('order_ref', $orderKey)->first())
+            : null;
+
+        return $order
+            ? redirect()->route('customer.payment.online', ['order' => $order->order_ref])
+            : redirect()->route('customer.cart');
+    });
     
-    Route::get('/order/{order}/feedback', fn (\Illuminate\Http\Request $request, $order) => Inertia::render('Customer/Feedback', [
-        'tableId' => $request->query('tableId', 'T01'),
-        'orderId' => $order
-    ]))->name('feedback');
+    Route::get('/order/{order}/feedback', function (\Illuminate\Http\Request $request, string $order) {
+        $model = ctype_digit($order)
+            ? \App\Models\Order::with('table')->findOrFail($order)
+            : \App\Models\Order::with('table')->where('order_ref', $order)->firstOrFail();
+
+        if (ctype_digit($order)) {
+            return redirect()->route('customer.feedback', ['order' => $model->order_ref]);
+        }
+
+        if ($model->order_status !== 'completed') {
+            return redirect()->route('customer.order.status', ['order' => $model->order_ref]);
+        }
+
+        return Inertia::render('Customer/Feedback', [
+            'tableId' => $request->query('tableId', $model->table_id ?? ''),
+            'tableNumber' => $model->table?->table_number ?? '',
+            'orderId' => (string) $model->id,
+            'orderRef' => $model->order_ref,
+            'orderStatus' => $model->order_status,
+            'visitTime' => $model->created_at->format('h:i A'),
+        ]);
+    })->name('feedback');
     
     // AI Estimation Proxy for Customer
     Route::post('/api/estimate', [\App\Http\Controllers\Customer\OrderController::class, 'getEstimatedTime'])->name('api.estimate');
+
+    // Backward-compatible redirects for old tableId-based customer URLs.
+    Route::get('/{tableId}', fn () => redirect()->route('customer.landing'));
+    Route::get('/{tableId}/menu', fn () => redirect()->route('customer.menu'));
+    Route::get('/{tableId}/cart', fn () => redirect()->route('customer.cart'));
+    Route::get('/{tableId}/order-type', fn () => redirect()->route('customer.order-type'));
+    Route::get('/{tableId}/estimate', fn () => redirect()->route('customer.estimate'));
+    Route::get('/{tableId}/payment', function (\Illuminate\Http\Request $request) {
+        $orderId = $request->query('order') ?? $request->query('orderId');
+
+        return $orderId
+            ? redirect()->route('customer.payment', ['order' => $orderId])
+            : redirect()->route('customer.cart');
+    });
+    Route::get('/{tableId}/payment/online', function (\Illuminate\Http\Request $request) {
+        $orderKey = $request->query('orderRef') ?? $request->query('order') ?? $request->query('orderId');
+        $order = $orderKey
+            ? (ctype_digit((string) $orderKey)
+                ? \App\Models\Order::find($orderKey)
+                : \App\Models\Order::where('order_ref', $orderKey)->first())
+            : null;
+
+        return $order
+            ? redirect()->route('customer.payment.online', ['order' => $order->order_ref])
+            : redirect()->route('customer.cart');
+    });
+    Route::get('/{tableId}/payment/cash', function (\Illuminate\Http\Request $request) {
+        $orderKey = $request->query('orderRef') ?? $request->query('order') ?? $request->query('orderId');
+        $order = $orderKey
+            ? (ctype_digit((string) $orderKey)
+                ? \App\Models\Order::find($orderKey)
+                : \App\Models\Order::where('order_ref', $orderKey)->first())
+            : null;
+
+        return $order
+            ? redirect()->route('customer.payment.cash', ['order' => $order->order_ref])
+            : redirect()->route('customer.cart');
+    });
 });
 
 // Fallback route (optional)

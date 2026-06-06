@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -35,7 +36,7 @@ class PaymentController extends Controller
             ], 400);
         }
 
-        $result = $this->paymentService->processCashPayment(
+        $result = $this->paymentService->verifyCashPayment(
             $order, 
             (float) $request->amount_received
         );

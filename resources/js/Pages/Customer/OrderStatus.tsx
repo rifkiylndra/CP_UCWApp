@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { Head, router } from "@inertiajs/react";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
-import type { OrderStatus } from "@/types/customer";
+import type { CustomerPaymentStatusResponse, Order as BackendOrder, OrderStatus, PaymentMethod, PaymentStatus, PakasirPaymentResponse } from "@/types/customer";
 
 interface OrderItem {
     id: string;
@@ -14,17 +15,22 @@ interface OrderItem {
 }
 
 interface OrderDetail {
+    id?: number;
+    quantity?: number;
     menu: {
         id: number;
         name: string;
-        description: string;
-        image: string;
-    };
+        description?: string | null;
+        image?: string | null;
+        image_url?: string | null;
+    } | null;
 }
 
 interface OrderData {
     id: number;
     order_status: OrderStatus;
+    payment_status?: PaymentStatus;
+    payment_method?: PaymentMethod | null;
     estimated_serve_time: number;
     created_at: string;
     order_details: OrderDetail[];
@@ -36,20 +42,21 @@ interface Props {
     orderRef?: string;
     tableNumber?: string;
     cartCount?: number;
-    order?: OrderData;
+    order?: OrderData | BackendOrder;
+    paymentStatus?: PaymentStatus;
+    paymentMethod?: PaymentMethod | null;
+    orderStatus?: OrderStatus;
+    total?: number;
+    pakasirMethod?: "qris" | "bri_va" | null;
+    paymentNumber?: string | null;
+    totalPayment?: number | null;
+    expiredAt?: string | null;
+    createdAt?: string | null;
+    estimatedServeTime?: number | null;
 }
 
 const PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
-
-const DEMO_ITEMS: OrderItem[] = [
-    {
-        id: "1",
-        name: "Hand-Crafted Latte",
-        subtitle: "12OZ • OAT MILK • SINGLE ORIGIN",
-        imageUrl: "",
-    },
-];
 
 type StepStatus = "done" | "active" | "pending";
 
@@ -100,25 +107,58 @@ function formatCountdown(secs: number) {
     return `${m}:${s}`;
 }
 
+function remainingSeconds(createdAt?: string | null, estimatedServeTime?: number | null) {
+    if (!createdAt || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
+
+    const createdTime = new Date(createdAt).getTime();
+    if (Number.isNaN(createdTime)) return Math.max(0, estimatedServeTime * 60);
+
+    const estimatedEndTime = createdTime + estimatedServeTime * 60 * 1000;
+    return Math.max(0, Math.floor((estimatedEndTime - Date.now()) / 1000));
+}
+
 export default function OrderStatusPage({
     tableId,
     orderId,
-    orderRef = "EB-94021",
-    tableNumber = "05",
+    orderRef,
+    tableNumber = "",
     cartCount = 0,
     order,
+    paymentStatus,
+    paymentMethod,
+    orderStatus,
+    pakasirMethod,
+    createdAt,
+    estimatedServeTime,
 }: Props) {
-    const defaultStatus = order?.order_status || "pending";
+    const resolvedOrderId = String(orderId || order?.id || "");
+    const resolvedOrderRef = orderRef || (order as BackendOrder | undefined)?.order_ref || "-";
+    const defaultStatus = orderStatus || order?.order_status || "pending";
     const [status, setStatus] = useState<OrderStatus>(defaultStatus);
+    const [currentPaymentStatus, setCurrentPaymentStatus] = useState<PaymentStatus>(
+        paymentStatus || order?.payment_status || "unpaid",
+    );
+    const [currentPaymentMethod, setCurrentPaymentMethod] = useState<PaymentMethod | null | undefined>(
+        paymentMethod || order?.payment_method,
+    );
+    const [statusError, setStatusError] = useState("");
+    const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [showReadyPopup, setShowReadyPopup] = useState(false);
-    
-    // Fallback if not provided
-    const estimatedMin = order?.estimated_serve_time || 15;
-    const [timeLeft, setTimeLeft] = useState(estimatedMin * 60);
+    const [currentCreatedAt, setCurrentCreatedAt] = useState<string | null>(
+        createdAt || order?.created_at || null,
+    );
+    const [currentEstimatedServeTime, setCurrentEstimatedServeTime] = useState<number>(
+        estimatedServeTime || order?.estimated_serve_time || 15,
+    );
+    const [timeLeft, setTimeLeft] = useState(() =>
+        remainingSeconds(createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
+    );
     
     const [receivedAt] = useState(() => {
-        if (order?.created_at) {
-            return new Date(order.created_at).toLocaleTimeString("id-ID", {
+        const initialCreatedAt = createdAt || order?.created_at;
+
+        if (initialCreatedAt) {
+            return new Date(initialCreatedAt).toLocaleTimeString("id-ID", {
                 hour: "2-digit",
                 minute: "2-digit",
             });
@@ -130,44 +170,93 @@ export default function OrderStatusPage({
     });
 
     // Map backend order details to items format
-    const displayItems = order?.order_details?.map(d => ({
-        id: String(d.menu.id),
-        name: d.menu.name,
-        subtitle: d.menu.description?.substring(0, 30) + '...',
-        imageUrl: d.menu.image || ""
-    })) || DEMO_ITEMS;
+    const displayItems = order?.order_details?.map((d: OrderDetail) => ({
+        id: String(d.menu?.id || d.id),
+        name: d.menu?.name || "Menu item",
+        subtitle: d.menu?.description ? `${d.menu.description.substring(0, 30)}...` : `${d.quantity || 1} item`,
+        imageUrl: d.menu?.image_url || d.menu?.image || "",
+    })) || [];
 
     useEffect(() => {
         // Echo Realtime Listeners
         const echo = (window as any).Echo;
         if (echo) {
-            echo.channel(`order.${order?.id}`)
-                .listen('OrderStatusUpdated', (e: any) => {
+            echo.channel(`order.${resolvedOrderId}`)
+                .listen('OrderStatusUpdated', (e: { order?: { order_status?: OrderStatus } }) => {
                     if (e.order && e.order.order_status) {
                         setStatus(e.order.order_status);
                     }
                 })
-                .listen('PaymentStatusUpdated', (e: any) => {
-                    // Could show payment confirmation toast
+                .listen('PaymentStatusUpdated', (e: { payment_status?: PaymentStatus }) => {
+                    if (e.payment_status) {
+                        setCurrentPaymentStatus(e.payment_status);
+                    }
                 });
         }
 
         return () => {
             if (echo) {
-                echo.leave(`order.${order?.id}`);
+                echo.leave(`order.${resolvedOrderId}`);
             }
         };
-    }, [order?.id]);
+    }, [resolvedOrderId]);
 
     useEffect(() => {
-        if (timeLeft <= 0) return;
+        if (!resolvedOrderRef || resolvedOrderRef === "-") return;
 
+        let cancelled = false;
+        let failedPolls = 0;
+
+        async function pollStatus() {
+            try {
+                const res = await axios.get<CustomerPaymentStatusResponse>(
+                    `/customer/order/${encodeURIComponent(resolvedOrderRef)}/payment/status`,
+                );
+                if (cancelled) return;
+
+                const nextOrderStatus = res.data.orderStatus ?? res.data.order_status;
+                const nextPaymentStatus = res.data.paymentStatus ?? res.data.payment_status;
+                const nextPaymentMethod = res.data.paymentMethod ?? res.data.payment_method;
+                const nextCreatedAt = res.data.createdAt ?? res.data.created_at;
+                const nextEstimatedServeTime = res.data.estimatedServeTime ?? res.data.estimated_serve_time;
+
+                if (nextOrderStatus) setStatus(nextOrderStatus);
+                if (nextPaymentStatus) setCurrentPaymentStatus(nextPaymentStatus);
+                if (nextPaymentMethod) setCurrentPaymentMethod(nextPaymentMethod);
+                if (nextCreatedAt) setCurrentCreatedAt(nextCreatedAt);
+                if (nextEstimatedServeTime) setCurrentEstimatedServeTime(nextEstimatedServeTime);
+
+                failedPolls = 0;
+                setStatusError("");
+            } catch {
+                if (!cancelled) {
+                    failedPolls += 1;
+
+                    if (failedPolls >= 3) {
+                        setStatusError("Could not refresh order status. We will retry shortly.");
+                    }
+                }
+            }
+        }
+
+        const interval = window.setInterval(pollStatus, 30000);
+        pollStatus();
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [resolvedOrderRef]);
+
+    useEffect(() => {
         const timer = setInterval(() => {
-            setTimeLeft((prev) => Math.max(0, prev - 1));
+            setTimeLeft(remainingSeconds(currentCreatedAt, currentEstimatedServeTime));
         }, 1000);
 
+        setTimeLeft(remainingSeconds(currentCreatedAt, currentEstimatedServeTime));
+
         return () => clearInterval(timer);
-    }, [timeLeft]);
+    }, [currentCreatedAt, currentEstimatedServeTime]);
 
     useEffect(() => {
         if (status === "ready") {
@@ -180,6 +269,36 @@ export default function OrderStatusPage({
     }, [status]);
 
     const isReady = status === "ready" || status === "completed";
+
+    async function handlePayAgain() {
+        if (!resolvedOrderId) return;
+
+        const method = currentPaymentMethod === "bri_va_pakasir" ? "bri_va" : pakasirMethod || "qris";
+        setIsCreatingPayment(true);
+        setStatusError("");
+
+        try {
+            const res = await axios.post<PakasirPaymentResponse>(
+                `/customer/order/${encodeURIComponent(resolvedOrderRef)}/payments/pakasir`,
+                { method },
+            );
+
+            sessionStorage.setItem(`ucw-payment-${resolvedOrderId}`, JSON.stringify(res.data));
+            router.visit(route("customer.payment.online", { order: resolvedOrderRef }));
+        } catch (error: unknown) {
+            const message =
+                typeof error === "object" &&
+                error !== null &&
+                "response" in error &&
+                typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+                    ? (error as { response: { data: { message: string } } }).response.data.message
+                    : "Could not create a new payment. Please try again.";
+            setStatusError(
+                message,
+            );
+            setIsCreatingPayment(false);
+        }
+    }
 
     return (
         <>
@@ -194,15 +313,22 @@ export default function OrderStatusPage({
                     <TopBar
                         tableId={tableId}
                         title="Order Tracking"
-                        subtitle={`Order #${orderRef}`}
+                        subtitle={`Order #${resolvedOrderRef}`}
                         showBack
-                        backHref={route("customer.menu", { tableId })}
+                        backHref={route("customer.menu")}
                     />
 
                     <div className="flex flex-col flex-1 px-5 pb-36">
                         <TimerSection isReady={isReady} timeLeft={timeLeft} />
 
                         <StatusCard isReady={isReady} className="mb-4" />
+                        <PaymentStatusCard
+                            status={currentPaymentStatus}
+                            onPayAgain={handlePayAgain}
+                            isCreatingPayment={isCreatingPayment}
+                            errorMessage={statusError}
+                            className="mb-4"
+                        />
 
                         <StatusSteps
                             status={status}
@@ -213,7 +339,7 @@ export default function OrderStatusPage({
                         <ItemList items={displayItems} className="mb-3" />
 
                         <OrderIdRow
-                            orderRef={orderRef}
+                            orderRef={resolvedOrderRef}
                             tableNumber={tableNumber}
                         />
 
@@ -239,7 +365,7 @@ export default function OrderStatusPage({
                     >
                         <BottomNav
                             tableId={tableId}
-                            active="orders"
+                            active="track"
                             cartCount={cartCount}
                         />
                     </div>
@@ -254,8 +380,8 @@ export default function OrderStatusPage({
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Order Tracking"
-                            subtitle={`Order #${orderRef}`}
-                            backHref={route("customer.menu", { tableId })}
+                            subtitle={`Order #${resolvedOrderRef}`}
+                            backHref={route("customer.menu")}
                             active="track"
                         />
 
@@ -269,6 +395,12 @@ export default function OrderStatusPage({
 
                                 <div className="flex flex-col gap-5">
                                     <StatusCard isReady={isReady} />
+                                    <PaymentStatusCard
+                                        status={currentPaymentStatus}
+                                        onPayAgain={handlePayAgain}
+                                        isCreatingPayment={isCreatingPayment}
+                                        errorMessage={statusError}
+                                    />
                                     <StatusSteps
                                         status={status}
                                         receivedAt={receivedAt}
@@ -331,15 +463,16 @@ export default function OrderStatusPage({
                             
 
                             <OrderSummaryDetails
-                                orderRef={orderRef}
+                                orderRef={resolvedOrderRef}
                                 tableNumber={tableNumber}
                                 status={status}
+                                paymentStatus={currentPaymentStatus}
                             />
 
                             <MiniStepList status={status} />
 
                             <OrderIdRow
-                                orderRef={orderRef}
+                                orderRef={resolvedOrderRef}
                                 tableNumber={tableNumber}
                                 compact
                             />
@@ -353,8 +486,7 @@ export default function OrderStatusPage({
                         onFeedback={() =>
                             router.visit(
                                 route("customer.feedback", {
-                                    tableId,
-                                    orderId,
+                                    order: resolvedOrderRef,
                                 }),
                             )
                         }
@@ -524,6 +656,66 @@ function StatusCard({
                     ? "Please collect your order at the pickup counter."
                     : "We're precisely timing your order for the perfect serving experience."}
             </p>
+        </div>
+    );
+}
+
+function PaymentStatusCard({
+    status,
+    onPayAgain,
+    isCreatingPayment,
+    errorMessage,
+    className = "",
+}: {
+    status: PaymentStatus;
+    onPayAgain: () => void;
+    isCreatingPayment: boolean;
+    errorMessage?: string;
+    className?: string;
+}) {
+    const isProblem = status === "expired" || status === "failed";
+
+    return (
+        <div
+            className={`rounded-3xl p-5 ${className}`}
+            style={{
+                backgroundColor: "white",
+                border: "1px solid var(--color-ucw-border)",
+            }}
+        >
+            <p
+                className="font-semibold uppercase tracking-[0.14em] mb-2"
+                style={{ fontSize: "10px", color: "var(--color-ucw-text-muted)" }}
+            >
+                PAYMENT STATUS
+            </p>
+
+            <p
+                className="font-black"
+                style={{ fontSize: "18px", color: "var(--color-ucw-dark)" }}
+            >
+                {formatPaymentStatus(status)}
+            </p>
+
+            {errorMessage && (
+                <p
+                    className="mt-2 leading-relaxed"
+                    style={{ fontSize: "12px", color: "#92620A" }}
+                >
+                    {errorMessage}
+                </p>
+            )}
+
+            {isProblem && (
+                <button
+                    onClick={onPayAgain}
+                    disabled={isCreatingPayment}
+                    className="mt-4 w-full h-11 rounded-xl font-bold text-white transition-all active:scale-[0.98]"
+                    style={{ backgroundColor: "var(--color-ucw-dark)" }}
+                >
+                    {isCreatingPayment ? "Creating Payment..." : "Pay Again"}
+                </button>
+            )}
         </div>
     );
 }
@@ -867,10 +1059,12 @@ function OrderSummaryDetails({
     orderRef,
     tableNumber,
     status,
+    paymentStatus,
 }: {
     orderRef: string;
     tableNumber: string;
     status: OrderStatus;
+    paymentStatus: PaymentStatus;
 }) {
     return (
         <div
@@ -891,8 +1085,9 @@ function OrderSummaryDetails({
             </p>
 
             <DetailRow label="Order ID" value={`#${orderRef}`} strong />
-            <DetailRow label="Table" value={`Table ${tableNumber}`} />
+            <DetailRow label="Table" value={tableNumber ? `Table ${tableNumber}` : "Takeaway"} />
             <DetailRow label="Status" value={formatStatus(status)} strong />
+            <DetailRow label="Payment" value={formatPaymentStatus(paymentStatus)} />
         </div>
     );
 }
@@ -1053,14 +1248,14 @@ function OrderIdRow({
                         color: "var(--color-ucw-text-muted)",
                     }}
                 >
-                    TABLE
+                    {tableNumber ? "TABLE" : "TYPE"}
                 </p>
 
                 <p
                     className="font-black"
                     style={{ fontSize: "14px", color: "var(--color-ucw-dark)" }}
                 >
-                    {tableNumber}
+                    {tableNumber || "Takeaway"}
                 </p>
             </div>
         </div>
@@ -1187,11 +1382,22 @@ function OrderReadyPopup({
 }
 
 function formatStatus(status: OrderStatus) {
-    if (status === "pending") return "Waiting";
-    if (status === "confirmed") return "Confirmed";
-    if (status === "preparing") return "Preparing";
-    if (status === "ready") return "Ready";
+    if (status === "pending") return "Order Received";
+    if (status === "confirmed") return "Order Confirmed";
+    if (status === "preparing") return "Preparing Your Order";
+    if (status === "ready") return "Ready For Pickup";
     if (status === "completed") return "Completed";
+    if (status === "cancelled") return "Cancelled";
+
+    return status;
+}
+
+function formatPaymentStatus(status: PaymentStatus) {
+    if (status === "unpaid") return "Waiting Payment";
+    if (status === "paid") return "Payment Received";
+    if (status === "expired") return "Payment Expired";
+    if (status === "failed") return "Payment Failed";
+    if (status === "waiting_verification") return "Waiting Verification";
 
     return status;
 }

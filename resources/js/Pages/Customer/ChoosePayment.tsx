@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import { Head, Link, router } from "@inertiajs/react";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
@@ -6,86 +7,119 @@ import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopH
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
 import { formatIDR } from "@/lib/currency";
 import { useCart } from "@/hooks/useCart";
+import type { PakasirPaymentResponse } from "@/types/customer";
 
 interface Props {
     tableId: string;
     tableNumber?: string;
     total?: number;
     orderId?: number;
+    orderRef?: string;
 }
 
-type PaymentGroup = "online" | "cash" | null;
+type PaymentChoice = "qris" | "bri_va" | "cash" | null;
 
 export default function ChoosePayment({
     tableId,
-    tableNumber = "05",
-    total = 145000,
+    tableNumber = "",
+    total = 0,
     orderId,
+    orderRef,
 }: Props) {
-    const [selected, setSelected] = useState<PaymentGroup>(null);
+    const [selected, setSelected] = useState<PaymentChoice>(null);
     const { clearCart } = useCart();
     const [isProcessing, setIsProcessing] = useState(false);
-
-    // Initialize Snap script
-    React.useEffect(() => {
-        const script = document.createElement('script');
-        // Sandbox environment URL (update to production if needed)
-        script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
-        script.setAttribute('data-client-key', "SB-Mid-client-XXXXX"); // Placeholder
-        document.body.appendChild(script);
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
+    const [errorMessage, setErrorMessage] = useState("");
+    const paymentStorageKey = `ucw-payment-${orderId || orderRef || "pending"}`;
 
     async function handleConfirm() {
-        if (!selected || !orderId) return;
-
-        if (selected === "cash") {
-            // Clear cart upon choosing payment since order is saved and payment method is selected
-            clearCart();
-            router.visit(route("customer.payment.cash", { tableId, orderId }));
+        if (!selected) {
+            setErrorMessage("Please select a payment method.");
             return;
         }
 
-        if (selected === "online") {
-            setIsProcessing(true);
-            try {
-                // Fetch snap token from backend
-                const res = await window.axios.post(`/customer/order/${orderId}/payment/process`, {
-                    payment_method: "midtrans"
+        if (!orderRef) {
+            setErrorMessage("Order reference is missing. Please return to cart and try again.");
+            return;
+        }
+
+        setIsProcessing(true);
+        setErrorMessage("");
+
+        try {
+            if (selected === "cash") {
+                const url = route("customer.payment.process", { order: orderRef });
+                console.log("Creating payment", { orderRef, method: "cash", url });
+
+                console.log("Before axios.post", {
+                    orderRef,
+                    method: "cash",
+                    url,
+                    axiosAvailable: Boolean(axios?.post),
+                    windowAxiosAvailable: Boolean(window.axios?.post),
                 });
 
-                if (res.data.token) {
-                    clearCart();
-                    // Open Snap window
-                    (window as any).snap.pay(res.data.token, {
-                        onSuccess: function (result: any) {
-                            router.visit(route("customer.status", { order: orderId }));
-                        },
-                        onPending: function (result: any) {
-                            router.visit(route("customer.status", { order: orderId }));
-                        },
-                        onError: function (result: any) {
-                            setIsProcessing(false);
-                            alert("Payment failed!");
-                        },
-                        onClose: function () {
-                            setIsProcessing(false);
-                        }
-                    });
-                } else {
-                    // Fallback to manual online payment if Midtrans token isn't generated
-                    clearCart();
-                    router.visit(route("customer.payment.online", { tableId, orderId }));
-                }
-            } catch (e) {
-                console.error("Failed to process payment", e);
-                // Fallback on error
+                const res = await axios.post<PakasirPaymentResponse>(
+                    url,
+                    { payment_method: "cash" },
+                );
+
+                console.log("After axios.post", {
+                    orderRef,
+                    method: "cash",
+                    status: res.status,
+                    data: res.data,
+                });
+
+                sessionStorage.setItem(paymentStorageKey, JSON.stringify(res.data));
                 clearCart();
-                router.visit(route("customer.payment.online", { tableId, orderId }));
+                router.visit(route("customer.payment.cash", { order: orderRef }));
+                return;
             }
+
+            const url = route("customer.payment.pakasir.order", { order: orderRef });
+            console.log("Creating payment", { orderRef, method: selected, url });
+
+            console.log("Before axios.post", {
+                orderRef,
+                method: selected,
+                url,
+                axiosAvailable: Boolean(axios?.post),
+                windowAxiosAvailable: Boolean(window.axios?.post),
+            });
+
+            const res = await axios.post<PakasirPaymentResponse>(
+                url,
+                { method: selected },
+            );
+
+            console.log("After axios.post", {
+                orderRef,
+                method: selected,
+                status: res.status,
+                data: res.data,
+            });
+
+            if (!res.data.success) {
+                setErrorMessage(res.data.message || "Failed to create payment.");
+                setIsProcessing(false);
+                return;
+            }
+
+            sessionStorage.setItem(paymentStorageKey, JSON.stringify(res.data));
+            clearCart();
+            router.visit(route("customer.payment.online", { order: orderRef }));
+        } catch (error: any) {
+            console.error("Create payment failed", error);
+
+            const errors = error?.response?.data?.errors;
+            const firstError = errors ? Object.values(errors).flat()[0] : null;
+            setErrorMessage(
+                firstError ||
+                    error?.response?.data?.message ||
+                    "Payment could not be created. Please try again.",
+            );
+            setIsProcessing(false);
         }
     }
 
@@ -104,7 +138,7 @@ export default function ChoosePayment({
                         title="Choose Payment"
                         subtitle={`Table ${tableNumber} • ${formatIDR(total)}`}
                         showBack
-                        backHref={route("customer.estimate", { tableId })}
+                        backHref={route("customer.estimate")}
                     />
 
                     <div className="flex flex-col flex-1 px-5 pb-36">
@@ -115,9 +149,15 @@ export default function ChoosePayment({
 
                         <div className="flex flex-col gap-3 mb-6">
                             <PaymentMethodCard
-                                type="online"
-                                selected={selected === "online"}
-                                onSelect={() => setSelected("online")}
+                                type="qris"
+                                selected={selected === "qris"}
+                                onSelect={() => setSelected("qris")}
+                            />
+
+                            <PaymentMethodCard
+                                type="bri_va"
+                                selected={selected === "bri_va"}
+                                onSelect={() => setSelected("bri_va")}
                             />
 
                             <PaymentMethodCard
@@ -127,6 +167,7 @@ export default function ChoosePayment({
                             />
                         </div>
 
+                        {errorMessage && <PaymentError message={errorMessage} />}
                         <TotalCard total={total} />
                         <TrustBlurb className="mt-4" />
                     </div>
@@ -156,7 +197,7 @@ export default function ChoosePayment({
                             tableId={tableId}
                             title="Choose Payment"
                             subtitle={`Table ${tableNumber} • Select payment method`}
-                            backHref={route("customer.estimate", { tableId })}
+                            backHref={route("customer.estimate")}
                             active="cart"
                         />
 
@@ -167,11 +208,18 @@ export default function ChoosePayment({
                                 <PageHeading desktop />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-5 mt-7">
+                            <div className="grid grid-cols-3 gap-5 mt-7">
                                 <PaymentMethodCard
-                                    type="online"
-                                    selected={selected === "online"}
-                                    onSelect={() => setSelected("online")}
+                                    type="qris"
+                                    selected={selected === "qris"}
+                                    onSelect={() => setSelected("qris")}
+                                    desktop
+                                />
+
+                                <PaymentMethodCard
+                                    type="bri_va"
+                                    selected={selected === "bri_va"}
+                                    onSelect={() => setSelected("bri_va")}
                                     desktop
                                 />
 
@@ -217,6 +265,7 @@ export default function ChoosePayment({
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
                             <SelectedPaymentSummary selected={selected} />
+                            {errorMessage && <PaymentError message={errorMessage} />}
                             <TotalCard total={total} compact />
                         </div>
 
@@ -228,7 +277,7 @@ export default function ChoosePayment({
                             />
 
                             <Link
-                                href={route("customer.estimate", { tableId })}
+                                href={route("customer.estimate")}
                                 className="w-full flex items-center justify-center mt-3 h-10 text-sm font-medium"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -286,12 +335,13 @@ function PaymentMethodCard({
     onSelect,
     desktop = false,
 }: {
-    type: "online" | "cash";
+    type: "qris" | "bri_va" | "cash";
     selected: boolean;
     onSelect: () => void;
     desktop?: boolean;
 }) {
-    const isOnline = type === "online";
+    const isCash = type === "cash";
+    const isBriVa = type === "bri_va";
 
     return (
         <button
@@ -315,7 +365,7 @@ function PaymentMethodCard({
                             : "var(--color-ucw-bg-warm)",
                     }}
                 >
-                    {isOnline ? <OnlineIcon active={selected} /> : <CashIcon active={selected} />}
+                    {isCash ? <CashIcon active={selected} /> : <OnlineIcon active={selected} />}
                 </div>
 
                 {selected && <SelectedPill />}
@@ -325,7 +375,7 @@ function PaymentMethodCard({
                 className="font-black mb-1"
                 style={{ fontSize: "20px", color: "var(--color-ucw-dark)" }}
             >
-                {isOnline ? "Online Payment" : "Cash at Cashier"}
+                {isCash ? "Cash at Cashier" : isBriVa ? "BRI Virtual Account" : "QRIS Pakasir"}
             </h3>
 
             <p
@@ -335,12 +385,14 @@ function PaymentMethodCard({
                     color: "var(--color-ucw-text-muted)",
                 }}
             >
-                {isOnline
-                    ? "Pay using QRIS, e-wallet, or virtual account."
-                    : "Pay directly at the cashier after confirming your order."}
+                {isCash
+                    ? "Pay directly at the cashier after confirming your order."
+                    : isBriVa
+                      ? "Pay with BRI virtual account generated for this order."
+                      : "Pay by scanning a QRIS code generated for this order."}
             </p>
 
-            {isOnline ? <OnlineMethodIcons /> : <CashMethodInfo />}
+            {isCash ? <CashMethodInfo /> : <OnlineMethodIcons labels={isBriVa ? ["BRI", "VA"] : ["QRIS"]} />}
 
             <div className="flex items-center gap-1.5 mt-5">
                 <span
@@ -352,7 +404,7 @@ function PaymentMethodCard({
                             : "var(--color-ucw-text-muted)",
                     }}
                 >
-                    {isOnline ? "Secure payment" : "Pay on-site"}
+                    {isCash ? "Pay on-site" : "Secure Pakasir payment"}
                 </span>
 
                 <svg
@@ -375,7 +427,24 @@ function PaymentMethodCard({
     );
 }
 
-function SelectedPaymentSummary({ selected }: { selected: PaymentGroup }) {
+function SelectedPaymentSummary({ selected }: { selected: PaymentChoice }) {
+    const title =
+        selected === "cash"
+            ? "Cash at Cashier"
+            : selected === "bri_va"
+              ? "BRI Virtual Account"
+              : selected === "qris"
+                ? "QRIS Pakasir"
+                : "No method selected";
+    const subtitle =
+        selected === "cash"
+            ? "Pay on-site"
+            : selected === "bri_va"
+              ? "BRI VA via Pakasir"
+              : selected === "qris"
+                ? "QRIS via Pakasir"
+                : "Choose one method";
+
     return (
         <div>
             <p
@@ -397,10 +466,10 @@ function SelectedPaymentSummary({ selected }: { selected: PaymentGroup }) {
                         className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: "var(--color-ucw-dark)" }}
                     >
-                        {selected === "online" ? (
-                            <OnlineIcon active small />
-                        ) : (
+                        {selected === "cash" ? (
                             <CashIcon active small />
+                        ) : (
+                            <OnlineIcon active small />
                         )}
                     </div>
 
@@ -409,18 +478,14 @@ function SelectedPaymentSummary({ selected }: { selected: PaymentGroup }) {
                             className="font-bold text-sm"
                             style={{ color: "var(--color-ucw-dark)" }}
                         >
-                            {selected === "online"
-                                ? "Online Payment"
-                                : "Cash at Cashier"}
+                            {title}
                         </p>
 
                         <p
                             className="text-xs mt-0.5 truncate"
                             style={{ color: "var(--color-ucw-text-muted)" }}
                         >
-                            {selected === "online"
-                                ? "QRIS / E-Wallet / Transfer"
-                                : "Pay on-site"}
+                            {subtitle}
                         </p>
                     </div>
 
@@ -490,7 +555,7 @@ function TotalCard({
                 className="mt-1"
                 style={{ fontSize: "11px", color: "var(--color-ucw-text-muted)" }}
             >
-                Includes taxes and service fee.
+                Based on selected menu items.
             </p>
         </div>
     );
@@ -531,7 +596,7 @@ function ConfirmButton({
     onConfirm,
     isLoading = false
 }: {
-    selected: PaymentGroup;
+    selected: PaymentChoice;
     onConfirm: () => void;
     isLoading?: boolean;
 }) {
@@ -552,8 +617,10 @@ function ConfirmButton({
             }}
         >
             {isLoading ? "Processing..." : (
-                selected === "online"
-                    ? "Continue to Online Payment"
+                selected === "qris"
+                    ? "Create QRIS Payment"
+                    : selected === "bri_va"
+                    ? "Create BRI VA Payment"
                     : selected === "cash"
                     ? "Continue with Cash"
                     : "Select Payment Method"
@@ -640,10 +707,10 @@ function CashIcon({
     );
 }
 
-function OnlineMethodIcons() {
+function OnlineMethodIcons({ labels = ["QRIS", "BRI VA"] }: { labels?: string[] }) {
     return (
         <div className="flex items-center gap-2">
-            {["QRIS", "VA", "E-Wallet"].map((label) => (
+            {labels.map((label) => (
                 <div
                     key={label}
                     className="h-8 px-2.5 rounded-lg flex items-center justify-center"
@@ -660,6 +727,25 @@ function OnlineMethodIcons() {
                     </span>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function PaymentError({ message }: { message: string }) {
+    return (
+        <div
+            className="rounded-2xl px-4 py-3 mb-4"
+            style={{
+                backgroundColor: "var(--color-ucw-amber-bg)",
+                border: "1px solid var(--color-ucw-amber)",
+            }}
+        >
+            <p
+                className="font-semibold"
+                style={{ fontSize: "12px", color: "#92620A" }}
+            >
+                {message}
+            </p>
         </div>
     );
 }

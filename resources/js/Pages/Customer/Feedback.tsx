@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
@@ -10,6 +10,7 @@ interface Props {
     orderRef?: string;
     tableNumber?: string;
     visitTime?: string;
+    orderStatus?: "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled";
 }
 
 const COFFEE_PLACEHOLDER =
@@ -18,27 +19,54 @@ const COFFEE_PLACEHOLDER =
 export default function Feedback({
     tableId,
     orderId,
-    orderRef = "UCW-2931",
-    tableNumber = "05",
+    orderRef = "-",
+    tableNumber = "",
     visitTime = "10:45 AM",
+    orderStatus,
 }: Props) {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const [submitted, setSubmitted] = useState(false);
 
-    function handleSubmit() {
+    useEffect(() => {
+        if (orderStatus && orderStatus !== "completed") {
+            router.visit(route("customer.status", { order: orderRef }));
+        }
+    }, [orderStatus, orderRef]);
+
+    async function handleSubmit() {
         if (rating === 0) return;
 
-        setSubmitted(true);
+        setErrorMessage("");
 
-        setTimeout(() => {
-            router.visit(route("customer.landing", { tableId }));
-        }, 2200);
+        try {
+            await window.axios.post(`/customer/order/${encodeURIComponent(orderRef)}/review`, {
+                rating,
+                comment,
+            });
+
+            setSubmitted(true);
+
+            setTimeout(() => {
+                router.visit(route("customer.landing"));
+            }, 2200);
+        } catch (error: unknown) {
+            const message =
+                typeof error === "object" &&
+                error !== null &&
+                "response" in error &&
+                typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+                    ? (error as { response: { data: { message: string } } }).response.data.message
+                    : "Feedback could not be submitted. Please try again.";
+
+            setErrorMessage(message);
+        }
     }
 
     function handleReturnHome() {
-        router.visit(route("customer.landing", { tableId }));
+        router.visit(route("customer.landing"));
     }
 
     if (submitted) {
@@ -69,8 +97,7 @@ export default function Feedback({
                         subtitle={`Order #${orderRef}`}
                         showBack
                         backHref={route("customer.status", {
-                            tableId,
-                            orderId,
+                            order: orderRef,
                         })}
                     />
 
@@ -97,11 +124,13 @@ export default function Feedback({
                             className="mt-9"
                         />
 
+                        {errorMessage && <FeedbackError message={errorMessage} />}
+
                         <div className="grid grid-cols-2 gap-4 mt-8">
                             <InfoCard
                                 label="ORDER"
                                 value={`#${orderRef}`}
-                                subValue={`Table ${tableNumber}`}
+                                subValue={tableNumber ? `Table ${tableNumber}` : "Takeaway"}
                                 type="order"
                             />
 
@@ -133,8 +162,7 @@ export default function Feedback({
                             title="Feedback"
                             subtitle={`Order #${orderRef}`}
                             backHref={route("customer.status", {
-                                tableId,
-                                orderId,
+                                order: orderRef,
                             })}
                             active="track"
                         />
@@ -172,6 +200,8 @@ export default function Feedback({
                                         value={comment}
                                         onChange={setComment}
                                     />
+
+                                    {errorMessage && <FeedbackError message={errorMessage} />}
                                 </div>
 
                                 <aside className="flex flex-col gap-5">
@@ -209,7 +239,7 @@ export default function Feedback({
                                         <InfoCard
                                             label="ORDER"
                                             value={`#${orderRef}`}
-                                            subValue={`Table ${tableNumber}`}
+                                            subValue={tableNumber ? `Table ${tableNumber}` : "Takeaway"}
                                             type="order"
                                         />
 
@@ -593,6 +623,25 @@ function SubmitSection({
             >
                 Return Home
             </button>
+        </div>
+    );
+}
+
+function FeedbackError({ message }: { message: string }) {
+    return (
+        <div
+            className="mt-5 rounded-2xl px-4 py-3"
+            style={{
+                backgroundColor: "var(--color-ucw-amber-bg)",
+                border: "1px solid var(--color-ucw-amber)",
+            }}
+        >
+            <p
+                className="font-semibold"
+                style={{ fontSize: "12px", color: "#92620A" }}
+            >
+                {message}
+            </p>
         </div>
     );
 }

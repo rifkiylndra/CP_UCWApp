@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderDetail;
+use App\Models\Menu;
 use App\Models\Table;
 use App\Events\NewOrderPlaced;
 use Illuminate\Support\Facades\DB;
@@ -22,31 +23,34 @@ class OrderService
     public function createOrder(array $orderData, array $orderItems): Order
     {
         return DB::transaction(function () use ($orderData, $orderItems) {
-            // Calculate total price
-            $totalPrice = 0;
-            foreach ($orderItems as $item) {
-                $totalPrice += $item['price'] * $item['quantity'];
+            $preparedItems = $this->prepareOrderItems($orderItems);
+            $totalPrice = array_sum(array_column($preparedItems, 'subtotal'));
+            $tableId = $orderData['table_id'] ?? null;
+
+            if (!$tableId && !empty($orderData['table_number'])) {
+                $tableId = $this->findTableIdByNumber((string) $orderData['table_number']);
             }
 
             // Create order
             $order = Order::create([
-                'table_id' => $orderData['table_id'] ?? null,
+                'order_ref' => Order::generateOrderRef(),
+                'table_id' => $tableId,
                 'customer_name' => $orderData['customer_name'] ?? null,
                 'order_type' => $orderData['order_type'],
                 'order_status' => 'pending',
                 'payment_status' => 'unpaid',
                 'total_price' => $totalPrice,
-                'estimated_serve_time' => $this->calculateEstimatedServeTime($orderItems),
+                'estimated_serve_time' => $this->calculateEstimatedServeTime($preparedItems),
             ]);
 
             // Create order details
-            foreach ($orderItems as $item) {
+            foreach ($preparedItems as $item) {
                 OrderDetail::create([
                     'order_id' => $order->id,
                     'menu_id' => $item['menu_id'],
                     'quantity' => $item['quantity'],
                     'note' => $item['note'] ?? null,
-                    'subtotal' => $item['price'] * $item['quantity'],
+                    'subtotal' => $item['subtotal'],
                 ]);
             }
 
@@ -62,6 +66,69 @@ class OrderService
 
             return $order;
         });
+    }
+
+    private function prepareOrderItems(array $orderItems): array
+    {
+        $menuIds = collect($orderItems)->pluck('menu_id')->unique()->values();
+        $menus = Menu::whereIn('id', $menuIds)
+            ->where('is_available', true)
+            ->get()
+            ->keyBy('id');
+
+        return collect($orderItems)->map(function ($item) use ($menus) {
+            $menu = $menus->get($item['menu_id']);
+
+            if (!$menu) {
+                throw new \InvalidArgumentException('Menu tidak tersedia atau tidak ditemukan');
+            }
+
+            $quantity = (int) $item['quantity'];
+            $price = (float) $menu->price;
+
+            return [
+                'menu_id' => $menu->id,
+                'quantity' => $quantity,
+                'note' => $item['note'] ?? null,
+                'price' => $price,
+                'subtotal' => $price * $quantity,
+            ];
+        })->all();
+    }
+
+    private function findTableIdByNumber(string $tableNumber): ?int
+    {
+        foreach ($this->tableNumberCandidates($tableNumber) as $candidate) {
+            $tableId = Table::where('table_number', $candidate)->value('id');
+
+            if ($tableId) {
+                return (int) $tableId;
+            }
+        }
+
+        return null;
+    }
+
+    private function tableNumberCandidates(string $value): array
+    {
+        $raw = trim($value);
+        $upper = strtoupper($raw);
+        $digits = preg_replace('/\D/', '', $upper);
+        $candidates = [$raw, $upper];
+
+        if ($digits !== '') {
+            $number = (string) ((int) $digits);
+            $padded = str_pad($number, 2, '0', STR_PAD_LEFT);
+
+            $candidates = array_merge($candidates, [
+                $number,
+                $padded,
+                'T' . $number,
+                'T' . $padded,
+            ]);
+        }
+
+        return array_values(array_unique(array_filter($candidates, fn ($item) => $item !== '')));
     }
 
     /**
@@ -122,8 +189,13 @@ class OrderService
      */
     public function getOrdersByStatus(string $status)
     {
+        $statuses = match ($status) {
+            'processing' => ['processing', 'confirmed', 'preparing'],
+            default => [$status],
+        };
+
         return Order::with(['table', 'orderDetails.menu'])
-            ->where('order_status', $status)
+            ->whereIn('order_status', $statuses)
             ->orderBy('created_at', 'asc')
             ->get();
     }
@@ -140,7 +212,7 @@ class OrderService
         return [
             'total_orders_today' => Order::whereDate('created_at', $today)->count(),
             'pending_orders' => Order::where('order_status', 'pending')->count(),
-            'processing_orders' => Order::where('order_status', 'processing')->count(),
+            'processing_orders' => Order::whereIn('order_status', ['processing', 'confirmed', 'preparing'])->count(),
             'completed_orders_today' => Order::where('order_status', 'completed')
                 ->whereDate('created_at', $today)
                 ->count(),

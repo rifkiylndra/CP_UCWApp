@@ -58,8 +58,8 @@ class MenuController extends Controller
         return Inertia::render('Customer/Menu', [
             'menuItems' => $menuItems,
             'serverCategories' => $formattedCategories,
-            'tableId' => $tableId ?? 'T01',
-            'tableNumber' => $table ? $table->table_number : '05',
+            'tableId' => $tableId ?? '',
+            'tableNumber' => $table ? $table->table_number : '',
         ]);
     }
 

@@ -34,6 +34,13 @@ export function useCart() {
         } catch { return ''; }
     });
 
+    const [tableNumber, setTableNumber] = useState<string>(() => {
+        if (typeof window === 'undefined') return '';
+        try {
+            return window.localStorage.getItem('ucw_table_number') || '';
+        } catch { return ''; }
+    });
+
     useEffect(() => {
         try { window.localStorage.setItem('ucw_cart', JSON.stringify(items)); } catch {}
     }, [items]);
@@ -49,9 +56,12 @@ export function useCart() {
         try { window.localStorage.setItem('ucw_customer_name', customerName); } catch {}
     }, [customerName]);
 
+    useEffect(() => {
+        try { window.localStorage.setItem('ucw_table_number', tableNumber); } catch {}
+    }, [tableNumber]);
+
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = Math.round(subtotal * 0.11); // Standard PPN 11% in Indonesia
-    const total = subtotal + tax;
+    const total = subtotal;
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
     const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
@@ -86,21 +96,23 @@ export function useCart() {
         setItems([]);
         setOrderType(null);
         setCustomerName('');
+        setTableNumber('');
     };
 
     return {
         items,
         subtotal,
-        tax,
         total,
         totalItems,
         orderType,
         customerName,
+        tableNumber,
         addItem,
         adjustQuantity,
         updateNotes,
         setOrderType,
         setCustomerName,
+        setTableNumber,
         clearCart
     };
 }

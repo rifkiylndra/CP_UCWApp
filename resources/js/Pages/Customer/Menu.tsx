@@ -31,7 +31,7 @@ const PLACEHOLDER =
 
 export default function Menu({
     tableId,
-    tableNumber = '05',
+    tableNumber = '',
     menuItems = [],
     serverCategories = [{ key: 'all', label: 'All' }],
 }: Props) {
@@ -180,7 +180,7 @@ export default function Menu({
                         <TopBar
                             tableId={tableId}
                             title="UNAND CO-WORKSPACE"
-                            subtitle={`Table ${tableNumber} • Dine In`}
+                            subtitle={tableNumber ? `Table ${tableNumber} • Dine In` : 'Choose items'}
                         />
 
                         <div className="px-5 pt-3 pb-3">

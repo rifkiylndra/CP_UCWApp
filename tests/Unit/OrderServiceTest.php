@@ -86,6 +86,31 @@ class OrderServiceTest extends TestCase
     }
 
     /** @test */
+    public function it_can_create_dine_in_order_from_table_number()
+    {
+        $table = Table::create([
+            'table_number' => '07',
+            'qr_code' => 'qr-t07',
+            'status' => 'available',
+        ]);
+
+        $order = $this->orderService->createOrder([
+            'table_number' => '07',
+            'customer_name' => null,
+            'order_type' => 'dine_in',
+        ], [
+            [
+                'menu_id' => 1,
+                'quantity' => 1,
+                'price' => 1,
+            ],
+        ]);
+
+        $this->assertEquals($table->id, $order->table_id);
+        $this->assertEquals(20000, $order->total_price);
+    }
+
+    /** @test */
     public function it_can_update_order_status()
     {
         $order = Order::factory()->create(['order_status' => 'pending']);

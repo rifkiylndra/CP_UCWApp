@@ -17,7 +17,7 @@ export default function FloatingCartButton({
     return (
         <div className="fixed bottom-[78px] left-1/2 -translate-x-1/2 w-full max-w-[480px] px-5 z-40">
             <Link
-                href={route('customer.cart', { tableId })}
+                href={route('customer.cart')}
                 className="w-full flex items-center justify-between px-5 rounded-2xl text-white transition-all active:scale-[0.98]"
                 style={{
                     height: '56px',

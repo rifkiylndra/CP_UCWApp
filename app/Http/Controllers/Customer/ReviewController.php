@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Review;
 use App\Services\AiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ReviewController extends Controller
@@ -22,19 +23,23 @@ class ReviewController extends Controller
     /**
      * Display review page
      */
-    public function create($orderId)
+    public function create($orderRef)
     {
-        $order = Order::with(['orderDetails.menu'])->findOrFail($orderId);
+        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.review.create')) {
+            return $redirect;
+        }
+
+        $order = $this->findCustomerOrder($orderRef, ['orderDetails.menu']);
         
         // Check if order is completed
         if ($order->order_status !== 'completed') {
-            return redirect()->route('customer.order.status', ['order' => $orderId])
+            return redirect()->route('customer.order.status', ['order' => $order->order_ref])
                 ->with('error', 'Hanya pesanan yang sudah selesai yang dapat direview');
         }
         
         // Check if review already exists
         if ($order->review) {
-            return redirect()->route('customer.order.status', ['order' => $orderId])
+            return redirect()->route('customer.order.status', ['order' => $order->order_ref])
                 ->with('info', 'Anda sudah memberikan review untuk pesanan ini');
         }
 
@@ -46,9 +51,9 @@ class ReviewController extends Controller
     /**
      * Store review
      */
-    public function store(CreateReviewRequest $request, $orderId)
+    public function store(CreateReviewRequest $request, $orderRef)
     {
-        $order = Order::findOrFail($orderId);
+        $order = $this->findCustomerOrder($orderRef);
         
         // Check if order is completed
         if ($order->order_status !== 'completed') {
@@ -72,14 +77,15 @@ class ReviewController extends Controller
             
             // Create review
             $review = Review::create([
-                'order_id' => $orderId,
+                'order_id' => $order->id,
                 'rating' => $request->rating,
                 'comment' => $request->comment,
                 'sentiment_label' => $sentimentAnalysis['sentiment'] ?? null,
             ]);
 
             Log::info('Review created', [
-                'order_id' => $orderId,
+                'order_id' => $order->id,
+                'order_ref' => $order->order_ref,
                 'review_id' => $review->id,
                 'rating' => $request->rating,
                 'sentiment' => $sentimentAnalysis['sentiment'] ?? null,
@@ -104,9 +110,10 @@ class ReviewController extends Controller
     /**
      * Get order reviews
      */
-    public function getOrderReviews($orderId)
+    public function getOrderReviews($orderRef)
     {
-        $reviews = Review::where('order_id', $orderId)->get();
+        $order = $this->findCustomerOrder($orderRef);
+        $reviews = Review::where('order_id', $order->id)->get();
         
         return response()->json($reviews);
     }
@@ -148,5 +155,23 @@ class ReviewController extends Controller
                 'negative' => $statistics->negative_count ?? 0,
             ],
         ]);
+    }
+
+    private function findCustomerOrder(string $orderRef, array $with = []): Order
+    {
+        return Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+    }
+
+    private function redirectNumericOrderToRef(string $orderRef, string $route)
+    {
+        if (!ctype_digit($orderRef)) {
+            return null;
+        }
+
+        $order = Order::find($orderRef);
+
+        return $order
+            ? redirect()->route($route, ['order' => $order->order_ref])
+            : null;
     }
 }

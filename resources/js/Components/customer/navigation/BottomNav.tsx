@@ -25,7 +25,7 @@ export default function BottomNav({ tableId, active, cartCount = 0 }: BottomNavP
         {
             key:   'menu',
             label: 'Menu',
-            href:  route('customer.menu', { tableId }),
+            href:  route('customer.menu'),
             icon:  (a) => (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor"
@@ -43,7 +43,7 @@ export default function BottomNav({ tableId, active, cartCount = 0 }: BottomNavP
         {
             key:   'cart',
             label: 'Cart',
-            href:  route('customer.cart', { tableId }),
+            href:  route('customer.cart'),
             icon:  (a) => (
                 <span className="relative inline-flex">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"

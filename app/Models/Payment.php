@@ -10,8 +10,20 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id', 'payment_method', 'payment_status',
-        'amount', 'midtrans_transaction_id', 'paid_at'
+        'order_id', 'provider', 'provider_reference', 'payment_method', 'payment_status',
+        'amount', 'fee', 'total_payment', 'midtrans_transaction_id', 'payment_number',
+        'expired_at', 'paid_at', 'completed_at', 'raw_response', 'raw_webhook'
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'fee' => 'decimal:2',
+        'total_payment' => 'decimal:2',
+        'expired_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'raw_response' => 'array',
+        'raw_webhook' => 'array',
     ];
 
     public function order()

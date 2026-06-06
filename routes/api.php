@@ -43,6 +43,9 @@ Route::middleware('api')->group(function () {
     
     // Payment callback (Midtrans)
     Route::post('/payment/callback', [\App\Http\Controllers\Customer\PaymentController::class, 'callback']);
+    Route::post('/webhooks/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'pakasirWebhook']);
+    Route::post('/dev/pakasir/payments/{order}/simulate', [\App\Http\Controllers\Customer\PaymentController::class, 'simulatePakasirPayment'])
+        ->name('api.dev.pakasir.payments.simulate');
     
     // Review API
     Route::prefix('review')->group(function () {

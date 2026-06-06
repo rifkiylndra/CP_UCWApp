@@ -4,6 +4,7 @@ import TopBar from "@/Components/customer/navigation/TopBar";
 import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import { formatIDR } from "@/lib/currency";
+import type { PaymentStatus } from "@/types/customer";
 
 interface Props {
     tableId: string;
@@ -13,6 +14,17 @@ interface Props {
     orderTime?: string;
     tableNumber?: string;
     cartCount?: number;
+    paymentStatus?: PaymentStatus;
+}
+
+function readStoredPayment(orderId?: string) {
+    if (!orderId || typeof window === "undefined") return {};
+
+    try {
+        return JSON.parse(sessionStorage.getItem(`ucw-payment-${orderId}`) || "{}");
+    } catch {
+        return {};
+    }
 }
 
 function nowTime() {
@@ -24,13 +36,20 @@ function nowTime() {
 
 export default function CashConfirmation({
     tableId,
-    orderId = "ORD-8829",
-    orderRef = "UCW-88291",
-    total = 425000,
+    orderId,
+    orderRef,
+    total,
     orderTime = nowTime(),
-    tableNumber = "05",
+    tableNumber = "",
     cartCount = 0,
+    paymentStatus = "waiting_verification",
 }: Props) {
+    const stored = readStoredPayment(orderId);
+    const resolvedOrderId = String(orderId || stored.orderId || "");
+    const resolvedOrderRef = orderRef || stored.orderRef || "-";
+    const resolvedTotal = total ?? stored.total ?? stored.total_price ?? 0;
+    const resolvedPaymentStatus = paymentStatus || stored.payment_status || "waiting_verification";
+
     return (
         <>
             <Head title="Cash Payment — UCW" />
@@ -44,27 +63,27 @@ export default function CashConfirmation({
                     <TopBar
                         tableId={tableId}
                         title="Cash Payment"
-                        subtitle={`Table ${tableNumber} • ${formatIDR(total)}`}
+                        subtitle={tableNumber ? `Table ${tableNumber} • ${formatIDR(resolvedTotal)}` : formatIDR(resolvedTotal)}
                         showBack
-                        backHref={route("customer.payment", { tableId })}
+                        backHref={route("customer.payment", { order: resolvedOrderRef })}
                     />
 
                     <div className="flex flex-col flex-1 px-5 pb-36">
-                        <HeroSection total={total} orderRef={orderRef} />
+                        <HeroSection total={resolvedTotal} orderRef={resolvedOrderRef} />
 
                         <div className="flex flex-col gap-3 mt-6">
-                            <IdentifyCard orderRef={orderRef} />
+                            <IdentifyCard orderRef={resolvedOrderRef} />
                             <OrderDetailsCard
-                                orderRef={orderRef}
+                                orderRef={resolvedOrderRef}
                                 orderTime={orderTime}
-                                total={total}
+                                total={resolvedTotal}
                                 tableNumber={tableNumber}
                             />
                         </div>
 
                         <CashInstructionSteps
-                            orderRef={orderRef}
-                            total={total}
+                            orderRef={resolvedOrderRef}
+                            total={resolvedTotal}
                             className="mt-7"
                         />
 
@@ -83,12 +102,12 @@ export default function CashConfirmation({
                         style={{ backgroundColor: "var(--color-ucw-bg)" }}
                     >
                         <div className="px-5 pt-4 pb-2">
-                            <TrackButton tableId={tableId} orderId={orderId} />
+                            <TrackButton orderRef={resolvedOrderRef} />
                         </div>
 
                         <BottomNav
                             tableId={tableId}
-                            active="orders"
+                            active="track"
                             cartCount={cartCount}
                         />
                     </div>
@@ -103,20 +122,20 @@ export default function CashConfirmation({
                         <CustomerDesktopHeader
                             tableId={tableId}
                             title="Cash Payment"
-                            subtitle={`Table ${tableNumber} • Pay at cashier`}
-                            backHref={route("customer.payment", { tableId })}
+                            subtitle={tableNumber ? `Table ${tableNumber} • Pay at cashier` : "Pay at cashier"}
+                            backHref={route("customer.payment", { order: resolvedOrderRef })}
                             active="track"
                         />
 
                         <div className="flex-1 max-w-4xl mx-auto w-full px-8 lg:px-10 py-8">
-                            <HeroSection total={total} orderRef={orderRef} desktop />
+                            <HeroSection total={resolvedTotal} orderRef={resolvedOrderRef} desktop />
 
                             <div className="grid grid-cols-2 gap-5 mt-7">
-                                <IdentifyCard orderRef={orderRef} desktop />
+                                <IdentifyCard orderRef={resolvedOrderRef} desktop />
                                 <OrderDetailsCard
-                                    orderRef={orderRef}
+                                    orderRef={resolvedOrderRef}
                                     orderTime={orderTime}
-                                    total={total}
+                                    total={resolvedTotal}
                                     tableNumber={tableNumber}
                                     desktop
                                 />
@@ -155,7 +174,7 @@ export default function CashConfirmation({
                         </div>
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
-                            <StatusBadge />
+                            <StatusBadge status={resolvedPaymentStatus} />
 
                             <div
                                 className="rounded-2xl p-5"
@@ -175,7 +194,7 @@ export default function CashConfirmation({
                                     className="font-black mb-1"
                                     style={{ fontSize: "30px", color: "white" }}
                                 >
-                                    {formatIDR(total)}
+                                    {formatIDR(resolvedTotal)}
                                 </p>
 
                                 <p
@@ -184,13 +203,13 @@ export default function CashConfirmation({
                                         color: "rgba(255,255,255,0.45)",
                                     }}
                                 >
-                                    Order #{orderRef}
+                                    Order #{resolvedOrderRef}
                                 </p>
                             </div>
 
                             <CashInstructionSteps
-                                orderRef={orderRef}
-                                total={total}
+                                orderRef={resolvedOrderRef}
+                                total={resolvedTotal}
                                 compact
                             />
 
@@ -198,10 +217,10 @@ export default function CashConfirmation({
                         </div>
 
                         <div className="px-8 pb-8">
-                            <TrackButton tableId={tableId} orderId={orderId} />
+                            <TrackButton orderRef={resolvedOrderRef} />
 
                             <Link
-                                href={route("customer.payment", { tableId })}
+                                href={route("customer.payment", { order: resolvedOrderRef })}
                                 className="w-full flex items-center justify-center mt-3 h-10 text-sm font-medium"
                                 style={{ color: "var(--color-ucw-text-muted)" }}
                             >
@@ -422,7 +441,7 @@ function OrderDetailsCard({
             </p>
 
             <DetailRow label="Order ID" value={`#${orderRef}`} strong />
-            <DetailRow label="Table" value={`Table ${tableNumber}`} />
+            <DetailRow label="Table" value={tableNumber ? `Table ${tableNumber}` : "Takeaway"} />
             <DetailRow label="Time" value={orderTime} />
 
             <div
@@ -569,7 +588,7 @@ function AssistanceNote({ className = "" }: { className?: string }) {
     );
 }
 
-function StatusBadge() {
+function StatusBadge({ status }: { status: PaymentStatus }) {
     return (
         <div
             className="flex items-center gap-3 p-4 rounded-2xl"
@@ -590,23 +609,17 @@ function StatusBadge() {
                     color: "#92620A",
                 }}
             >
-                Waiting for payment verification
+                {status === "paid" ? "Payment received" : "Waiting for cash verification"}
             </p>
         </div>
     );
 }
 
-function TrackButton({
-    tableId,
-    orderId,
-}: {
-    tableId: string;
-    orderId: string;
-}) {
+function TrackButton({ orderRef }: { orderRef: string }) {
     return (
         <button
             onClick={() =>
-                router.visit(route("customer.status", { tableId, orderId }))
+                router.visit(route("customer.status", { order: orderRef }))
             }
             className="w-full flex items-center justify-center gap-2.5 rounded-2xl font-bold transition-all active:scale-[0.98] text-white"
             style={{

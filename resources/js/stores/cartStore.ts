@@ -5,7 +5,7 @@ import type { CartItem, MenuItem } from '@/types/customer';
 interface CartState {
     items:         CartItem[];
     tableId:       string | null;
-    orderType:     'dine-in' | 'takeaway' | null;
+    orderType:     'dine_in' | 'takeaway' | null;
     customerName:  string | null;
 
     // Computed
@@ -14,7 +14,7 @@ interface CartState {
 
     // Actions
     setTableId:      (id: string) => void;
-    setOrderType:    (type: 'dine-in' | 'takeaway') => void;
+    setOrderType:    (type: 'dine_in' | 'takeaway') => void;
     setCustomerName: (name: string) => void;
     addItem:         (menuItem: MenuItem) => void;
     incrementItem:   (id: string) => void;

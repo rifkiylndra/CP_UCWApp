@@ -39,7 +39,7 @@ export default function LandingContentCard({
 
             {isOpen ? (
                 <Link
-                    href={route('customer.menu', { tableId })}
+                    href={route('customer.menu')}
                     className="w-full min-h-[54px] h-[54px] shrink-0 flex items-center justify-center gap-2.5 rounded-[14px] font-bold tracking-[0.07em] whitespace-nowrap transition-all duration-150 active:scale-[0.97] mb-5"
                     style={{
                         fontSize: '13px',
