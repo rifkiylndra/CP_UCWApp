@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
 import KanbanCard from "@/Components/UI/KanbanCard";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
@@ -27,6 +27,14 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
     useEffect(() => {
         if (initialOrders) setOrders(initialOrders);
     }, [initialOrders]);
+
+    // Real-time polling
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
+        }, 10000); // Polling setiap 10 detik
+        return () => clearInterval(interval);
+    }, []);
 
     const allOrders = [
         ...orders.incoming,

@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'customer/order/*/review',
+            'customer/order/*/payments/pakasir',
+            'customer/payment/pakasir/webhook',
+            'payment/midtrans/callback'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Illuminate\Validation\ValidationException $e) {

@@ -34,6 +34,12 @@ return new class extends Migration
 
         Schema::table('orders', function (Blueprint $table) {
             $table->unique('order_ref');
+            
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement('ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_status_check');
+                DB::statement('ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_status_check');
+            }
+            
             $table->string('order_status', 32)->default('pending')->change();
             $table->string('payment_status', 32)->default('unpaid')->change();
         });
@@ -77,6 +83,10 @@ return new class extends Migration
         });
 
         Schema::table('payments', function (Blueprint $table) {
+            // Drop enum constraint for PostgreSQL before changing column type
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                DB::statement('ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_payment_status_check');
+            }
             $table->string('payment_status', 32)->default('unpaid')->change();
         });
     }

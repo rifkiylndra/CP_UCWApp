@@ -20,7 +20,7 @@ class RoleMiddleware
             abort(403, 'Akses ditolak. Hanya admin yang boleh masuk.');
         }
 
-        if ($role === 'staff' && !$user->isStaff()) {
+        if ($role === 'staff' && !$user->isStaff() && !$user->isAdmin()) {
             abort(403, 'Akses ditolak. Hanya staff yang boleh masuk.');
         }
 

@@ -22,8 +22,13 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        $incomingOrders = Order::with(['table', 'orderDetails.menu'])
+            ->whereIn('order_status', ['pending', 'confirmed'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
         $orders = [
-            'incoming' => $this->transformOrders($this->orderService->getOrdersByStatus('pending')),
+            'incoming' => $this->transformOrders($incomingOrders),
             'processing' => $this->transformOrders($this->orderService->getOrdersByStatus('processing')),
             'completed' => $this->transformOrders($this->orderService->getOrdersByStatus('completed')),
         ];
@@ -110,12 +115,12 @@ class DashboardController extends Controller
                     ];
                 })->toArray(),
                 'totalAmount' => $order->total_price,
-                'paymentMethod' => 'cash', // Default, bisa diupdate dari Payment model
+                'paymentMethod' => $order->payment_method ?? 'cash',
                 'isPaid' => $order->payment_status === 'paid',
-                'status' => $order->order_status === 'pending' ? 'incoming' : $order->order_status,
+                'status' => in_array($order->order_status, ['pending', 'confirmed']) ? 'incoming' : $order->order_status,
                 'placedAt' => $order->created_at->format('H:i'),
                 'customerName' => $order->customer_name,
-                'isPriority' => false, // Bisa ditambahkan logic priority di masa depan
+                'isPriority' => false,
             ];
         })->toArray();
     }

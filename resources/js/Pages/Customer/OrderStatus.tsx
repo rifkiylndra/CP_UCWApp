@@ -182,12 +182,12 @@ export default function OrderStatusPage({
         const echo = (window as any).Echo;
         if (echo) {
             echo.channel(`order.${resolvedOrderId}`)
-                .listen('OrderStatusUpdated', (e: { order?: { order_status?: OrderStatus } }) => {
-                    if (e.order && e.order.order_status) {
-                        setStatus(e.order.order_status);
+                .listen('.order.status.updated', (e: { order_status?: OrderStatus }) => {
+                    if (e.order_status) {
+                        setStatus(e.order_status);
                     }
                 })
-                .listen('PaymentStatusUpdated', (e: { payment_status?: PaymentStatus }) => {
+                .listen('.payment.status.updated', (e: { payment_status?: PaymentStatus }) => {
                     if (e.payment_status) {
                         setCurrentPaymentStatus(e.payment_status);
                     }
@@ -259,7 +259,7 @@ export default function OrderStatusPage({
     }, [currentCreatedAt, currentEstimatedServeTime]);
 
     useEffect(() => {
-        if (status === "ready") {
+        if (status === "ready" || status === "completed") {
             setShowReadyPopup(true);
 
             if ("vibrate" in navigator) {

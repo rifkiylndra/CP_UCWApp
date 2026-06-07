@@ -1,6 +1,6 @@
 # Progress Checkpoint — UCW App Frontend
 
-## Last Updated: [2026-06-01 23:48:00]
+## Last Updated: [2026-06-07 14:15:00]
 
 ## Model
 - Model sebelumnya : Claude Sonnet 4.6 — quota habis 2x
@@ -118,7 +118,11 @@ Status : [ ] Belum dicek
 - Menghubungkan dasbor `AIAnalytics.tsx` Admin dengan integrasi modul kecerdasan buatan (*FastAPI*) sesungguhnya.
 - Menghubungkan dasbor `Overview.tsx` Admin dengan matriks mingguan dan data riil.
 - Mengintegrasikan fitur pencarian, lencana warna, dan *Export CSV* untuk `Transactions.tsx` di sisi Staf.
+- **[BUGFIX]** Memperbaiki penolakan pengiriman *feedback* pelanggan dengan menambahkan pengecualian *CSRF Token* untuk rute API terkait.
+- **[BUGFIX]** Memperbaiki *Live Order Dashboard* yang menyebabkan pesanan dengan pembayaran tunai (*cash*) menghilang setelah dikonfirmasi; kini pesanan tetap muncul di kolom *Incoming*.
+- **[BUGFIX]** Memperbaiki *listener* WebSocket (Laravel Echo) pada antarmuka pelanggan agar cocok dengan *payload* *backend*, sehingga *timer* dan status benar-benar *real-time*.
 
 ## TUGAS SELANJUTNYA
+- Mendiagnosis dan melakukan *debug* pada chart analisis sentimen AI di Dashboard Admin yang tidak menunjukkan perubahan (*stagnan*).
 - Testing integrasi seluruhnya dan persiapan Deployment.
 - Mengerjakan modul Settings (Konfigurasi Sistem) Admin.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import KanbanCard from "@/Components/UI/KanbanCard";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
@@ -29,6 +30,15 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders);
   }, [initialOrders]);
+
+  // Real-time polling
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
+    }, 10000); // Polling setiap 10 detik
+
+    return () => clearInterval(interval);
+  }, []);
 
   const allOrders = [
     ...orders.incoming,
@@ -86,32 +96,40 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
     });
 
     try {
-        // Fallback untuk admin jika tidak ada endpoint admin khusus, ini akan sukses jika middleware mengizinkan
-        // Jika tidak, admin hanya bisa melihat (read-only)
         await axios.put(`/staff/order/${orderId}/status`, { status: newStatus });
     } catch (error) {
         console.error("Failed to update order status:", error);
     }
   };
 
-  const handleConfirmPayment = (orderId: string) => {
+  const handleConfirmPayment = async (orderId: string, amount: number) => {
     const order = allOrders.find((item) => item.id === orderId);
     if (!order) return;
 
-    const updatedOrder = {
-      ...order,
-      isPaid: true,
-      status: "processing" as KanbanColumn,
-    };
+    try {
+      await axios.post(`/staff/payments/order/${orderId}/verify-cash`, {
+          amount_received: amount
+      });
 
-    setOrders((prev) => ({
-      incoming: prev.incoming.filter((item) => item.id !== orderId),
-      processing: [
-        updatedOrder,
-        ...prev.processing.filter((item) => item.id !== orderId),
-      ],
-      completed: prev.completed.filter((item) => item.id !== orderId),
-    }));
+      const updatedOrder = {
+        ...order,
+        isPaid: true,
+        status: "processing" as KanbanColumn,
+      };
+
+      setOrders((prev) => ({
+        incoming: prev.incoming.filter((item) => item.id !== orderId),
+        processing: [
+          updatedOrder,
+          ...prev.processing.filter((item) => item.id !== orderId),
+        ],
+        completed: prev.completed.filter((item) => item.id !== orderId),
+      }));
+      
+    } catch (error) {
+      console.error('Payment verification failed', error);
+      alert("Gagal memverifikasi pembayaran.");
+    }
   };
 
   return (
