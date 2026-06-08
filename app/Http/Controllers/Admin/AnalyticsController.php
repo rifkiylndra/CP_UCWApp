@@ -24,9 +24,15 @@ class AnalyticsController extends Controller
         $popularMenus = $this->aiService->getPopularMenus(10);
         $sentimentSummary = $this->aiService->getSentimentSummary();
         
+        $recentReviews = \App\Models\Review::with(['order'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
         return Inertia::render('Admin/AIAnalytics', [
             'popularMenus' => $popularMenus,
             'sentimentSummary' => $sentimentSummary,
+            'recentReviews' => $recentReviews,
             'aiServiceStatus' => $this->checkAiServiceStatus(),
         ]);
     }

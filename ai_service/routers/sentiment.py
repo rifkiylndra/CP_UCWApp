@@ -97,9 +97,9 @@ def summary():
     sql = """
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN sentiment_label = 'positif' THEN 1 ELSE 0 END) as positif,
-            SUM(CASE WHEN sentiment_label = 'netral'  THEN 1 ELSE 0 END) as netral,
-            SUM(CASE WHEN sentiment_label = 'negatif' THEN 1 ELSE 0 END) as negatif,
+            SUM(CASE WHEN sentiment_label IN ('positif', 'positive') THEN 1 ELSE 0 END) as positif,
+            SUM(CASE WHEN sentiment_label IN ('netral', 'neutral')  THEN 1 ELSE 0 END) as netral,
+            SUM(CASE WHEN sentiment_label IN ('negatif', 'negative') THEN 1 ELSE 0 END) as negatif,
             AVG(rating) as avg_rating
         FROM reviews
     """

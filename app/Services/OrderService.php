@@ -40,7 +40,7 @@ class OrderService
                 'order_status' => 'pending',
                 'payment_status' => 'unpaid',
                 'total_price' => $totalPrice,
-                'estimated_serve_time' => $this->calculateEstimatedServeTime($preparedItems),
+                'estimated_serve_time' => $orderData['estimated_serve_time'] ?? $this->calculateEstimatedServeTime($preparedItems),
             ]);
 
             // Create order details
@@ -190,7 +190,7 @@ class OrderService
     public function getOrdersByStatus(string $status)
     {
         $statuses = match ($status) {
-            'processing' => ['processing', 'confirmed', 'preparing'],
+            'processing' => ['processing', 'preparing'],
             default => [$status],
         };
 
@@ -212,7 +212,7 @@ class OrderService
         return [
             'total_orders_today' => Order::whereDate('created_at', $today)->count(),
             'pending_orders' => Order::where('order_status', 'pending')->count(),
-            'processing_orders' => Order::whereIn('order_status', ['processing', 'confirmed', 'preparing'])->count(),
+            'processing_orders' => Order::whereIn('order_status', ['processing', 'preparing'])->count(),
             'completed_orders_today' => Order::where('order_status', 'completed')
                 ->whereDate('created_at', $today)
                 ->count(),

@@ -350,6 +350,7 @@ class PaymentController extends Controller
             'total_price' => $order->total_price,
             'estimated_serve_time' => $order->estimated_serve_time,
             'created_at' => $order->created_at?->toIso8601String(),
+            'updated_at' => $order->updated_at?->toIso8601String(),
             'table_number' => $order->table?->table_number,
             'items' => $items,
             'payments' => $order->payments,
@@ -361,6 +362,7 @@ class PaymentController extends Controller
             'total' => (float) $order->total_price,
             'estimatedServeTime' => $order->estimated_serve_time,
             'createdAt' => $order->created_at?->toIso8601String(),
+            'updatedAt' => $order->updated_at?->toIso8601String(),
             'tableNumber' => $order->table?->table_number,
         ]);
     }

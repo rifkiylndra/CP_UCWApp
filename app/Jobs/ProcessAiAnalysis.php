@@ -39,7 +39,7 @@ class ProcessAiAnalysis implements ShouldQueue
             }
             
             // Analyze sentiment using AI service
-            $analysis = $aiService->analyzeSentiment($review->comment);
+            $analysis = $aiService->analyzeSentiment($review->comment, $review->rating);
             
             // Update review with sentiment analysis
             $review->update([

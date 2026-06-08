@@ -34,7 +34,7 @@ class OrderStatusUpdated implements ShouldBroadcast
     {
         return [
             new Channel('staff-orders'),
-            new PrivateChannel('order.' . $this->order->id),
+            new Channel('order.' . $this->order->id),
         ];
     }
 

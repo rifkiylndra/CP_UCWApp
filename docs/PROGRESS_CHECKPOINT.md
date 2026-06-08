@@ -1,10 +1,10 @@
 # Progress Checkpoint — UCW App Frontend
 
-## Last Updated: [2026-06-07 14:15:00]
+## Last Updated: [2026-06-08 19:25:00]
 
 ## Model
 - Model sebelumnya : Claude Sonnet 4.6 — quota habis 2x
-- Model aktif baru : Gemini 3.1 Pro (High)
+- Model aktif baru : Gemini 3.1 Pro (Low)
 
 ---
 
@@ -118,11 +118,13 @@ Status : [ ] Belum dicek
 - Menghubungkan dasbor `AIAnalytics.tsx` Admin dengan integrasi modul kecerdasan buatan (*FastAPI*) sesungguhnya.
 - Menghubungkan dasbor `Overview.tsx` Admin dengan matriks mingguan dan data riil.
 - Mengintegrasikan fitur pencarian, lencana warna, dan *Export CSV* untuk `Transactions.tsx` di sisi Staf.
-- **[BUGFIX]** Memperbaiki penolakan pengiriman *feedback* pelanggan dengan menambahkan pengecualian *CSRF Token* untuk rute API terkait.
+- **[BUGFIX]** Memperbaiki penolakan pengiriman *feedback* pelanggan dengan memindahkan *endpoint* ke rutinitas *order completed*.
 - **[BUGFIX]** Memperbaiki *Live Order Dashboard* yang menyebabkan pesanan dengan pembayaran tunai (*cash*) menghilang setelah dikonfirmasi; kini pesanan tetap muncul di kolom *Incoming*.
 - **[BUGFIX]** Memperbaiki *listener* WebSocket (Laravel Echo) pada antarmuka pelanggan agar cocok dengan *payload* *backend*, sehingga *timer* dan status benar-benar *real-time*.
+- **[BUGFIX]** Mengatasi _error_ `Cannot read properties of undefined (reading 'post')` saat pelanggan menekan bintang rating di halaman _Feedback_ akibat pustaka _axios_ yang belum didefinisikan secara global.
+- **[BUGFIX]** Memperbaiki _AI Sentiment Analytics_ (grafik stagnan 0% dan rating hilang) dengan mengatasi _mismatch_ kunci JSON (`sentimen` vs `sentiment_label`) antara _FastAPI_ dan Laravel.
+- **[BUGFIX]** Memetakan kembali output _query_ statistik bahasa Indonesia dari _FastAPI_ ke dalam ENUM standar _database_ PostgreSQL (`positive`, `neutral`, `negative`) agar dasbor analitik kembali berjalan normal.
 
 ## TUGAS SELANJUTNYA
-- Mendiagnosis dan melakukan *debug* pada chart analisis sentimen AI di Dashboard Admin yang tidak menunjukkan perubahan (*stagnan*).
 - Testing integrasi seluruhnya dan persiapan Deployment.
 - Mengerjakan modul Settings (Konfigurasi Sistem) Admin.

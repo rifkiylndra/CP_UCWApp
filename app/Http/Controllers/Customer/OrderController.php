@@ -50,6 +50,17 @@ class OrderController extends Controller
             $orderData = $request->validated();
             $orderItems = $request->input('items', []);
             
+            try {
+                $currentQueue = Order::whereIn('order_status', ['pending', 'processing'])->count();
+                $estimation = $this->aiService->getServingTimeEstimation([
+                    'items' => $orderItems,
+                    'current_queue' => $currentQueue,
+                ]);
+                $orderData['estimated_serve_time'] = $estimation['estimated_max_time'];
+            } catch (\Exception $e) {
+                // Fallback to OrderService base calculation if AI fails
+            }
+
             $order = $this->orderService->createOrder($orderData, $orderItems);
             
             return response()->json([
@@ -88,6 +99,7 @@ class OrderController extends Controller
             'orderRef' => $order->order_ref,
             'total' => $order->total_price,
             'createdAt' => $order->created_at?->toIso8601String(),
+            'updatedAt' => $order->updated_at?->toIso8601String(),
             'estimatedServeTime' => $order->estimated_serve_time,
             'paymentMethod' => $order->payment_method,
             'paymentStatus' => $order->payment_status,

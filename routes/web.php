@@ -196,7 +196,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
     
     // Review
     Route::get('/order/{order}/review', [\App\Http\Controllers\Customer\ReviewController::class, 'create'])->name('review.create');
-    Route::post('/order/{order}/review', [\App\Http\Controllers\Customer\ReviewController::class, 'store'])->name('review.store');
+    Route::post('/order/{order}/complete-transaction', [\App\Http\Controllers\Customer\ReviewController::class, 'store'])->name('review.store');
     Route::get('/order/{order}/reviews', [\App\Http\Controllers\Customer\ReviewController::class, 'getOrderReviews'])->name('review.list');
     Route::get('/reviews/recent', [\App\Http\Controllers\Customer\ReviewController::class, 'getRecentReviews'])->name('review.recent');
     Route::get('/reviews/statistics', [\App\Http\Controllers\Customer\ReviewController::class, 'getStatistics'])->name('review.statistics');

@@ -6,6 +6,7 @@ interface AIAnalyticsProps {
     auth: { user: AdminUser };
     popularMenus?: any;
     sentimentSummary?: any;
+    recentReviews?: any[];
     aiServiceStatus?: any;
 }
 
@@ -13,33 +14,35 @@ export default function AIAnalytics({
     auth,
     popularMenus,
     sentimentSummary,
+    recentReviews,
     aiServiceStatus,
 }: AIAnalyticsProps) {
     const aiMenus = popularMenus?.menus || [];
+    const reviews = (recentReviews || []).map((review: any) => {
+        const dateObj = new Date(review.created_at);
+        const timeString = dateObj.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        const dateString = dateObj.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+        });
 
-    const reviews = [
-        {
-            name: "Marcus Thorne",
-            status: "Highly Satisfied",
-            text: "The estimated wait time was perfectly accurate. The AI seems to have mastered the morning rush logic here.",
-            time: "Today, 09:42 AM",
-            img: "https://i.pravatar.cc/100?img=12",
-        },
-        {
-            name: "Elena Rossi",
-            status: "Optimized",
-            text: "Menu recommendations were spot on based on the weather. Cascara Tonic was refreshing.",
-            time: "Today, 11:15 AM",
-            img: "https://i.pravatar.cc/100?img=47",
-        },
-        {
-            name: "Julian Chen",
-            status: "Neutral",
-            text: "The workspace was a bit busy, but the digital check-in helped.",
-            time: "Today, 12:08 PM",
-            img: "https://i.pravatar.cc/100?img=11",
-        },
-    ];
+        let statusText = "Neutral";
+        if (review.sentiment_label === "positive") statusText = "Highly Satisfied";
+        else if (review.sentiment_label === "negative") statusText = "Needs Improvement";
+
+        return {
+            id: review.id,
+            name: review.order?.customer_name || "Guest User",
+            status: statusText,
+            rating: review.rating || 0,
+            text: review.comment || "",
+            time: `${dateString}, ${timeString}`,
+            img: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.order?.customer_name || 'Guest')}&background=random`,
+        };
+    });
 
     return (
         <AdminLayout
@@ -193,7 +196,7 @@ export default function AIAnalytics({
                         <div className="mx-auto mt-8 flex h-[160px] w-[160px] sm:h-[190px] sm:w-[190px] items-center justify-center rounded-full border-[16px] border-[#F2EFEE]">
                             <div className="text-center">
                                 <h3 className="text-[28px] font-extrabold sm:text-[34px]">
-                                    4.8
+                                    {sentimentSummary?.summary?.average_rating || 0}
                                 </h3>
                                 <p className="text-[10px] font-bold uppercase text-[#A69D9A]">
                                     Avg Index
@@ -227,36 +230,59 @@ export default function AIAnalytics({
                         </h2>
 
                         <div className="space-y-5">
-                            {reviews.map((item) => (
-                                <div
-                                    key={item.name}
-                                    className="border-l-4 border-[#60765D] rounded-[14px] bg-[#F5F4F3] p-5"
-                                >
-                                    <div className="flex flex-col gap-4 sm:flex-row">
-                                        <img
-                                            src={item.img}
-                                            alt={item.name}
-                                            className="h-10 w-10 rounded-full object-cover"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="rounded-[24px] bg-[#301713] p-6 text-white xl:rounded-[34px] xl:p-10">
-                                                <p className="text-[12px] font-extrabold uppercase">
-                                                    {item.name}
+                            {reviews.length > 0 ? (
+                                reviews.map((item: any) => (
+                                    <div
+                                        key={item.id}
+                                        className="border-l-4 border-[#60765D] rounded-[14px] bg-[#F5F4F3] p-5"
+                                    >
+                                        <div className="flex flex-col gap-4 sm:flex-row">
+                                            <img
+                                                src={item.img}
+                                                alt={item.name}
+                                                className="h-10 w-10 rounded-full object-cover"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="rounded-[24px] bg-[#301713] p-6 text-white xl:rounded-[34px] xl:p-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                    <div>
+                                                        <p className="text-[12px] font-extrabold uppercase mb-2">
+                                                            {item.name}
+                                                        </p>
+                                                        <span className="rounded-full bg-[#E4E9E1] px-3 py-1 text-[9px] font-extrabold uppercase text-[#60765D]">
+                                                            {item.status}
+                                                        </span>
+                                                    </div>
+                                                    {item.rating > 0 && (
+                                                        <div className="flex gap-1">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <svg
+                                                                    key={i}
+                                                                    width="16"
+                                                                    height="16"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill={i < item.rating ? "#F59E0B" : "rgba(255,255,255,0.2)"}
+                                                                >
+                                                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                                                </svg>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-[13px] italic leading-relaxed text-[#5A4A47] mt-4">
+                                                    "{item.text}"
                                                 </p>
-                                                <span className="rounded-full bg-[#E4E9E1] px-3 py-1 text-[9px] font-extrabold uppercase text-[#60765D]">
-                                                    {item.status}
-                                                </span>
+                                                <p className="mt-3 text-[10px] font-bold uppercase text-[#A69D9A]">
+                                                    {item.time}
+                                                </p>
                                             </div>
-                                            <p className="text-[13px] italic leading-relaxed text-[#5A4A47]">
-                                                "{item.text}"
-                                            </p>
-                                            <p className="mt-3 text-[10px] font-bold uppercase text-[#A69D9A]">
-                                                {item.time}
-                                            </p>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-[#A69D9A] font-semibold">
+                                    No recent reviews yet.
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>

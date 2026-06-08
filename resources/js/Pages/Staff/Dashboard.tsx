@@ -104,16 +104,13 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
             const updatedOrder = {
                 ...order,
                 isPaid: true,
-                status: "processing" as KanbanColumn,
+                status: "incoming" as KanbanColumn,
             };
 
             setOrders((prev) => ({
-                incoming: prev.incoming.filter((item) => item.id !== orderId),
-                processing: [
-                    updatedOrder,
-                    ...prev.processing.filter((item) => item.id !== orderId),
-                ],
-                completed: prev.completed.filter((item) => item.id !== orderId),
+                incoming: prev.incoming.map((item) => (item.id === orderId ? updatedOrder : item)),
+                processing: prev.processing,
+                completed: prev.completed,
             }));
             
             alert("Pembayaran berhasil diverifikasi!");

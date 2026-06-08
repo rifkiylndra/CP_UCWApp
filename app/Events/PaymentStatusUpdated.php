@@ -33,7 +33,7 @@ class PaymentStatusUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('order.' . $this->order->id),
+            new Channel('order.' . $this->order->id),
             new Channel('staff-payments'),
         ];
     }

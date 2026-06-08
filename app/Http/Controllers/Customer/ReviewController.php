@@ -53,6 +53,8 @@ class ReviewController extends Controller
      */
     public function store(CreateReviewRequest $request, $orderRef)
     {
+        Log::info('Review request received: ' . $orderRef, $request->all());
+        
         $order = $this->findCustomerOrder($orderRef);
         
         // Check if order is completed
@@ -73,7 +75,7 @@ class ReviewController extends Controller
 
         try {
             // Analyze sentiment using AI service
-            $sentimentAnalysis = $this->aiService->analyzeSentiment($request->comment);
+            $sentimentAnalysis = $this->aiService->analyzeSentiment($request->comment, $request->rating);
             
             // Create review
             $review = Review::create([

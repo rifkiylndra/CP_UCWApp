@@ -27,6 +27,8 @@ function readStoredPayment(orderId?: string) {
     }
 }
 
+import { useEffect } from "react";
+
 function nowTime() {
     return new Date().toLocaleTimeString("id-ID", {
         hour: "2-digit",
@@ -49,6 +51,43 @@ export default function CashConfirmation({
     const resolvedOrderRef = orderRef || stored.orderRef || "-";
     const resolvedTotal = total ?? stored.total ?? stored.total_price ?? 0;
     const resolvedPaymentStatus = paymentStatus || stored.payment_status || "waiting_verification";
+
+    useEffect(() => {
+        if (resolvedPaymentStatus === "paid") {
+            router.visit(route("customer.status", { order: resolvedOrderRef }));
+            return;
+        }
+
+        if (!resolvedOrderId || typeof window === "undefined") return;
+
+        const echo = (window as any).Echo;
+        if (echo) {
+            const channel = echo.channel(`order.${resolvedOrderId}`);
+            channel.listen('.payment.status.updated', (e: { payment_status?: PaymentStatus }) => {
+                if (e.payment_status === "paid") {
+                    router.visit(route("customer.status", { order: resolvedOrderRef }));
+                }
+            });
+            channel.listen('.order.status.updated', (e: { order_status?: string }) => {
+                if (e.order_status === "processing" || e.order_status === "completed") {
+                    router.visit(route("customer.status", { order: resolvedOrderRef }));
+                }
+            });
+
+            return () => {
+                channel.stopListening('.payment.status.updated');
+                channel.stopListening('.order.status.updated');
+                echo.leave(`order.${resolvedOrderId}`);
+            };
+        }
+    }, [resolvedOrderId, resolvedOrderRef, resolvedPaymentStatus]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['paymentStatus'] });
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <>

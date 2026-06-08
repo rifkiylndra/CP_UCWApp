@@ -107,13 +107,18 @@ function formatCountdown(secs: number) {
     return `${m}:${s}`;
 }
 
-function remainingSeconds(createdAt?: string | null, estimatedServeTime?: number | null) {
-    if (!createdAt || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
+function remainingSeconds(status: OrderStatus, startTime?: string | null, estimatedServeTime?: number | null) {
+    if (!startTime || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
 
-    const createdTime = new Date(createdAt).getTime();
-    if (Number.isNaN(createdTime)) return Math.max(0, estimatedServeTime * 60);
+    // Jika pesanan belum mulai dibuat oleh barista, tahan timer di waktu penuh
+    if (status === "pending" || status === "confirmed") {
+        return Math.max(0, estimatedServeTime * 60);
+    }
 
-    const estimatedEndTime = createdTime + estimatedServeTime * 60 * 1000;
+    const startTimeMs = new Date(startTime).getTime();
+    if (Number.isNaN(startTimeMs)) return Math.max(0, estimatedServeTime * 60);
+
+    const estimatedEndTime = startTimeMs + estimatedServeTime * 60 * 1000;
     return Math.max(0, Math.floor((estimatedEndTime - Date.now()) / 1000));
 }
 
@@ -129,6 +134,7 @@ export default function OrderStatusPage({
     orderStatus,
     pakasirMethod,
     createdAt,
+    updatedAt,
     estimatedServeTime,
 }: Props) {
     const resolvedOrderId = String(orderId || order?.id || "");
@@ -147,11 +153,14 @@ export default function OrderStatusPage({
     const [currentCreatedAt, setCurrentCreatedAt] = useState<string | null>(
         createdAt || order?.created_at || null,
     );
+    const [currentUpdatedAt, setCurrentUpdatedAt] = useState<string | null>(
+        updatedAt || (order as BackendOrder | undefined)?.updated_at || null,
+    );
     const [currentEstimatedServeTime, setCurrentEstimatedServeTime] = useState<number>(
         estimatedServeTime || order?.estimated_serve_time || 15,
     );
     const [timeLeft, setTimeLeft] = useState(() =>
-        remainingSeconds(createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
+        remainingSeconds(defaultStatus, updatedAt || (order as BackendOrder | undefined)?.updated_at || createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
     );
     
     const [receivedAt] = useState(() => {
@@ -218,12 +227,14 @@ export default function OrderStatusPage({
                 const nextPaymentStatus = res.data.paymentStatus ?? res.data.payment_status;
                 const nextPaymentMethod = res.data.paymentMethod ?? res.data.payment_method;
                 const nextCreatedAt = res.data.createdAt ?? res.data.created_at;
+                const nextUpdatedAt = res.data.updatedAt ?? res.data.updated_at;
                 const nextEstimatedServeTime = res.data.estimatedServeTime ?? res.data.estimated_serve_time;
 
                 if (nextOrderStatus) setStatus(nextOrderStatus);
                 if (nextPaymentStatus) setCurrentPaymentStatus(nextPaymentStatus);
                 if (nextPaymentMethod) setCurrentPaymentMethod(nextPaymentMethod);
                 if (nextCreatedAt) setCurrentCreatedAt(nextCreatedAt);
+                if (nextUpdatedAt) setCurrentUpdatedAt(nextUpdatedAt);
                 if (nextEstimatedServeTime) setCurrentEstimatedServeTime(nextEstimatedServeTime);
 
                 failedPolls = 0;
@@ -239,7 +250,7 @@ export default function OrderStatusPage({
             }
         }
 
-        const interval = window.setInterval(pollStatus, 30000);
+        const interval = window.setInterval(pollStatus, 3000);
         pollStatus();
 
         return () => {
@@ -250,13 +261,13 @@ export default function OrderStatusPage({
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setTimeLeft(remainingSeconds(currentCreatedAt, currentEstimatedServeTime));
+            setTimeLeft(remainingSeconds(status, currentUpdatedAt || currentCreatedAt, currentEstimatedServeTime));
         }, 1000);
 
-        setTimeLeft(remainingSeconds(currentCreatedAt, currentEstimatedServeTime));
+        setTimeLeft(remainingSeconds(status, currentUpdatedAt || currentCreatedAt, currentEstimatedServeTime));
 
         return () => clearInterval(timer);
-    }, [currentCreatedAt, currentEstimatedServeTime]);
+    }, [status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime]);
 
     useEffect(() => {
         if (status === "ready" || status === "completed") {

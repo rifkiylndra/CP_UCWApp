@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Head, router } from "@inertiajs/react";
+import axios from "axios";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
@@ -42,7 +43,7 @@ export default function Feedback({
         setErrorMessage("");
 
         try {
-            await window.axios.post(`/customer/order/${encodeURIComponent(orderRef)}/review`, {
+            await axios.post(`/customer/order/${encodeURIComponent(orderRef)}/complete-transaction`, {
                 rating,
                 comment,
             });
@@ -53,13 +54,20 @@ export default function Feedback({
                 router.visit(route("customer.landing"));
             }, 2200);
         } catch (error: unknown) {
-            const message =
-                typeof error === "object" &&
-                error !== null &&
-                "response" in error &&
-                typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
-                    ? (error as { response: { data: { message: string } } }).response.data.message
-                    : "Feedback could not be submitted. Please try again.";
+            let message = "Feedback could not be submitted. Please try again.";
+            if (typeof error === "object" && error !== null && "response" in error) {
+                const responseData = (error as any).response?.data;
+                if (responseData?.errors && typeof responseData.errors === "object") {
+                    const firstErrorKey = Object.keys(responseData.errors)[0];
+                    message = responseData.errors[firstErrorKey][0];
+                } else if (typeof responseData?.message === "string") {
+                    message = responseData.message;
+                } else {
+                    message = `Server Error: ${JSON.stringify(responseData)}`;
+                }
+            } else if (error instanceof Error) {
+                message = `Error: ${error.message}`;
+            }
 
             setErrorMessage(message);
         }

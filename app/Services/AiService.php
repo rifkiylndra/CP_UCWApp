@@ -144,19 +144,26 @@ class AiService
      * @param string $reviewText
      * @return array
      */
-    public function analyzeSentiment(string $reviewText): array
+    public function analyzeSentiment(string $reviewText, int $rating = 5): array
     {
         try {
             $response = Http::timeout(10)->post($this->baseUrl . '/api/sentiment/analyze', [
                 'komentar' => $reviewText,
-                'rating' => 5 // Default rating if none provided
+                'rating' => $rating
             ]);
 
             if ($response->successful()) {
+                $sentimenIndo = $response->json('sentimen');
+                $sentiment = match ($sentimenIndo) {
+                    'positif' => 'positive',
+                    'netral' => 'neutral',
+                    'negatif' => 'negative',
+                    default => null
+                };
                 return [
                     'success' => true,
-                    'sentiment' => $response->json('sentiment_label'),
-                    'confidence' => $response->json('confidence'),
+                    'sentiment' => $sentiment,
+                    'confidence' => $response->json('ai_confidence'),
                     'keywords' => [],
                 ];
             }
@@ -180,10 +187,23 @@ class AiService
             $response = Http::timeout(10)->get($this->baseUrl . '/api/sentiment/summary');
 
             if ($response->successful()) {
+                $data = $response->json();
+                $total = (int) ($data['total_reviews'] ?? 0);
+                
                 return [
                     'success' => true,
-                    'summary' => $response->json('summary') ?? [],
-                    'distribution' => $response->json('distribution') ?? [],
+                    'summary' => [
+                        'total_reviews' => $total,
+                        'average_rating' => $data['avg_rating'] ?? 0,
+                        'positive_percentage' => $total > 0 ? round((($data['positif'] ?? 0) / $total) * 100, 2) : 0,
+                        'neutral_percentage' => $total > 0 ? round((($data['netral'] ?? 0) / $total) * 100, 2) : 0,
+                        'negative_percentage' => $total > 0 ? round((($data['negatif'] ?? 0) / $total) * 100, 2) : 0,
+                    ],
+                    'distribution' => [
+                        'positive' => $data['positif'] ?? 0,
+                        'neutral' => $data['netral'] ?? 0,
+                        'negative' => $data['negatif'] ?? 0,
+                    ]
                 ];
             }
 
@@ -285,6 +305,7 @@ class AiService
         $summary = \DB::table('reviews')
             ->selectRaw('
                 COUNT(*) as total_reviews,
+                AVG(rating) as average_rating,
                 SUM(CASE WHEN sentiment_label = "positive" THEN 1 ELSE 0 END) as positive,
                 SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral,
                 SUM(CASE WHEN sentiment_label = "negative" THEN 1 ELSE 0 END) as negative
@@ -295,6 +316,7 @@ class AiService
             'success' => false,
             'summary' => [
                 'total_reviews' => $summary->total_reviews ?? 0,
+                'average_rating' => $summary->average_rating ? round($summary->average_rating, 1) : 0,
                 'positive_percentage' => $summary->total_reviews > 0 
                     ? round(($summary->positive / $summary->total_reviews) * 100, 2) 
                     : 0,
