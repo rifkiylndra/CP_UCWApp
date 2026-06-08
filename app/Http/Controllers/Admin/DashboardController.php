@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Menu;
 use App\Models\Category;
 use App\Services\OrderService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -23,23 +24,22 @@ class DashboardController extends Controller
     /**
      * Display admin overview dashboard
      */
-    public function overview()
+    public function overview(Request $request)
     {
+        $mode = $request->input('mode', 'weekly');
+        if (!in_array($mode, ['daily', 'weekly'], true)) {
+            $mode = 'weekly';
+        }
+
         $statistics = $this->getDashboardStatistics();
-        
-        $endDate = now();
-        $startDate = now()->subDays(6);
-        $weeklySales = Order::whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(total_price) as revenue')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
         
         return Inertia::render('Admin/Overview', [
             'statistics' => $statistics,
             'recentOrders' => $this->getRecentOrders(),
             'topMenus' => $this->getTopMenus(),
-            'weeklySales' => $weeklySales,
+            'salesTrend' => $this->getSalesTrend($mode),
+            'chartMode' => $mode,
+            'peakHours' => $this->getPeakHours(),
         ]);
     }
 
@@ -110,19 +110,19 @@ class DashboardController extends Controller
         
         return [
             'total_orders' => Order::count(),
-            'total_revenue' => Order::where('order_status', 'completed')->sum('total_price'),
+            'total_revenue' => $this->completedPaidOrdersQuery()->sum('total_price'),
             'total_customers' => Order::distinct('customer_name')->count('customer_name'),
             'total_staff' => User::where('role', 'staff')->where('is_active', true)->count(),
             'total_menu_items' => Menu::count(),
             'available_menu_items' => Menu::where('is_available', true)->count(),
             
             'today_orders' => Order::whereDate('created_at', $today)->count(),
-            'today_revenue' => Order::where('order_status', 'completed')
+            'today_revenue' => $this->completedPaidOrdersQuery()
                 ->whereDate('created_at', $today)
                 ->sum('total_price'),
             
             'month_orders' => Order::whereDate('created_at', '>=', $thisMonth)->count(),
-            'month_revenue' => Order::where('order_status', 'completed')
+            'month_revenue' => $this->completedPaidOrdersQuery()
                 ->whereDate('created_at', '>=', $thisMonth)
                 ->sum('total_price'),
             
@@ -149,6 +149,9 @@ class DashboardController extends Controller
     {
         return \DB::table('order_details')
             ->join('menus', 'order_details.menu_id', '=', 'menus.id')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->where('orders.order_status', 'completed')
+            ->where('orders.payment_status', 'paid')
             ->select(
                 'menus.id',
                 'menus.name',
@@ -167,17 +170,12 @@ class DashboardController extends Controller
      */
     public function getOrdersChartData(Request $request)
     {
-        $days = $request->input('days', 7);
-        $endDate = now();
-        $startDate = now()->subDays($days);
-        
-        $ordersByDay = Order::whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(total_price) as revenue')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
-        
-        return response()->json($ordersByDay);
+        $mode = $request->input('mode', 'weekly');
+        if (!in_array($mode, ['daily', 'weekly'], true)) {
+            $mode = 'weekly';
+        }
+
+        return response()->json($this->getSalesTrend($mode));
     }
 
     /**
@@ -188,11 +186,11 @@ class DashboardController extends Controller
         $today = now()->startOfDay();
         $yesterday = now()->subDay()->startOfDay();
         
-        $todayRevenue = Order::where('order_status', 'completed')
+        $todayRevenue = $this->completedPaidOrdersQuery()
             ->whereDate('created_at', $today)
             ->sum('total_price');
             
-        $yesterdayRevenue = Order::where('order_status', 'completed')
+        $yesterdayRevenue = $this->completedPaidOrdersQuery()
             ->whereDate('created_at', $yesterday)
             ->sum('total_price');
         
@@ -205,5 +203,105 @@ class DashboardController extends Controller
             'yesterday' => $yesterdayRevenue,
             'change_percentage' => round($revenueChange, 2),
         ]);
+    }
+
+    private function completedPaidOrdersQuery()
+    {
+        return Order::query()
+            ->where('order_status', 'completed')
+            ->where('payment_status', 'paid');
+    }
+
+    private function getSalesTrend(string $mode): array
+    {
+        return $mode === 'daily'
+            ? $this->getDailySalesTrend()
+            : $this->getWeeklySalesTrend();
+    }
+
+    private function getWeeklySalesTrend(): array
+    {
+        $timezone = config('app.timezone', 'Asia/Jakarta');
+        $startDate = Carbon::now($timezone)->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $endDate = (clone $startDate)->addDays(4)->endOfDay();
+        $orders = $this->completedPaidOrdersQuery()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get(['id', 'total_price', 'created_at']);
+
+        $labels = [
+            1 => 'Mon',
+            2 => 'Tue',
+            3 => 'Wed',
+            4 => 'Thu',
+            5 => 'Fri',
+        ];
+
+        return collect($labels)->map(function (string $label, int $day) use ($orders, $timezone) {
+            $ordersForDay = $orders->filter(
+                fn (Order $order) => $order->created_at->copy()->timezone($timezone)->isoWeekday() === $day
+            );
+
+            return [
+                'label' => $label,
+                'date' => Carbon::now($timezone)
+                    ->startOfWeek(Carbon::MONDAY)
+                    ->addDays($day - 1)
+                    ->toDateString(),
+                'count' => $ordersForDay->count(),
+                'revenue' => (float) $ordersForDay->sum('total_price'),
+            ];
+        })->values()->all();
+    }
+
+    private function getDailySalesTrend(): array
+    {
+        $timezone = config('app.timezone', 'Asia/Jakarta');
+        $today = Carbon::now($timezone);
+        $orders = $this->completedPaidOrdersQuery()
+            ->whereBetween('created_at', [$today->copy()->startOfDay(), $today->copy()->endOfDay()])
+            ->get(['id', 'total_price', 'created_at']);
+
+        return collect(range(9, 18))->map(function (int $hour) use ($orders, $timezone) {
+            $ordersForHour = $orders->filter(
+                fn (Order $order) => (int) $order->created_at->copy()->timezone($timezone)->format('H') === $hour
+            );
+
+            return [
+                'label' => sprintf('%02d:00', $hour),
+                'hour' => $hour,
+                'count' => $ordersForHour->count(),
+                'revenue' => (float) $ordersForHour->sum('total_price'),
+            ];
+        })->values()->all();
+    }
+
+    private function getPeakHours(): array
+    {
+        $timezone = config('app.timezone', 'Asia/Jakarta');
+        $startDate = Carbon::now($timezone)->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $endDate = Carbon::now($timezone)->endOfWeek(Carbon::FRIDAY)->endOfDay();
+        $orders = $this->completedPaidOrdersQuery()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get(['id', 'created_at']);
+
+        $grouped = $orders
+            ->groupBy(fn (Order $order) => (int) $order->created_at->copy()->timezone($timezone)->format('H'))
+            ->map(fn ($group, int $hour) => [
+                'hour' => $hour,
+                'label' => sprintf('%02d:00 - %02d:00', $hour, $hour + 1),
+                'order_count' => $group->count(),
+            ])
+            ->sortByDesc('order_count')
+            ->take(3)
+            ->values();
+
+        $maxCount = max(1, (int) $grouped->max('order_count'));
+
+        return $grouped
+            ->map(fn (array $item) => [
+                ...$item,
+                'capacity_percentage' => (int) round(($item['order_count'] / $maxCount) * 100),
+            ])
+            ->all();
     }
 }

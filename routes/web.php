@@ -51,6 +51,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Rute Inertia Tambahan dari Frontend
     Route::get('/live-order', [\App\Http\Controllers\Admin\DashboardController::class, 'liveOrder'])->name('live-order');
     Route::get('/ai-analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics-page');
+    Route::get('/feedback', [\App\Http\Controllers\Admin\FeedbackController::class, 'index'])->name('feedback');
+    Route::get('/feedback/export', [\App\Http\Controllers\Admin\FeedbackController::class, 'export'])->name('feedback.export');
     // Menu Management
     Route::get('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'index'])->name('menu');
     Route::post('/menu', [\App\Http\Controllers\Admin\MenuController::class, 'store'])->name('menu.store');

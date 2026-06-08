@@ -5,6 +5,7 @@ import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
 import { formatIDR } from "@/lib/currency";
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
 import { useCart, CartItem } from "@/hooks/useCart";
 
 interface Props {
@@ -12,8 +13,7 @@ interface Props {
     tableNumber?: string;
 }
 
-const PLACEHOLDER =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
+const PLACEHOLDER = MENU_IMAGE_PLACEHOLDER;
 
 export default function Cart({ tableId, tableNumber = "" }: Props) {
     const { items, subtotal, total, totalItems, adjustQuantity, updateNotes, tableNumber: storedTableNumber } = useCart();
@@ -356,6 +356,8 @@ function CartItemRow({
     onUpdateNotes: (id: string, notes: string) => void;
     desktop?: boolean;
 }) {
+    const imageSrc = firstImageUrl(item.imageUrl);
+
     return (
         <div className={desktop ? "py-6" : "py-5"}>
             <div className="flex gap-4">
@@ -368,12 +370,10 @@ function CartItemRow({
                     }}
                 >
                     <img
-                        src={item.imageUrl || PLACEHOLDER}
+                        src={imageSrc || PLACEHOLDER}
                         alt={item.name}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = PLACEHOLDER;
-                        }}
+                        onError={useFallbackImage}
                     />
                 </div>
 
@@ -483,6 +483,8 @@ function CartItemRow({
 }
 
 function MiniCartItem({ item }: { item: CartItem }) {
+    const imageSrc = firstImageUrl(item.imageUrl);
+
     return (
         <div className="flex items-center gap-3">
             <div
@@ -490,12 +492,10 @@ function MiniCartItem({ item }: { item: CartItem }) {
                 style={{ backgroundColor: "var(--color-ucw-border)" }}
             >
                 <img
-                    src={item.imageUrl || PLACEHOLDER}
+                    src={imageSrc || PLACEHOLDER}
                     alt={item.name}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                        (e.target as HTMLImageElement).src = PLACEHOLDER;
-                    }}
+                    onError={useFallbackImage}
                 />
             </div>
 

@@ -12,6 +12,7 @@ import CartSidebar from '@/Components/customer/menu/CartSidebar';
 import FloatingCartButton from '@/Components/customer/menu/FloatingCartButton';
 
 import { useCart } from '@/hooks/useCart';
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER } from '@/lib/images';
 
 interface CategoryConfig {
     key: string;
@@ -26,8 +27,7 @@ interface Props {
 }
 
 // DEMO_ITEMS and CATEGORIES moved to backend
-const PLACEHOLDER =
-    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80';
+const PLACEHOLDER = MENU_IMAGE_PLACEHOLDER;
 
 export default function Menu({
     tableId,
@@ -83,7 +83,7 @@ export default function Menu({
                 name: item.name,
                 subtitle: item.subtitle || item.description,
                 price: item.price,
-                imageUrl: item.imageUrl,
+                imageUrl: firstImageUrl(item.imageUrl, item.image_url, item.image),
                 menuId: item.id
             });
         }

@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   ClipboardList,
   Sparkles,
+  MessageSquare,
   UtensilsCrossed,
   MoreHorizontal,
 } from "lucide-react";
@@ -25,13 +26,14 @@ export default function MobileBottomNav({ currentRoute }: MobileBottomNavProps) 
     { name: "Overview", route: "admin.overview", icon: LayoutGrid },
     { name: "Orders", route: "admin.live-order", icon: ClipboardList },
     { name: "AI", route: "admin.analytics-page", icon: Sparkles },
+    { name: "Feedback", route: "admin.feedback", icon: MessageSquare },
     { name: "Menu", route: "admin.menu", icon: UtensilsCrossed },
     { name: "More", route: "admin.staff", icon: MoreHorizontal },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#E9E6E4] bg-white/95 px-3 py-2 backdrop-blur-md md:hidden">
-      <div className="grid grid-cols-5">
+      <div className="grid grid-cols-6">
         {navItems.map((item) => {
           const active = currentRoute === item.route;
           const Icon = item.icon;

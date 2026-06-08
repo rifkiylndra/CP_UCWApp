@@ -40,7 +40,7 @@ class StaffDashboardController extends Controller
                                     'id' => 'm1',
                                     'name' => 'Caramel Macchiato',
                                     'price' => 35000,
-                                    'imageUrl' => 'https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80'
+                                    'imageUrl' => null
                                 ],
                                 'quantity' => 2,
                                 'milkChoice' => 'Oat Milk',

@@ -141,15 +141,17 @@ class AiService
     /**
      * Analyze review sentiment using Naive Bayes
      * 
-     * @param string $reviewText
+     * @param string|null $reviewText
      * @return array
      */
-    public function analyzeSentiment(string $reviewText, int $rating = 5): array
+    public function analyzeSentiment(?string $reviewText = '', ?int $rating = null): array
     {
+        $reviewText = $reviewText ?? '';
+
         try {
             $response = Http::timeout(10)->post($this->baseUrl . '/api/sentiment/analyze', [
                 'komentar' => $reviewText,
-                'rating' => $rating
+                'rating' => $rating ?? 0
             ]);
 
             if ($response->successful()) {

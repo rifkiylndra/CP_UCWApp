@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
 import MenuModal from "@/Components/Modals/AddMenuModal";
 import MenuCategoryModal from "@/Components/Modals/MenuCategoryModal";
 import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
@@ -151,12 +152,10 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                             className="grid min-h-[110px] grid-cols-[120px_1.4fr_170px_130px_160px_120px] items-center border-t border-[#F0ECEA] px-8"
                         >
                             <img
-                                src={
-                                    item.image_url ||
-                                    "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=120&auto=format&fit=crop"
-                                }
+                                src={firstImageUrl(item.image_url, item.imageUrl, item.image) || MENU_IMAGE_PLACEHOLDER}
                                 alt={item.name}
                                 className="h-16 w-16 rounded-[16px] object-cover"
+                                onError={useFallbackImage}
                             />
 
                             <div>
@@ -195,12 +194,10 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                         >
                             <div className="flex gap-4">
                                 <img
-                                    src={
-                                        item.image_url ||
-                                        "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=120&auto=format&fit=crop"
-                                    }
+                                    src={firstImageUrl(item.image_url, item.imageUrl, item.image) || MENU_IMAGE_PLACEHOLDER}
                                     alt={item.name}
                                     className="h-[82px] w-[82px] shrink-0 rounded-[18px] object-cover"
+                                    onError={useFallbackImage}
                                 />
 
                                 <div className="min-w-0 flex-1">

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { KanbanOrder } from "@/types/staff";
 import { X } from "lucide-react";
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
 
 interface Props {
     order: KanbanOrder | null;
@@ -29,6 +30,11 @@ export default function OrderDetailModal({
     if (!isOpen || !order) return null;
 
     const primaryItem = order.items[0];
+    const primaryImageUrl = firstImageUrl(
+        primaryItem?.menuItem.imageUrl,
+        primaryItem?.menuItem.image_url,
+        primaryItem?.menuItem.image,
+    );
     const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
     const formatRupiah = (value: number) =>
@@ -79,14 +85,19 @@ export default function OrderDetailModal({
 
                 {/* Image Area */}
                 <div className="relative h-[240px] shrink-0 overflow-hidden bg-[#271310] lg:h-full lg:w-[43%]">
-                    {primaryItem?.menuItem.imageUrl ? (
+                    {primaryImageUrl ? (
                         <img
-                            src={primaryItem.menuItem.imageUrl}
+                            src={primaryImageUrl}
                             alt={primaryItem.menuItem.name}
                             className="h-full w-full object-cover"
+                            onError={useFallbackImage}
                         />
                     ) : (
-                        <div className="h-full w-full bg-[#271310]" />
+                        <img
+                            src={MENU_IMAGE_PLACEHOLDER}
+                            alt="Menu placeholder"
+                            className="h-full w-full object-cover"
+                        />
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-t from-[#271310] via-[#271310]/45 to-transparent" />

@@ -1,5 +1,6 @@
 import type { MenuItem } from '@/types/customer';
 import { formatIDR } from '@/lib/currency';
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from '@/lib/images';
 
 interface Props {
     item: MenuItem;
@@ -18,6 +19,8 @@ export default function MenuCardMobile({
     isLast,
     placeholder,
 }: Props) {
+    const imageSrc = firstImageUrl(item.imageUrl, item.image_url, item.image);
+
     return (
         <div>
             <div className="px-5 pt-5">
@@ -30,13 +33,11 @@ export default function MenuCardMobile({
                     }}
                 >
                     <img
-                        src={item.imageUrl || placeholder}
+                        src={imageSrc || placeholder || MENU_IMAGE_PLACEHOLDER}
                         alt={item.name}
                         className="w-full h-full object-cover"
                         loading="lazy"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = placeholder;
-                        }}
+                        onError={useFallbackImage}
                     />
 
                     {item.isPopular && item.isAvailable && (

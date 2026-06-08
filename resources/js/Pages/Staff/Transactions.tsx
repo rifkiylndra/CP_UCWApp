@@ -93,21 +93,21 @@ export default function Transactions({
                     </div>
                 </div>
 
-                <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:mb-7 lg:gap-4">
-                    <SummaryCard
-                        icon={<Banknote size={20} />}
-                        label="Cash Transactions"
-                        value={formatCurrency(summary.cashTotal)}
-                        variant="light"
-                    />
+                <div className="mb-6 grid grid-cols-2 gap-3 lg:mb-7 lg:gap-4">
+    <SummaryCard
+        icon={<Banknote size={20} />}
+        label="Cash Transactions"
+        value={formatCurrency(summary.cashTotal)}
+        variant="light"
+    />
 
-                    <SummaryCard
-                        icon={<CreditCard size={20} />}
-                        label="Digital Payments"
-                        value={formatCurrency(summary.digitalTotal)}
-                        variant="green"
-                    />
-                </div>
+    <SummaryCard
+        icon={<CreditCard size={20} />}
+        label="Digital Payments"
+        value={formatCurrency(summary.digitalTotal)}
+        variant="green"
+    />
+</div>
 
                 <section className="rounded-[26px] bg-[#F4F4F3] p-4 lg:rounded-[30px] lg:p-6">
                     <div className="mb-5 flex flex-col gap-3 lg:mb-6 lg:flex-row lg:items-center lg:justify-between">
@@ -240,18 +240,22 @@ function SummaryCard({
     };
 
     const muted = variant === "dark" ? "text-white/60" : "text-[#5A4A47]";
+    const iconBg = variant === "dark" ? "bg-white/10" : "bg-[#F4F4F3]";
 
     return (
         <div
-            className={`rounded-[22px] p-5 shadow-[0_2px_12px_rgba(39,19,16,0.03)] lg:p-5 ${styles[variant]}`}
+            className={`rounded-[22px] p-4 shadow-[0_2px_12px_rgba(39,19,16,0.04)] lg:p-5 ${styles[variant]}`}
         >
-            <div className="mb-5 lg:mb-4">{icon}</div>
-            <p
-                className={`mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${muted}`}
-            >
+            {/* Icon pill */}
+            <div className={`mb-4 inline-flex rounded-[10px] p-2 ${iconBg}`}>
+                {icon}
+            </div>
+
+            <p className={`mb-1 text-[10px] font-extrabold uppercase tracking-[0.1em] lg:text-[11px] ${muted}`}>
                 {label}
             </p>
-            <p className="text-[22px] font-extrabold tracking-[-0.04em] lg:text-[23px]">
+
+            <p className="text-[18px] font-extrabold tracking-[-0.04em] leading-tight lg:text-[22px]">
                 {value}
             </p>
         </div>

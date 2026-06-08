@@ -74,14 +74,21 @@ class ReviewController extends Controller
         }
 
         try {
-            // Analyze sentiment using AI service
-            $sentimentAnalysis = $this->aiService->analyzeSentiment($request->comment, $request->rating);
+            $validated = $request->validated();
+            $rating = $validated['rating'] ?? null;
+            $comment = isset($validated['comment']) ? trim((string) $validated['comment']) : null;
+            $comment = $comment === '' ? null : $comment;
+            $sentimentAnalysis = null;
+
+            if ($comment !== null || $rating !== null) {
+                $sentimentAnalysis = $this->aiService->analyzeSentiment($comment ?? '', $rating);
+            }
             
             // Create review
             $review = Review::create([
                 'order_id' => $order->id,
-                'rating' => $request->rating,
-                'comment' => $request->comment,
+                'rating' => $rating,
+                'comment' => $comment,
                 'sentiment_label' => $sentimentAnalysis['sentiment'] ?? null,
             ]);
 
@@ -89,7 +96,7 @@ class ReviewController extends Controller
                 'order_id' => $order->id,
                 'order_ref' => $order->order_ref,
                 'review_id' => $review->id,
-                'rating' => $request->rating,
+                'rating' => $rating,
                 'sentiment' => $sentimentAnalysis['sentiment'] ?? null,
             ]);
 

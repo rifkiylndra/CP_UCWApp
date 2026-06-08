@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
 import KanbanCard from "@/Components/UI/KanbanCard";
+import OrderSearchInput from "@/Components/ui/OrderSearchInput";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";
 import type { StaffUser, KanbanOrder, KanbanColumn } from "@/types/staff";
@@ -23,6 +24,7 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
     );
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         if (initialOrders) setOrders(initialOrders);
@@ -41,6 +43,14 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         ...orders.processing,
         ...orders.completed,
     ];
+    const filteredOrders = useMemo(
+        () => filterOrdersByQuery(orders, searchQuery),
+        [orders, searchQuery],
+    );
+    const filteredTotal =
+        filteredOrders.incoming.length +
+        filteredOrders.processing.length +
+        filteredOrders.completed.length;
 
     const handleViewDetail = (order: KanbanOrder) => {
         setSelectedOrder(order);
@@ -157,13 +167,22 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-5 lg:grid lg:h-[calc(100vh-190px)] lg:grid-cols-3 lg:gap-7">
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:mb-6">
+                    <OrderSearchInput
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        resultCount={filteredTotal}
+                        totalCount={allOrders.length}
+                    />
+                </div>
+
+                <div className="styled-scrollbar flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 lg:h-[calc(100vh-178px)] lg:min-h-[76vh] lg:grid-cols-3 lg:gap-7">
                     <OrderColumn
                         title="Incoming"
-                        count={orders.incoming.length}
+                        count={filteredOrders.incoming.length}
                         color="#C62828"
                     >
-                        {orders.incoming.map((order) => (
+                        {filteredOrders.incoming.map((order) => (
                             <KanbanCard
                                 key={order.id}
                                 order={order}
@@ -177,10 +196,10 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
 
                     <OrderColumn
                         title="Processing"
-                        count={orders.processing.length}
+                        count={filteredOrders.processing.length}
                         color="#D99A2B"
                     >
-                        {orders.processing.map((order) => (
+                        {filteredOrders.processing.map((order) => (
                             <KanbanCard
                                 key={order.id}
                                 order={order}
@@ -194,12 +213,12 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
 
                     <OrderColumn
                         title="Completed"
-                        count={orders.completed.length}
+                        count={filteredOrders.completed.length}
                         color="#5E735B"
                         rightLabel="Today"
                         dashed
                     >
-                        {orders.completed.map((order) => (
+                        {filteredOrders.completed.map((order) => (
                             <KanbanCard
                                 key={order.id}
                                 order={order}
@@ -239,6 +258,7 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
             <style>{`
                 .styled-scrollbar::-webkit-scrollbar {
                     width: 4px;
+                    height: 4px;
                 }
 
                 .styled-scrollbar::-webkit-scrollbar-track {
@@ -278,13 +298,13 @@ function OrderColumn({
     return (
         <section
             className={[
-                "flex flex-col rounded-[26px] bg-[#F4F4F3] lg:max-h-full lg:overflow-hidden lg:rounded-[30px]",
+                "flex min-w-full snap-start flex-col rounded-[26px] bg-[#F4F4F3] md:min-w-0 lg:max-h-full lg:overflow-hidden lg:rounded-[30px]",
                 dashed
                     ? "border border-dashed border-[#E6DED8]"
                     : "border border-[#ECE8E4]",
             ].join(" ")}
         >
-            <div className="flex items-center justify-between border-b border-[#ECE8E4] px-5 py-4 lg:px-6 lg:py-5">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#ECE8E4] bg-[#F4F4F3] px-5 py-4 lg:px-6 lg:py-5">
                 <div className="flex items-center gap-3">
                     <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#271310] lg:text-[17px]">
                         {title}
@@ -305,9 +325,40 @@ function OrderColumn({
                 </div>
             </div>
 
-            <div className="styled-scrollbar flex flex-col gap-4 overflow-visible p-4 lg:flex-1 lg:gap-5 lg:overflow-y-auto lg:p-5">
+            <div className="styled-scrollbar flex max-h-[68vh] flex-col gap-4 overflow-y-auto scroll-smooth p-4 lg:max-h-none lg:flex-1 lg:gap-5 lg:p-5">
                 {children}
             </div>
         </section>
     );
+}
+
+function filterOrdersByQuery(
+    source: Props["orders"],
+    query: string,
+): Props["orders"] {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) return source;
+
+    return {
+        incoming: source.incoming.filter((order) => orderMatchesQuery(order, normalizedQuery)),
+        processing: source.processing.filter((order) => orderMatchesQuery(order, normalizedQuery)),
+        completed: source.completed.filter((order) => orderMatchesQuery(order, normalizedQuery)),
+    };
+}
+
+function orderMatchesQuery(order: KanbanOrder, query: string): boolean {
+    const searchableText = [
+        order.id,
+        order.orderId,
+        order.tableLabel,
+        order.customerName,
+        order.orderType,
+        ...order.items.map((item) => item.menuItem?.name),
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+    return searchableText.includes(query);
 }

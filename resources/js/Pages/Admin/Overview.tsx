@@ -1,4 +1,5 @@
 import React from "react";
+import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import {
@@ -6,35 +7,48 @@ import {
   Banknote,
   Timer,
   Coffee,
-  RefreshCw,
-  Printer,
-  Headphones,
 } from "lucide-react";
 
 interface OverviewProps {
   auth: { user: AdminUser };
   statistics?: any;
   topMenus?: any;
-  weeklySales?: any;
+  salesTrend?: any[];
+  chartMode?: "daily" | "weekly";
+  peakHours?: any[];
 }
 
-export default function Overview({ auth, statistics, topMenus = [], weeklySales = [] }: OverviewProps) {
-  // Chart Calculation
-  const maxRevenue = weeklySales.length > 0 ? Math.max(...weeklySales.map((s: any) => parseFloat(s.revenue) || 0)) : 100;
+export default function Overview({
+  auth,
+  statistics,
+  topMenus = [],
+  salesTrend = [],
+  chartMode = "weekly",
+  peakHours = [],
+}: OverviewProps) {
+  const maxRevenue = Math.max(
+    ...salesTrend.map((item: any) => Number(item.revenue) || 0),
+    0
+  );
+  const hasSalesData = salesTrend.some(
+    (item: any) => Number(item.revenue) > 0 || Number(item.count) > 0
+  );
+  const chartGridClass =
+    chartMode === "daily"
+      ? "grid-cols-5 sm:grid-cols-10"
+      : "grid-cols-5";
 
-  const chartDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toLocaleDateString('en-US', { weekday: 'short' });
-  });
-
-  const chartHeights = chartDays.map(dayStr => {
-    const saleInfo = weeklySales.find((s: any) => {
-      const d = new Date(s.date);
-      return d.toLocaleDateString('en-US', { weekday: 'short' }) === dayStr;
-    });
-    return saleInfo ? Math.max(((parseFloat(saleInfo.revenue) || 0) / (maxRevenue || 1)) * 100, 5) : 5;
-  });
+  const handleModeChange = (mode: "daily" | "weekly") => {
+    router.get(
+      route("admin.overview" as any),
+      { mode },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+      }
+    );
+  };
 
   return (
     <AdminLayout auth={auth} title="Overview" currentRoute="admin.overview">
@@ -65,7 +79,7 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
               Total Orders
             </p>
             <h2 className="mt-1 text-[36px] font-extrabold tracking-[-1px]">
-              {statistics?.total_orders ?? "1,248"}
+              {statistics?.total_orders ?? 0}
             </h2>
           </div>
 
@@ -82,7 +96,7 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
               Total Revenue
             </p>
             <h2 className="mt-1 text-[36px] font-extrabold tracking-[-1px]">
-              Rp {statistics?.total_revenue?.toLocaleString('id-ID') ?? "14,520"}
+              Rp {Number(statistics?.total_revenue || 0).toLocaleString('id-ID')}
             </h2>
           </div>
 
@@ -100,7 +114,7 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
               Active Queue (Pending)
             </p>
             <div className="mt-1 flex items-end gap-2">
-              <h2 className="text-[36px] font-extrabold tracking-[-1px]">{statistics?.pending_orders ?? "18"}</h2>
+              <h2 className="text-[36px] font-extrabold tracking-[-1px]">{statistics?.pending_orders ?? 0}</h2>
               <span className="mb-2 text-[15px] font-medium text-white/45">
                 Orders
               </span>
@@ -116,64 +130,93 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-[20px] font-extrabold">
-                    Weekly Sales Trends
+                    {chartMode === "daily" ? "Daily Sales Trend" : "Weekly Sales Trend"}
                   </h3>
                   <p className="mt-1 text-[13px] font-medium text-[#8B807D]">
-                    Volume tracking across peaks and lulls
+                    {chartMode === "daily"
+                      ? "Revenue per operating hour from 09:00 to 18:00"
+                      : "Revenue per active weekday from Monday to Friday"}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button className="rounded-full bg-white px-5 py-2 text-[11px] font-extrabold">
+                  <button
+                    onClick={() => handleModeChange("daily")}
+                    className={[
+                      "rounded-full px-5 py-2 text-[11px] font-extrabold transition",
+                      chartMode === "daily"
+                        ? "bg-[#301713] text-white"
+                        : "bg-white text-[#271310]",
+                    ].join(" ")}
+                  >
                     Daily
                   </button>
-                  <button className="rounded-full bg-[#301713] px-5 py-2 text-[11px] font-extrabold text-white">
+                  <button
+                    onClick={() => handleModeChange("weekly")}
+                    className={[
+                      "rounded-full px-5 py-2 text-[11px] font-extrabold transition",
+                      chartMode === "weekly"
+                        ? "bg-[#301713] text-white"
+                        : "bg-white text-[#271310]",
+                    ].join(" ")}
+                  >
                     Weekly
                   </button>
                 </div>
               </div>
 
               <div className="flex h-[300px] flex-col justify-end md:h-[360px]">
-                <div className="mb-9 grid grid-cols-7 items-end gap-3 sm:gap-5 md:gap-8">
-                  {chartHeights.map((height, index) => (
-                    <div key={index} className="flex flex-col items-center gap-5">
-                      <div className="flex h-[210px] items-end gap-1.5 md:h-[250px] md:gap-2">
-                        <span
-                          className="w-3 rounded-full bg-[#DDEED8]"
-                          style={{ height: `${height}%` }}
-                        />
-                        <span
-                          className="w-3 rounded-full bg-[#301713]"
-                          style={{ height: `${Math.max(height - 18, 5)}%` }}
-                        />
-                      </div>
+                {hasSalesData ? (
+                  <>
+                    <div
+                      className={`mb-7 grid ${chartGridClass} items-end gap-3 sm:gap-4 md:gap-5`}
+                    >
+                      {salesTrend.map((item: any) => {
+                        const revenue = Number(item.revenue) || 0;
+                        const height = maxRevenue > 0 ? Math.max((revenue / maxRevenue) * 100, 6) : 6;
+
+                        return (
+                          <div key={item.label} className="flex min-w-0 flex-col items-center gap-3">
+                            <span className="text-center text-[10px] font-extrabold text-[#5A4A47]">
+                              {formatCompactCurrency(revenue)}
+                            </span>
+                            <div className="flex h-[190px] items-end md:h-[240px]">
+                              <span
+                                className="w-4 rounded-full bg-[#301713] md:w-5"
+                                style={{ height: `${height}%` }}
+                                title={`${item.label}: ${formatCurrency(revenue)} (${item.count} orders)`}
+                              />
+                            </div>
+                            <span className="text-[10px] font-bold text-[#8B807D]">
+                              {item.count} trx
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
 
-                <div className="grid grid-cols-7 border-t border-[#E8E3E1] pt-2 text-center text-[10px] font-bold uppercase text-[#B0A7A4]">
-                  {chartDays.map(
-                    (day) => (
-                      <span
-                        key={day}
-                        className={day === chartDays[6] ? "text-[#271310]" : ""}
-                      >
-                        {day}
-                      </span>
-                    )
-                  )}
-                </div>
-
-                <div className="mt-10 flex items-center gap-8 text-[12px] font-semibold text-[#6F625F]">
-                  <span className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-[#301713]" />
-                    Selected Period
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-[#DDEED8]" />
-                    Previous Period
-                  </span>
-                </div>
+                    <div
+                      className={`grid ${chartGridClass} border-t border-[#E8E3E1] pt-2 text-center text-[10px] font-bold uppercase text-[#B0A7A4]`}
+                    >
+                      {salesTrend.map((item: any) => (
+                        <span key={item.label} className="truncate px-1">
+                          {item.label}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center rounded-[18px] border border-dashed border-[#DED7D3] bg-white/70 px-6 text-center">
+                    <Coffee size={34} className="mb-3 text-[#8B807D]" />
+                    <h4 className="text-[16px] font-extrabold text-[#271310]">
+                      No paid sales yet
+                    </h4>
+                    <p className="mt-2 max-w-[330px] text-[13px] font-medium leading-relaxed text-[#8B807D]">
+                      Chart akan terisi saat ada order completed dengan payment
+                      status paid pada periode ini.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -185,27 +228,32 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
                 Peak Roasting Hours
               </h3>
 
-              <div className="space-y-6">
-                <div>
-                  <div className="mb-3 flex justify-between text-[12px] font-extrabold text-[#4F654C]">
-                    <span>08:00 - 10:00 AM</span>
-                    <span>88% Capacity</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-[#BCD2B7]">
-                    <div className="h-full w-[88%] rounded-full bg-[#53654F]" />
-                  </div>
+              {peakHours.length > 0 ? (
+                <div className="space-y-6">
+                  {peakHours.map((item: any) => (
+                    <div key={item.label}>
+                      <div className="mb-3 flex justify-between gap-3 text-[12px] font-extrabold text-[#4F654C]">
+                        <span>{item.label}</span>
+                        <span>{item.order_count} orders</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[#BCD2B7]">
+                        <div
+                          className="h-full rounded-full bg-[#53654F]"
+                          style={{ width: `${item.capacity_percentage || 0}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6F806B]">
+                        {item.capacity_percentage || 0}% relative density
+                      </p>
+                    </div>
+                  ))}
                 </div>
-
-                <div>
-                  <div className="mb-3 flex justify-between text-[12px] font-extrabold text-[#4F654C]">
-                    <span>02:00 - 04:00 PM</span>
-                    <span>62% Capacity</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-[#BCD2B7]">
-                    <div className="h-full w-[62%] rounded-full bg-[#53654F]" />
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <p className="text-[12px] font-semibold leading-relaxed text-[#4F654C]">
+                  Belum ada transaksi completed dan paid untuk menghitung jam
+                  tersibuk.
+                </p>
+              )}
             </div>
 
             <div className="rounded-[10px] bg-white p-6 shadow-[0_10px_34px_rgba(39,19,16,0.04)]">
@@ -216,11 +264,9 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
               <div className="space-y-5">
                 {topMenus.slice(0, 3).map((item: any, idx: number) => (
                   <div key={idx} className="flex items-center gap-3">
-                    <img
-                      src={`https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?q=80&w=120&auto=format&fit=crop&random=${idx}`}
-                      alt={item.name}
-                      className="h-10 w-10 rounded-[8px] object-cover"
-                    />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#F3EEE8] text-[13px] font-extrabold text-[#271310]">
+                      #{idx + 1}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-extrabold">
                         {item.name}
@@ -245,4 +291,20 @@ export default function Overview({ auth, statistics, topMenus = [], weeklySales 
       </section>
     </AdminLayout>
   );
+}
+
+function formatCurrency(value: number) {
+  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+}
+
+function formatCompactCurrency(value: number) {
+  if (value >= 1000000) {
+    return `Rp ${(value / 1000000).toFixed(1)}jt`;
+  }
+
+  if (value >= 1000) {
+    return `Rp ${Math.round(value / 1000)}rb`;
+  }
+
+  return formatCurrency(value);
 }

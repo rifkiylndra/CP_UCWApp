@@ -19,6 +19,7 @@ export type PaymentStatus =
 export type OrderStatus =
     | 'pending'
     | 'confirmed'
+    | 'processing'
     | 'preparing'
     | 'ready'
     | 'completed'
@@ -36,6 +37,8 @@ export interface MenuItem {
     price: number;
     estimated_time: number;
     category_name?: string | null;
+    image?: string | null;
+    image_url?: string | null;
     imageUrl: string;
     isAvailable: boolean;
     isPopular?: boolean;

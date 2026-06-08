@@ -8,7 +8,7 @@ import {
   UtensilsCrossed,
   BriefcaseBusiness,
   Banknote,
-  Settings,
+  MessageSquare,
   LogOut,
 } from "lucide-react";
 
@@ -30,6 +30,7 @@ export default function Sidebar({ user, currentRoute }: SidebarProps) {
     { name: "Overview", route: "admin.overview", icon: LayoutGrid },
     { name: "Live Order", route: "admin.live-order", icon: ClipboardList },
     { name: "AI Analytics", route: "admin.analytics-page", icon: Sparkles },
+    { name: "Feedback", route: "admin.feedback", icon: MessageSquare },
     { name: "Menu", route: "admin.menu", icon: UtensilsCrossed },
     { name: "Staff", route: "admin.staff", icon: BriefcaseBusiness },
     { name: "Finances", route: "admin.finances-page", icon: Banknote },

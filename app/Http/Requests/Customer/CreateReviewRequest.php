@@ -23,8 +23,8 @@ class CreateReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|min:10|max:1000',
+            'rating' => 'nullable|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
         ];
     }
 
@@ -34,11 +34,8 @@ class CreateReviewRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'rating.required' => 'Rating harus diisi',
             'rating.min' => 'Rating minimal 1 bintang',
             'rating.max' => 'Rating maksimal 5 bintang',
-            'comment.required' => 'Komentar harus diisi',
-            'comment.min' => 'Komentar minimal 10 karakter',
             'comment.max' => 'Komentar maksimal 1000 karakter',
         ];
     }

@@ -5,6 +5,7 @@ import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
+import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
 import type { CustomerPaymentStatusResponse, Order as BackendOrder, OrderStatus, PaymentMethod, PaymentStatus, PakasirPaymentResponse } from "@/types/customer";
 
 interface OrderItem {
@@ -55,8 +56,7 @@ interface Props {
     estimatedServeTime?: number | null;
 }
 
-const PLACEHOLDER =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23E8E2DB'/%3E%3C/svg%3E";
+const PLACEHOLDER = MENU_IMAGE_PLACEHOLDER;
 
 type StepStatus = "done" | "active" | "pending";
 
@@ -75,6 +75,7 @@ const STEPS: { key: OrderStatus; label: string; sublabel: string }[] = [
 ];
 
 function stepStatus(stepKey: OrderStatus, current: OrderStatus): StepStatus {
+    const normalizedCurrent = current === "processing" ? "preparing" : current;
     const order: OrderStatus[] = [
         "pending",
         "confirmed",
@@ -84,16 +85,16 @@ function stepStatus(stepKey: OrderStatus, current: OrderStatus): StepStatus {
     ];
 
     const stepIdx = order.indexOf(stepKey === "confirmed" ? "pending" : stepKey);
-    const currentIdx = order.indexOf(current);
+    const currentIdx = order.indexOf(normalizedCurrent);
 
     if (currentIdx > stepIdx) return "done";
 
     if (
-        current === stepKey ||
+        normalizedCurrent === stepKey ||
         (stepKey === "pending" &&
-            (current === "pending" || current === "confirmed")) ||
-        (stepKey === "preparing" && current === "preparing") ||
-        (stepKey === "ready" && current === "ready")
+            (normalizedCurrent === "pending" || normalizedCurrent === "confirmed")) ||
+        (stepKey === "preparing" && normalizedCurrent === "preparing") ||
+        (stepKey === "ready" && normalizedCurrent === "ready")
     ) {
         return "active";
     }
@@ -108,12 +109,11 @@ function formatCountdown(secs: number) {
 }
 
 function remainingSeconds(status: OrderStatus, startTime?: string | null, estimatedServeTime?: number | null) {
-    if (!startTime || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
-
-    // Jika pesanan belum mulai dibuat oleh barista, tahan timer di waktu penuh
-    if (status === "pending" || status === "confirmed") {
-        return Math.max(0, estimatedServeTime * 60);
+    if (status === "ready" || status === "completed" || status === "cancelled") {
+        return 0;
     }
+
+    if (!startTime || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
 
     const startTimeMs = new Date(startTime).getTime();
     if (Number.isNaN(startTimeMs)) return Math.max(0, estimatedServeTime * 60);
@@ -160,7 +160,7 @@ export default function OrderStatusPage({
         estimatedServeTime || order?.estimated_serve_time || 15,
     );
     const [timeLeft, setTimeLeft] = useState(() =>
-        remainingSeconds(defaultStatus, updatedAt || (order as BackendOrder | undefined)?.updated_at || createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
+        remainingSeconds(defaultStatus, createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
     );
     
     const [receivedAt] = useState(() => {
@@ -183,7 +183,7 @@ export default function OrderStatusPage({
         id: String(d.menu?.id || d.id),
         name: d.menu?.name || "Menu item",
         subtitle: d.menu?.description ? `${d.menu.description.substring(0, 30)}...` : `${d.quantity || 1} item`,
-        imageUrl: d.menu?.image_url || d.menu?.image || "",
+        imageUrl: firstImageUrl(d.menu?.image_url, d.menu?.image),
     })) || [];
 
     useEffect(() => {
@@ -260,14 +260,20 @@ export default function OrderStatusPage({
     }, [resolvedOrderRef]);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(remainingSeconds(status, currentUpdatedAt || currentCreatedAt, currentEstimatedServeTime));
-        }, 1000);
+        if (status === "ready" || status === "completed" || status === "cancelled") {
+            setTimeLeft(0);
+            return;
+        }
 
-        setTimeLeft(remainingSeconds(status, currentUpdatedAt || currentCreatedAt, currentEstimatedServeTime));
+        const tick = () => {
+            setTimeLeft(remainingSeconds(status, currentCreatedAt, currentEstimatedServeTime));
+        };
 
-        return () => clearInterval(timer);
-    }, [status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime]);
+        tick();
+        const timer = window.setInterval(tick, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [status, currentCreatedAt, currentEstimatedServeTime]);
 
     useEffect(() => {
         if (status === "ready" || status === "completed") {
@@ -903,10 +909,7 @@ function ItemList({
                             src={item.imageUrl || PLACEHOLDER}
                             alt={item.name}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                    PLACEHOLDER;
-                            }}
+                            onError={useFallbackImage}
                         />
                     </div>
 
@@ -1395,6 +1398,7 @@ function OrderReadyPopup({
 function formatStatus(status: OrderStatus) {
     if (status === "pending") return "Order Received";
     if (status === "confirmed") return "Order Confirmed";
+    if (status === "processing") return "Preparing Your Order";
     if (status === "preparing") return "Preparing Your Order";
     if (status === "ready") return "Ready For Pickup";
     if (status === "completed") return "Completed";

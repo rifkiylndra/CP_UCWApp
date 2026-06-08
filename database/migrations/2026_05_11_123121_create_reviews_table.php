@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('reviews', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->integer('rating')->default(5);
+            $table->integer('rating')->nullable();
             $table->text('comment')->nullable();
             $table->enum('sentiment_label', ['positive', 'neutral', 'negative'])->nullable();
             $table->timestamps();

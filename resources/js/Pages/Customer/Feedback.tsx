@@ -38,14 +38,12 @@ export default function Feedback({
     }, [orderStatus, orderRef]);
 
     async function handleSubmit() {
-        if (rating === 0) return;
-
         setErrorMessage("");
 
         try {
             await axios.post(`/customer/order/${encodeURIComponent(orderRef)}/complete-transaction`, {
-                rating,
-                comment,
+                rating: rating > 0 ? rating : null,
+                comment: comment.trim() || null,
             });
 
             setSubmitted(true);
@@ -120,7 +118,7 @@ export default function Feedback({
                                     color: "var(--color-ucw-text-muted)",
                                 }}
                             >
-                                Rate your experience
+                                Rate your experience (optional)
                             </p>
 
                             <StarRating value={rating} onChange={setRating} />
@@ -151,7 +149,7 @@ export default function Feedback({
                         </div>
 
                         <SubmitSection
-                            rating={rating}
+                            hasFeedback={rating > 0 || comment.trim().length > 0}
                             onSubmit={handleSubmit}
                             onReturnHome={handleReturnHome}
                             className="mt-9"
@@ -194,7 +192,7 @@ export default function Feedback({
                                                 color: "var(--color-ucw-text-muted)",
                                             }}
                                         >
-                                            YOUR RATING
+                                            YOUR RATING (OPTIONAL)
                                         </p>
 
                                         <StarRating
@@ -239,7 +237,8 @@ export default function Feedback({
                                         >
                                             Your feedback helps us improve the
                                             coffee, service, and workspace
-                                            experience for every guest.
+                                            experience for every guest. You can
+                                            also skip this step.
                                         </p>
                                     </div>
 
@@ -260,7 +259,7 @@ export default function Feedback({
                                     </div>
 
                                     <SubmitSection
-                                        rating={rating}
+                                        hasFeedback={rating > 0 || comment.trim().length > 0}
                                         onSubmit={handleSubmit}
                                         onReturnHome={handleReturnHome}
                                     />
@@ -390,13 +389,13 @@ function FeedbackTextarea({
                     color: "var(--color-ucw-dark)",
                 }}
             >
-                Your thoughts
+                Your thoughts (optional)
             </label>
 
             <div className="relative">
                 <textarea
                     rows={5}
-                    placeholder="Tell us about the atmosphere, the coffee, or the workspace..."
+                    placeholder="Share your thoughts (optional)"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     className="w-full resize-none rounded-[24px] px-6 py-6 outline-none leading-relaxed"
@@ -582,12 +581,12 @@ function InfoCard({
 }
 
 function SubmitSection({
-    rating,
+    hasFeedback,
     onSubmit,
     onReturnHome,
     className = "",
 }: {
-    rating: number;
+    hasFeedback: boolean;
     onSubmit: () => void;
     onReturnHome: () => void;
     className?: string;
@@ -596,19 +595,16 @@ function SubmitSection({
         <div className={className}>
             <button
                 onClick={onSubmit}
-                disabled={rating === 0}
                 className="w-full rounded-full font-bold text-white transition-all active:scale-[0.98]"
                 style={{
                     height: "62px",
                     fontSize: "16px",
-                    backgroundColor:
-                        rating > 0 ? "var(--color-ucw-dark)" : "#CFC5C0",
-                    boxShadow:
-                        rating > 0 ? "0 16px 30px rgba(45,26,14,0.22)" : "none",
-                    cursor: rating > 0 ? "pointer" : "not-allowed",
+                    backgroundColor: "var(--color-ucw-dark)",
+                    boxShadow: "0 16px 30px rgba(45,26,14,0.22)",
+                    cursor: "pointer",
                 }}
             >
-                Submit Feedback
+                {hasFeedback ? "Submit Feedback" : "Skip Feedback"}
             </button>
 
             <p
@@ -618,7 +614,8 @@ function SubmitSection({
                     color: "var(--color-ucw-text-muted)",
                 }}
             >
-                By submitting, you help us refine the Unand experience.
+                Feedback is optional. You can continue without leaving a rating or
+                comment.
             </p>
 
             <button
