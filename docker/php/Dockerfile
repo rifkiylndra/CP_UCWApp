@@ -38,9 +38,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Install Xdebug for development
-RUN pecl install xdebug && docker-php-ext-enable xdebug
-
 # Create working directory
 WORKDIR /var/www/html
 

@@ -21,7 +21,7 @@ Proyek ini dikembangkan secara kolaboratif oleh:
 - Akses menu via scan QR Code (tanpa perlu register/login).
 - Pemesanan *Dine-in* atau *Takeaway*.
 - Tracking status pesanan secara *real-time*.
-- Pembayaran via Midtrans (QRIS/E-Wallet) atau Cash.
+- Pembayaran via Pakasir (QRIS/BRI VA) atau Cash. Midtrans disimpan sebagai gateway migrasi masa depan.
 
 ### 👨‍🍳 Staff Dashboard
 - Kanban board untuk manajemen pesanan secara *real-time*.
@@ -93,6 +93,7 @@ Silakan baca dokumen panduan berikut untuk berkontribusi pada proyek ini:
 - [Panduan Frontend Developer (docs/FRONTEND_GUIDE.md)](docs/FRONTEND_GUIDE.md)
 - [Panduan Backend Developer (docs/BACKEND_GUIDE.md)](docs/BACKEND_GUIDE.md)
 - [Spesifikasi API AI (docs/API_SPEC.md)](docs/API_SPEC.md)
+- [Panduan Deployment Production (docs/DEPLOYMENT.md)](docs/DEPLOYMENT.md)
 
 ## 📦 Instalasi Lokal
 

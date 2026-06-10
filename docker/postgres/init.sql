@@ -1,0 +1,2 @@
+-- Reserved for non-secret PostgreSQL bootstrap SQL.
+-- Keep production schema changes in Laravel migrations.

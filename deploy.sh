@@ -40,7 +40,7 @@ echo "📦 Step 4: Install PHP dependencies"
 composer install --no-dev --optimize-autoloader
 
 echo "📦 Step 5: Install Node.js dependencies"
-npm install --production
+npm ci --omit=dev
 
 echo "🏗️ Step 6: Build frontend assets"
 npm run build

@@ -322,10 +322,12 @@ REDIS_HOST=redis-host
 REDIS_PASSWORD=redis-password
 REDIS_PORT=6379
 
-# Midtrans (production)
-MIDTRANS_SERVER_KEY=prod_server_key
-MIDTRANS_CLIENT_KEY=prod_client_key
-MIDTRANS_IS_PRODUCTION=true
+# Payment (production currently uses Pakasir)
+PAYMENT_GATEWAY=pakasir
+PAKASIR_PROJECT=your_pakasir_project_slug
+PAKASIR_API_KEY=your_pakasir_api_key
+PAKASIR_MODE=production
+PAKASIR_BASE_URL=https://app.pakasir.com
 
 # AI Service
 AI_SERVICE_URL=https://ai-service-domain.com
