@@ -1,6 +1,7 @@
 # ai_service/routers/menu.py
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Query
 from database import query
 
@@ -11,21 +12,26 @@ def hitung_wma(periode_hari: int, limit: int) -> dict:
     Hitung ranking menu populer dengan Weighted Moving Average.
     Data diambil dari tabel order_details + orders + menus di PostgreSQL.
     """
+    cutoff_date = (datetime.utcnow() - timedelta(days=periode_hari)).date().isoformat()
     sql = """
         SELECT
-            m.id         AS menu_id,
-            m.name       AS nama,
+            COALESCE(od.menu_id, 0) AS menu_id,
+            COALESCE(od.menu_name, m.name, 'Deleted menu') AS nama,
             DATE(o.created_at) AS tanggal,
-            SUM(od.quantity)   AS qty_terjual
+            SUM(od.quantity) AS qty_terjual
         FROM order_details od
-        JOIN menus  m ON m.id = od.menu_id
+        LEFT JOIN menus m ON m.id = od.menu_id
         JOIN orders o ON o.id = od.order_id
-        WHERE o.created_at >= NOW() - INTERVAL ':hari days'
+        WHERE o.created_at >= :cutoff_date
           AND o.order_status = 'completed'
-        GROUP BY m.id, m.name, DATE(o.created_at)
+        GROUP BY COALESCE(od.menu_id, 0), COALESCE(od.menu_name, m.name, 'Deleted menu'), DATE(o.created_at)
         ORDER BY tanggal ASC
     """
-    rows = query(sql, {"hari": periode_hari})
+
+    try:
+        rows = query(sql, {"cutoff_date": cutoff_date})
+    except Exception:
+        return menu_populer_fallback(periode_hari, "database_unavailable")
 
     # Jika belum ada data (database masih kosong saat development)
     if not rows:
@@ -67,6 +73,16 @@ def hitung_wma(periode_hari: int, limit: int) -> dict:
         r["persentase"] = round((r["skor_wma"] / max_skor) * 100, 1)
 
     return {"status": "ok", "periode_hari": periode_hari, "rankings": results}
+
+
+def menu_populer_fallback(periode_hari: int, reason: str) -> dict:
+    return {
+        "status": "fallback",
+        "periode_hari": periode_hari,
+        "rankings": [],
+        "reason": reason,
+        "catatan": "Data menu populer belum tersedia",
+    }
 
 
 @router.get("/populer")

@@ -1,25 +1,20 @@
 # ai_service/routers/sentiment.py
-import pickle, json, os, re
+import re
 from fastapi import APIRouter
-from schemas.schemas import SentimenRequest, SentimenResponse
+from schemas.schemas import SentimenRequest
 from database import query
+from model_loader import load_json, load_pickle
 
 router = APIRouter(prefix="/api/sentiment", tags=["Sentimen"])
 
 # ── Load semua file model ────────────────────────────────────────────────
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MDL  = os.path.join(BASE, "saved_models")
-
-with open(os.path.join(MDL, "sentiment_model.pkl"),  "rb") as f:
-    MODEL = pickle.load(f)
-with open(os.path.join(MDL, "tfidf_vectorizer.pkl"), "rb") as f:
-    TFIDF = pickle.load(f)
-with open(os.path.join(MDL, "stopwords.json"),  encoding="utf-8") as f:
-    STOPWORDS = set(json.load(f))
-with open(os.path.join(MDL, "slang_dict.json"), encoding="utf-8") as f:
-    SLANG = json.load(f)
-with open(os.path.join(MDL, "hybrid_config.json"), encoding="utf-8") as f:
-    HYBRID = json.load(f)
+MODEL, MODEL_STATUS = load_pickle("sentiment_model.pkl")
+TFIDF, TFIDF_STATUS = load_pickle("tfidf_vectorizer.pkl")
+STOPWORDS_DATA, STOPWORDS_STATUS = load_json("stopwords.json", [])
+SLANG, SLANG_STATUS = load_json("slang_dict.json", {})
+HYBRID, HYBRID_STATUS = load_json("hybrid_config.json", {})
+STOPWORDS = set(STOPWORDS_DATA)
+MODEL_LOADED = MODEL_STATUS["loaded"] and TFIDF_STATUS["loaded"]
 
 THRESHOLD = HYBRID.get("confidence_threshold", 0.60)
 
@@ -49,16 +44,46 @@ def is_conflict(ai_label: str, rating: int) -> bool:
 
 
 # ── Fungsi hybrid (salin dari flask_app.py) ─────────────────────────────
+def rating_fallback_result(rating_label: str, rating: int, reason: str) -> dict:
+    return {
+        "label_final": rating_label,
+        "ai_label": None,
+        "ai_confidence": None,
+        "rating_label": rating_label,
+        "sumber": "rating_fallback",
+        "probabilitas": None,
+        "keterangan": f"Fallback rating {rating}: {reason}",
+    }
+
+
+def health_status() -> dict:
+    return {
+        "model_loaded": MODEL_LOADED,
+        "model": MODEL_STATUS,
+        "tfidf": TFIDF_STATUS,
+        "stopwords": STOPWORDS_STATUS,
+        "slang": SLANG_STATUS,
+        "hybrid_config": HYBRID_STATUS,
+    }
+
+
 def hybrid_predict(teks: str, rating: int) -> dict:
     teks_bersih  = preprocess(teks)
     rating_label = rating_to_sentiment(rating)
+    if not MODEL_LOADED:
+        return rating_fallback_result(rating_label, rating, "model_unavailable")
+
     if not teks_bersih:
         return {"label_final": rating_label, "ai_label": None, "ai_confidence": None,
                 "rating_label": rating_label, "sumber": "rating_fallback",
                 "probabilitas": None, "keterangan": f"Komentar kosong, rating {rating}★"}
-    vec      = TFIDF.transform([teks_bersih])
-    ai_label = MODEL.predict(vec)[0]
-    proba    = MODEL.predict_proba(vec)[0]
+    try:
+        vec      = TFIDF.transform([teks_bersih])
+        ai_label = MODEL.predict(vec)[0]
+        proba    = MODEL.predict_proba(vec)[0]
+    except Exception:
+        return rating_fallback_result(rating_label, rating, "prediction_failed")
+
     proba_d  = {k: round(float(v), 4) for k, v in zip(MODEL.classes_, proba)}
     ai_conf  = proba_d[ai_label]
     if not is_conflict(ai_label, rating):
@@ -82,6 +107,7 @@ def analyze(req: SentimenRequest):
     hasil  = hybrid_predict(req.komentar or "", rating)
     return {
         "status":        "ok",
+        "model_loaded":  MODEL_LOADED,
         "sentimen":      hasil["label_final"],   # ← ini yang disimpan ke DB
         "sumber":        hasil["sumber"],
         "ai_label":      hasil["ai_label"],
@@ -103,10 +129,16 @@ def summary():
             AVG(rating) as avg_rating
         FROM reviews
     """
-    rows = query(sql)
-    r = rows[0] if rows else {}
+    try:
+        rows = query(sql)
+        r = rows[0] if rows else {}
+        status = "ok"
+    except Exception:
+        r = {}
+        status = "fallback"
+
     return {
-        "status":  "ok",
+        "status":  status,
         "positif": int(r.get("positif", 0) or 0),
         "netral":  int(r.get("netral", 0)  or 0),
         "negatif": int(r.get("negatif", 0) or 0),

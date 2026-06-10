@@ -308,9 +308,9 @@ class AiService
             ->selectRaw('
                 COUNT(*) as total_reviews,
                 AVG(rating) as average_rating,
-                SUM(CASE WHEN sentiment_label = "positive" THEN 1 ELSE 0 END) as positive,
-                SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral,
-                SUM(CASE WHEN sentiment_label = "negative" THEN 1 ELSE 0 END) as negative
+                SUM(CASE WHEN sentiment_label = \'positive\' THEN 1 ELSE 0 END) as positive,
+                SUM(CASE WHEN sentiment_label = \'neutral\' THEN 1 ELSE 0 END) as neutral,
+                SUM(CASE WHEN sentiment_label = \'negative\' THEN 1 ELSE 0 END) as negative
             ')
             ->first();
 

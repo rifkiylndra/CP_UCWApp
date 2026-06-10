@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import estimation, sentiment, menu
+from database import health_check
 
 app = FastAPI(
     title="UCW App — AI Service",
@@ -24,4 +25,10 @@ app.include_router(menu.router)
 @app.get("/health")
 def health():
     """Health check — dipanggil Laravel checkAiServiceStatus()."""
-    return {"status": "ok", "service": "UCW AI Service"}
+    return {
+        "status": "ok",
+        "service": "UCW AI Service",
+        "estimation": estimation.health_status(),
+        "sentiment": sentiment.health_status(),
+        "database": health_check(),
+    }
