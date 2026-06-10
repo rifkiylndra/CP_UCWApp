@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Events\OrderStatusUpdated;
 use App\Events\PaymentStatusUpdated;
+use App\Services\CustomerOrderAccessService;
 use App\Services\PakasirService;
 use App\Services\PaymentService;
 use Illuminate\Support\Carbon;
@@ -19,23 +20,29 @@ class PaymentController extends Controller
 {
     protected $paymentService;
     protected $pakasirService;
+    protected $orderAccess;
 
-    public function __construct(PaymentService $paymentService, PakasirService $pakasirService)
+    public function __construct(
+        PaymentService $paymentService,
+        PakasirService $pakasirService,
+        CustomerOrderAccessService $orderAccess
+    )
     {
         $this->paymentService = $paymentService;
         $this->pakasirService = $pakasirService;
+        $this->orderAccess = $orderAccess;
     }
 
     /**
      * Display payment page
      */
-    public function index($orderRef)
+    public function index(Request $request, $orderRef)
     {
-        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.payment')) {
+        if ($redirect = $this->redirectNumericOrderToRef($request, $orderRef, 'customer.payment')) {
             return $redirect;
         }
 
-        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['table', 'orderDetails.menu', 'payments']);
         $latestPayment = $order->payments()->latest()->first();
         
         return Inertia::render('Customer/ChoosePayment', [
@@ -66,7 +73,7 @@ class PaymentController extends Controller
             'amount_received' => 'nullable|numeric|min:0',
         ]);
 
-        $order = $this->findCustomerOrder($orderRef, ['table', 'payments']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['table', 'payments']);
         
         if ($order->payment_status === 'paid') {
             return response()->json([
@@ -126,7 +133,7 @@ class PaymentController extends Controller
             'method' => 'required|in:qris,bri_va',
         ]);
 
-        $order = $this->resolveCustomerOrder($orderRef, ['table', 'payments']);
+        $order = $this->resolveCustomerOrder($request, $orderRef, ['table', 'payments']);
 
         if (!$this->orderMatchesTable($order, (string) $tableId)) {
             return response()->json([
@@ -158,7 +165,7 @@ class PaymentController extends Controller
             'method' => 'required|in:qris,bri_va',
         ]);
 
-        $order = $this->resolveCustomerOrder($orderRef, ['table', 'payments']);
+        $order = $this->resolveCustomerOrder($request, $orderRef, ['table', 'payments']);
 
         if ($order->payment_status === 'paid') {
             return response()->json([
@@ -352,13 +359,13 @@ class PaymentController extends Controller
     /**
      * Display payment success page
      */
-    public function success($orderRef)
+    public function success(Request $request, $orderRef)
     {
-        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.payment.success')) {
+        if ($redirect = $this->redirectNumericOrderToRef($request, $orderRef, 'customer.payment.success')) {
             return $redirect;
         }
 
-        $order = $this->findCustomerOrder($orderRef, ['orderDetails.menu']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['orderDetails.menu']);
         
         return Inertia::render('Customer/PaymentSuccess', [
             'order' => $order,
@@ -368,13 +375,13 @@ class PaymentController extends Controller
     /**
      * Display payment error page
      */
-    public function error($orderRef)
+    public function error(Request $request, $orderRef)
     {
-        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.payment.error')) {
+        if ($redirect = $this->redirectNumericOrderToRef($request, $orderRef, 'customer.payment.error')) {
             return $redirect;
         }
 
-        $order = $this->findCustomerOrder($orderRef);
+        $order = $this->findCustomerOrder($request, $orderRef);
         
         return Inertia::render('Customer/PaymentError', [
             'order' => $order,
@@ -384,9 +391,9 @@ class PaymentController extends Controller
     /**
      * Check payment status
      */
-    public function checkStatus($orderRef)
+    public function checkStatus(Request $request, $orderRef)
     {
-        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['table', 'orderDetails.menu', 'payments']);
         
         $latestPayment = $order->payments()->latest()->first();
         
@@ -486,27 +493,39 @@ class PaymentController extends Controller
         ];
     }
 
-    private function findCustomerOrder(string $orderRef, array $with = []): Order
+    private function findCustomerOrder(Request $request, string $orderRef, array $with = []): Order
     {
-        return Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+        $order = Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+
+        $this->orderAccess->abortUnlessCanAccess($request, $order);
+
+        return $order;
     }
 
-    private function resolveCustomerOrder(string $orderRef, array $with = []): Order
+    private function resolveCustomerOrder(Request $request, string $orderRef, array $with = []): Order
     {
         $query = Order::with($with);
 
-        return ctype_digit($orderRef)
+        $order = ctype_digit($orderRef)
             ? $query->findOrFail($orderRef)
             : $query->where('order_ref', $orderRef)->firstOrFail();
+
+        $this->orderAccess->abortUnlessCanAccess($request, $order);
+
+        return $order;
     }
 
-    private function redirectNumericOrderToRef(string $orderRef, string $route)
+    private function redirectNumericOrderToRef(Request $request, string $orderRef, string $route)
     {
         if (!ctype_digit($orderRef)) {
             return null;
         }
 
         $order = Order::find($orderRef);
+
+        if ($order) {
+            $this->orderAccess->abortUnlessCanAccess($request, $order);
+        }
 
         return $order
             ? redirect()->route($route, ['order' => $order->order_ref])

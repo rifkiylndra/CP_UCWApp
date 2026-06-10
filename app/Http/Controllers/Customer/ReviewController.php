@@ -7,6 +7,7 @@ use App\Http\Requests\Customer\CreateReviewRequest;
 use App\Models\Order;
 use App\Models\Review;
 use App\Services\AiService;
+use App\Services\CustomerOrderAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -14,22 +15,24 @@ use Inertia\Inertia;
 class ReviewController extends Controller
 {
     protected $aiService;
+    protected $orderAccess;
 
-    public function __construct(AiService $aiService)
+    public function __construct(AiService $aiService, CustomerOrderAccessService $orderAccess)
     {
         $this->aiService = $aiService;
+        $this->orderAccess = $orderAccess;
     }
 
     /**
      * Display review page
      */
-    public function create($orderRef)
+    public function create(Request $request, $orderRef)
     {
-        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.review.create')) {
+        if ($redirect = $this->redirectNumericOrderToRef($request, $orderRef, 'customer.review.create')) {
             return $redirect;
         }
 
-        $order = $this->findCustomerOrder($orderRef, ['orderDetails.menu']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['orderDetails.menu']);
         
         // Check if order is completed
         if ($order->order_status !== 'completed') {
@@ -55,7 +58,7 @@ class ReviewController extends Controller
     {
         Log::info('Review request received: ' . $orderRef, $request->all());
         
-        $order = $this->findCustomerOrder($orderRef);
+        $order = $this->findCustomerOrder($request, $orderRef);
         
         // Check if order is completed
         if ($order->order_status !== 'completed') {
@@ -119,9 +122,9 @@ class ReviewController extends Controller
     /**
      * Get order reviews
      */
-    public function getOrderReviews($orderRef)
+    public function getOrderReviews(Request $request, $orderRef)
     {
-        $order = $this->findCustomerOrder($orderRef);
+        $order = $this->findCustomerOrder($request, $orderRef);
         $reviews = Review::where('order_id', $order->id)->get();
         
         return response()->json($reviews);
@@ -166,18 +169,26 @@ class ReviewController extends Controller
         ]);
     }
 
-    private function findCustomerOrder(string $orderRef, array $with = []): Order
+    private function findCustomerOrder(Request $request, string $orderRef, array $with = []): Order
     {
-        return Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+        $order = Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+
+        $this->orderAccess->abortUnlessCanAccess($request, $order);
+
+        return $order;
     }
 
-    private function redirectNumericOrderToRef(string $orderRef, string $route)
+    private function redirectNumericOrderToRef(Request $request, string $orderRef, string $route)
     {
         if (!ctype_digit($orderRef)) {
             return null;
         }
 
         $order = Order::find($orderRef);
+
+        if ($order) {
+            $this->orderAccess->abortUnlessCanAccess($request, $order);
+        }
 
         return $order
             ? redirect()->route($route, ['order' => $order->order_ref])

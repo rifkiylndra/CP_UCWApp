@@ -225,7 +225,7 @@ class PakasirPaymentTest extends TestCase
             ]),
         ]);
 
-        $response = $this->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+        $response = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
             'method' => 'qris',
         ]);
 
@@ -257,7 +257,7 @@ class PakasirPaymentTest extends TestCase
             ]),
         ]);
 
-        $response = $this->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+        $response = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
             'method' => 'bri_va',
         ]);
 
@@ -422,7 +422,7 @@ class PakasirPaymentTest extends TestCase
     {
         $order = $this->createOrderWithTable(22000);
 
-        $response = $this->postJson("/customer/order/{$order->order_ref}/payment/process", [
+        $response = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payment/process", [
             'payment_method' => 'cash',
         ]);
 
@@ -441,7 +441,7 @@ class PakasirPaymentTest extends TestCase
     {
         $order = $this->createOrderWithPayment('qris_pakasir', 22000);
 
-        $this->getJson("/customer/order/{$order->order_ref}/payment/status")
+        $this->withCustomerOrderAccess($order)->getJson("/customer/order/{$order->order_ref}/payment/status")
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('orderRef', $order->order_ref)
@@ -473,7 +473,7 @@ class PakasirPaymentTest extends TestCase
 
         $order = $this->createOrderWithTable(22000);
 
-        $response = $this->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+        $response = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
             'method' => 'qris',
         ]);
 
@@ -492,7 +492,7 @@ class PakasirPaymentTest extends TestCase
             ], 401),
         ]);
 
-        $response = $this->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+        $response = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
             'method' => 'qris',
         ]);
 
@@ -505,7 +505,7 @@ class PakasirPaymentTest extends TestCase
     {
         $order = $this->createOrderWithTable(22000);
 
-        $this->get("/customer/order/{$order->id}/payment")
+        $this->withCustomerOrderAccess($order)->get("/customer/order/{$order->id}/payment")
             ->assertRedirect(route('customer.payment', ['order' => $order->order_ref]));
     }
 
@@ -577,6 +577,18 @@ class PakasirPaymentTest extends TestCase
             'order_status' => 'pending',
             'payment_status' => 'unpaid',
             'total_price' => $amount,
+        ]);
+    }
+
+    private function withCustomerOrderAccess(Order $order): self
+    {
+        return $this->withSession([
+            'customer_order_access' => [
+                $order->order_ref => [
+                    'id' => $order->id,
+                    'token' => 'test-order-access-token',
+                ],
+            ],
         ]);
     }
 

@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Models\Order;
+use App\Services\CustomerOrderAccessService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -12,6 +16,46 @@ Route::get('/', fn () => redirect()->route('customer.landing'))->name('welcome')
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::post('/realtime/auth', function (Request $request) {
+    $channelName = (string) $request->input('channel_name', '');
+    $socketId = (string) $request->input('socket_id', '');
+
+    $signPrivateChannel = function (string $channel) use ($socketId) {
+        $connection = config('broadcasting.default', 'reverb');
+        $key = config("broadcasting.connections.{$connection}.key");
+        $secret = config("broadcasting.connections.{$connection}.secret");
+
+        if (!$key || !$secret) {
+            $key = config('broadcasting.connections.reverb.key');
+            $secret = config('broadcasting.connections.reverb.secret');
+        }
+
+        abort_unless($socketId !== '' && $key && $secret, 403);
+
+        return response()->json([
+            'auth' => $key . ':' . hash_hmac('sha256', $socketId . ':' . $channel, $secret),
+        ]);
+    };
+
+    if (in_array($channelName, ['private-staff-orders', 'private-staff-payments'], true)) {
+        $user = $request->user();
+        abort_unless($user && ($user->isStaff() || $user->isAdmin()), 403);
+
+        return $signPrivateChannel($channelName);
+    }
+
+    if (preg_match('/^private-order\.(\d+)$/', $channelName, $matches)) {
+        $order = Order::find((int) $matches[1]);
+        abort_unless($order, 403);
+
+        app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $order);
+
+        return $signPrivateChannel($channelName);
+    }
+
+    return Broadcast::auth($request);
+});
 
 // ==================== STAFF ROUTES ====================
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
@@ -147,6 +191,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
             ? \App\Models\Order::with(['table', 'payments'])->findOrFail($order)
             : \App\Models\Order::with(['table', 'payments'])->where('order_ref', $order)->firstOrFail();
 
+        app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $model);
+
         if (ctype_digit($order)) {
             return redirect()->route('customer.payment.cash', ['order' => $model->order_ref]);
         }
@@ -167,6 +213,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
         $model = ctype_digit($order)
             ? \App\Models\Order::with(['table', 'payments'])->findOrFail($order)
             : \App\Models\Order::with(['table', 'payments'])->where('order_ref', $order)->firstOrFail();
+
+        app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $model);
 
         if (ctype_digit($order)) {
             return redirect()->route('customer.payment.online', ['order' => $model->order_ref]);
@@ -220,6 +268,10 @@ Route::prefix('customer')->name('customer.')->group(function () {
                 : \App\Models\Order::where('order_ref', $orderKey)->first())
             : null;
 
+        if ($order) {
+            app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $order);
+        }
+
         return $order
             ? redirect()->route('customer.payment.cash', ['order' => $order->order_ref])
             : redirect()->route('customer.cart');
@@ -233,6 +285,10 @@ Route::prefix('customer')->name('customer.')->group(function () {
                 : \App\Models\Order::where('order_ref', $orderKey)->first())
             : null;
 
+        if ($order) {
+            app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $order);
+        }
+
         return $order
             ? redirect()->route('customer.payment.online', ['order' => $order->order_ref])
             : redirect()->route('customer.cart');
@@ -242,6 +298,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
         $model = ctype_digit($order)
             ? \App\Models\Order::with('table')->findOrFail($order)
             : \App\Models\Order::with('table')->where('order_ref', $order)->firstOrFail();
+
+        app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $model);
 
         if (ctype_digit($order)) {
             return redirect()->route('customer.feedback', ['order' => $model->order_ref]);
@@ -285,6 +343,10 @@ Route::prefix('customer')->name('customer.')->group(function () {
                 : \App\Models\Order::where('order_ref', $orderKey)->first())
             : null;
 
+        if ($order) {
+            app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $order);
+        }
+
         return $order
             ? redirect()->route('customer.payment.online', ['order' => $order->order_ref])
             : redirect()->route('customer.cart');
@@ -296,6 +358,10 @@ Route::prefix('customer')->name('customer.')->group(function () {
                 ? \App\Models\Order::find($orderKey)
                 : \App\Models\Order::where('order_ref', $orderKey)->first())
             : null;
+
+        if ($order) {
+            app(CustomerOrderAccessService::class)->abortUnlessCanAccess($request, $order);
+        }
 
         return $order
             ? redirect()->route('customer.payment.cash', ['order' => $order->order_ref])

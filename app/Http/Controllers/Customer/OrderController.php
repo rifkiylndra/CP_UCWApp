@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\CreateOrderRequest;
 use App\Models\Order;
 use App\Models\Table;
+use App\Services\CustomerOrderAccessService;
 use App\Services\OrderService;
 use App\Services\AiService;
 use Illuminate\Http\Request;
@@ -15,11 +16,13 @@ class OrderController extends Controller
 {
     protected $orderService;
     protected $aiService;
+    protected $orderAccess;
 
-    public function __construct(OrderService $orderService, AiService $aiService)
+    public function __construct(OrderService $orderService, AiService $aiService, CustomerOrderAccessService $orderAccess)
     {
         $this->orderService = $orderService;
         $this->aiService = $aiService;
+        $this->orderAccess = $orderAccess;
     }
 
     /**
@@ -62,6 +65,7 @@ class OrderController extends Controller
             }
 
             $order = $this->orderService->createOrder($orderData, $orderItems);
+            $this->orderAccess->grant($request, $order);
             
             return response()->json([
                 'success' => true,
@@ -82,13 +86,13 @@ class OrderController extends Controller
     /**
      * Display order status page
      */
-    public function status($orderRef)
+    public function status(Request $request, $orderRef)
     {
-        if ($redirect = $this->redirectNumericOrderToRef($orderRef, 'customer.status')) {
+        if ($redirect = $this->redirectNumericOrderToRef($request, $orderRef, 'customer.status')) {
             return $redirect;
         }
 
-        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['table', 'orderDetails.menu', 'payments']);
         $latestPayment = $order->payments()->latest()->first();
 
         return Inertia::render('Customer/OrderStatus', [
@@ -124,9 +128,9 @@ class OrderController extends Controller
     /**
      * Get order details
      */
-    public function show($orderRef)
+    public function show(Request $request, $orderRef)
     {
-        $order = $this->findCustomerOrder($orderRef, ['table', 'orderDetails.menu', 'payments']);
+        $order = $this->findCustomerOrder($request, $orderRef, ['table', 'orderDetails.menu', 'payments']);
 
         return response()->json($order);
     }
@@ -134,13 +138,15 @@ class OrderController extends Controller
     /**
      * Get active orders for table
      */
-    public function getTableOrders($tableId)
+    public function getTableOrders(Request $request, $tableId)
     {
         $orders = Order::with(['orderDetails.menu'])
             ->where('table_id', $tableId)
             ->whereIn('order_status', ['pending', 'processing'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(fn (Order $order) => $this->orderAccess->canAccess($request, $order))
+            ->values();
 
         return response()->json($orders);
     }
@@ -148,9 +154,9 @@ class OrderController extends Controller
     /**
      * Cancel order
      */
-    public function cancel($orderRef)
+    public function cancel(Request $request, $orderRef)
     {
-        $order = $this->findCustomerOrder($orderRef);
+        $order = $this->findCustomerOrder($request, $orderRef);
         
         // Only allow cancellation if order is still pending
         if ($order->order_status !== 'pending') {
@@ -212,18 +218,26 @@ class OrderController extends Controller
         };
     }
 
-    private function findCustomerOrder(string $orderRef, array $with = []): Order
+    private function findCustomerOrder(Request $request, string $orderRef, array $with = []): Order
     {
-        return Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+        $order = Order::with($with)->where('order_ref', $orderRef)->firstOrFail();
+
+        $this->orderAccess->abortUnlessCanAccess($request, $order);
+
+        return $order;
     }
 
-    private function redirectNumericOrderToRef(string $orderRef, string $route)
+    private function redirectNumericOrderToRef(Request $request, string $orderRef, string $route)
     {
         if (!ctype_digit($orderRef)) {
             return null;
         }
 
         $order = Order::find($orderRef);
+
+        if ($order) {
+            $this->orderAccess->abortUnlessCanAccess($request, $order);
+        }
 
         return $order
             ? redirect()->route($route, ['order' => $order->order_ref])

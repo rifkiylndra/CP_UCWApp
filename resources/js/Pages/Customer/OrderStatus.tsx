@@ -190,7 +190,7 @@ export default function OrderStatusPage({
         // Echo Realtime Listeners
         const echo = (window as any).Echo;
         if (echo) {
-            echo.channel(`order.${resolvedOrderId}`)
+            echo.private(`order.${resolvedOrderId}`)
                 .listen('.order.status.updated', (e: { order_status?: OrderStatus }) => {
                     if (e.order_status) {
                         setStatus(e.order_status);

@@ -3,9 +3,7 @@
 namespace App\Events;
 
 use App\Models\Order;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -33,7 +31,7 @@ class NewOrderPlaced implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('staff-orders'),
+            new PrivateChannel('staff-orders'),
             new PrivateChannel('order.' . $this->order->id),
         ];
     }

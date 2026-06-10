@@ -62,7 +62,7 @@ export default function CashConfirmation({
 
         const echo = (window as any).Echo;
         if (echo) {
-            const channel = echo.channel(`order.${resolvedOrderId}`);
+            const channel = echo.private(`order.${resolvedOrderId}`);
             channel.listen('.payment.status.updated', (e: { payment_status?: PaymentStatus }) => {
                 if (e.payment_status === "paid") {
                     router.visit(route("customer.status", { order: resolvedOrderRef }));
