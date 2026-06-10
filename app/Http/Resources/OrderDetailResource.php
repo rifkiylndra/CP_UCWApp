@@ -17,9 +17,9 @@ class OrderDetailResource extends JsonResource
         return [
             'id' => $this->id,
             'menu_id' => $this->menu_id,
-            'menu_name' => $this->menu->name,
-            'menu_price' => $this->menu->price,
-            'menu_price_formatted' => 'Rp ' . number_format($this->menu->price, 0, ',', '.'),
+            'menu_name' => $this->menu_name ?? $this->menu?->name ?? 'Deleted menu',
+            'menu_price' => $this->unit_price ?? $this->menu?->price,
+            'menu_price_formatted' => 'Rp ' . number_format((float) ($this->unit_price ?? $this->menu?->price ?? 0), 0, ',', '.'),
             'quantity' => $this->quantity,
             'note' => $this->note,
             'subtotal' => $this->subtotal,

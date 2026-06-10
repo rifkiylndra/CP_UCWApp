@@ -45,10 +45,10 @@ class PaymentService
             $itemDetails = [];
             foreach ($order->orderDetails as $detail) {
                 $itemDetails[] = [
-                    'id' => $detail->menu_id,
-                    'price' => (int) $detail->menu->price,
+                    'id' => $detail->menu_id ?? $detail->id,
+                    'price' => (int) ($detail->unit_price ?? $detail->menu?->price ?? 0),
                     'quantity' => $detail->quantity,
-                    'name' => $detail->menu->name,
+                    'name' => $detail->menu_name ?? $detail->menu?->name ?? 'Deleted menu',
                 ];
             }
             

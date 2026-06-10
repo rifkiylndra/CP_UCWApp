@@ -103,15 +103,17 @@ class DashboardController extends Controller
                     : ($order->customer_name ?? 'Takeaway'),
                 'orderType' => $order->order_type === 'dine_in' ? 'dine-in' : 'takeaway',
                 'items' => $order->orderDetails->map(function ($detail) {
+                    $menu = $detail->menu;
+
                     return [
                         'id' => (string)$detail->id,
                         'menuItem' => [
-                            'id' => (string)$detail->menu->id,
-                            'name' => $detail->menu->name,
-                            'price' => $detail->menu->price,
-                            'image' => $detail->menu->image,
-                            'image_url' => $detail->menu->image_url,
-                            'imageUrl' => $detail->menu->image_url,
+                            'id' => (string) ($menu?->id ?? $detail->menu_id ?? $detail->id),
+                            'name' => $detail->menu_name ?? $menu?->name ?? 'Deleted menu',
+                            'price' => (float) ($detail->unit_price ?? $menu?->price ?? 0),
+                            'image' => $menu?->image,
+                            'image_url' => $menu?->image_url,
+                            'imageUrl' => $menu?->image_url,
                         ],
                         'quantity' => $detail->quantity,
                         'notes' => $detail->note,
@@ -120,7 +122,7 @@ class DashboardController extends Controller
                 'totalAmount' => $order->total_price,
                 'paymentMethod' => $order->payment_method ?? 'cash',
                 'isPaid' => $order->payment_status === 'paid',
-                'status' => in_array($order->order_status, ['pending', 'confirmed']) ? 'incoming' : $order->order_status,
+                'status' => Order::staffColumnStatus($order->order_status),
                 'placedAt' => $order->created_at->format('H:i'),
                 'customerName' => $order->customer_name,
                 'isPriority' => false,
@@ -144,11 +146,12 @@ class DashboardController extends Controller
     public function updateOrderStatus(Request $request, $orderId)
     {
         $request->validate([
-            'status' => 'required|in:pending,confirmed,processing,preparing,ready,completed,cancelled',
+            'status' => 'required|in:incoming,pending,confirmed,processing,preparing,ready,completed,cancelled',
         ]);
 
         try {
-            $order = $this->orderService->updateOrderStatus($orderId, $request->status);
+            $status = $request->status === 'incoming' ? 'pending' : $request->status;
+            $order = $this->orderService->updateOrderStatus($orderId, $status);
             
             return response()->json([
                 'success' => true,

@@ -89,7 +89,9 @@ export interface Payment {
 
 export interface OrderDetail {
     id: number;
-    menu_id: number;
+    menu_id?: number | null;
+    menu_name?: string | null;
+    unit_price?: number | string | null;
     quantity: number;
     note?: string | null;
     subtotal: number;

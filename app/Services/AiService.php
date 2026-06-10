@@ -237,14 +237,14 @@ class AiService
     private function getFallbackPopularMenus(int $limit): array
     {
         $popularMenus = \DB::table('order_details')
-            ->join('menus', 'order_details.menu_id', '=', 'menus.id')
+            ->leftJoin('menus', 'order_details.menu_id', '=', 'menus.id')
             ->select(
-                'menus.id',
-                'menus.name',
-                'menus.price',
+                \DB::raw('COALESCE(order_details.menu_id, 0) as id'),
+                \DB::raw("COALESCE(order_details.menu_name, menus.name, 'Deleted menu') as name"),
+                \DB::raw('COALESCE(order_details.unit_price, menus.price, 0) as price'),
                 \DB::raw('SUM(order_details.quantity) as total_sold')
             )
-            ->groupBy('menus.id', 'menus.name', 'menus.price')
+            ->groupBy('order_details.menu_id', 'order_details.menu_name', 'menus.name', 'order_details.unit_price', 'menus.price')
             ->orderBy('total_sold', 'desc')
             ->limit($limit)
             ->get()

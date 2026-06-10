@@ -78,12 +78,14 @@ class DashboardController extends Controller
                     : ($order->customer_name ?? 'Takeaway'),
                 'orderType' => $order->order_type === 'dine_in' ? 'dine-in' : 'takeaway',
                 'items' => $order->orderDetails->map(function ($detail) {
+                    $menu = $detail->menu;
+
                     return [
                         'id' => (string)$detail->id,
                         'menuItem' => [
-                            'id' => (string)$detail->menu->id,
-                            'name' => $detail->menu->name,
-                            'price' => $detail->menu->price,
+                            'id' => (string) ($menu?->id ?? $detail->menu_id ?? $detail->id),
+                            'name' => $detail->menu_name ?? $menu?->name ?? 'Deleted menu',
+                            'price' => (float) ($detail->unit_price ?? $menu?->price ?? 0),
                         ],
                         'quantity' => $detail->quantity,
                         'notes' => $detail->note,
@@ -92,7 +94,7 @@ class DashboardController extends Controller
                 'totalAmount' => $order->total_price,
                 'paymentMethod' => $order->payment_method ?? 'cash',
                 'isPaid' => $order->payment_status === 'paid',
-                'status' => in_array($order->order_status, ['pending', 'confirmed']) ? 'incoming' : $order->order_status,
+                'status' => Order::staffColumnStatus($order->order_status),
                 'placedAt' => $order->created_at->format('H:i'),
                 'customerName' => $order->customer_name,
                 'isPriority' => false,
@@ -127,7 +129,7 @@ class DashboardController extends Controller
                 ->sum('total_price'),
             
             'pending_orders' => Order::where('order_status', 'pending')->count(),
-            'processing_orders' => Order::where('order_status', 'processing')->count(),
+            'processing_orders' => Order::whereIn('order_status', Order::staffProcessingStatuses())->count(),
         ];
     }
 
@@ -148,18 +150,18 @@ class DashboardController extends Controller
     private function getTopMenus()
     {
         return \DB::table('order_details')
-            ->join('menus', 'order_details.menu_id', '=', 'menus.id')
+            ->leftJoin('menus', 'order_details.menu_id', '=', 'menus.id')
             ->join('orders', 'order_details.order_id', '=', 'orders.id')
             ->where('orders.order_status', 'completed')
             ->where('orders.payment_status', 'paid')
             ->select(
-                'menus.id',
-                'menus.name',
-                'menus.price',
+                \DB::raw('COALESCE(order_details.menu_id, 0) as id'),
+                \DB::raw("COALESCE(order_details.menu_name, menus.name, 'Deleted menu') as name"),
+                \DB::raw('COALESCE(order_details.unit_price, menus.price, 0) as price'),
                 \DB::raw('SUM(order_details.quantity) as total_sold'),
                 \DB::raw('SUM(order_details.subtotal) as total_revenue')
             )
-            ->groupBy('menus.id', 'menus.name', 'menus.price')
+            ->groupBy('order_details.menu_id', 'order_details.menu_name', 'menus.name', 'order_details.unit_price', 'menus.price')
             ->orderBy('total_sold', 'desc')
             ->limit(10)
             ->get();

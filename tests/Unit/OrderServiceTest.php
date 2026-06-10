@@ -83,6 +83,8 @@ class OrderServiceTest extends TestCase
         
         // Check order details created
         $this->assertCount(2, $order->orderDetails);
+        $this->assertEquals('Espresso', $order->orderDetails[0]->menu_name);
+        $this->assertEquals(20000, (float) $order->orderDetails[0]->unit_price);
     }
 
     /** @test */
@@ -117,7 +119,7 @@ class OrderServiceTest extends TestCase
         
         $updatedOrder = $this->orderService->updateOrderStatus($order->id, 'processing');
         
-        $this->assertEquals('processing', $updatedOrder->order_status);
+        $this->assertEquals('preparing', $updatedOrder->order_status);
     }
 
     /** @test */

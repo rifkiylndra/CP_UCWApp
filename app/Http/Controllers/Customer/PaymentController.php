@@ -54,7 +54,7 @@ class PaymentController extends Controller
             'orderRef' => $order->order_ref,
             'paymentMethod' => $order->payment_method,
             'paymentStatus' => $order->payment_status,
-            'orderStatus' => $order->order_status,
+            'orderStatus' => Order::customerStatus($order->order_status),
             'pakasirMethod' => $this->pakasirMethodFromPaymentMethod($latestPayment?->payment_method ?? $order->payment_method),
             'paymentNumber' => $latestPayment?->payment_number,
             'totalPayment' => $latestPayment?->total_payment,
@@ -212,7 +212,7 @@ class PaymentController extends Controller
                 'order_id' => $order->id,
                 'order_ref' => $order->order_ref,
                 'payment_status' => $order->payment_status,
-                'order_status' => $order->order_status,
+                'order_status' => Order::customerStatus($order->order_status),
                 'idempotent' => true,
             ]);
         }
@@ -253,8 +253,9 @@ class PaymentController extends Controller
                 'completed_at' => $completedAt,
             ])->save();
 
-            $nextOrderStatus = in_array($order->order_status, ['preparing', 'ready', 'completed', 'cancelled'], true)
-                ? $order->order_status
+            $currentOrderStatus = Order::normalizeStatusForStorage($order->order_status);
+            $nextOrderStatus = in_array($currentOrderStatus, ['preparing', 'ready', 'completed', 'cancelled'], true)
+                ? $currentOrderStatus
                 : 'confirmed';
 
             $order->update([
@@ -274,7 +275,7 @@ class PaymentController extends Controller
             'order_id' => $order->id,
             'order_ref' => $order->order_ref,
             'payment_status' => $order->payment_status,
-            'order_status' => $order->order_status,
+            'order_status' => Order::customerStatus($order->order_status),
         ]);
     }
 
@@ -298,7 +299,7 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => $simulation['message'] ?? 'Pakasir payment simulation failed.',
                 'payment_status' => $order->payment_status,
-                'order_status' => $order->order_status,
+                'order_status' => Order::customerStatus($order->order_status),
                 'simulation' => $simulation,
             ], 422);
         }
@@ -324,7 +325,7 @@ class PaymentController extends Controller
                 ? 'Pakasir sandbox payment simulation completed and local payment status was updated.'
                 : 'Pakasir sandbox payment simulation was sent, but transaction detail is not completed yet.',
             'payment_status' => $order->payment_status,
-            'order_status' => $order->order_status,
+            'order_status' => Order::customerStatus($order->order_status),
             'simulation' => $simulation,
             'detail' => $detail,
         ]);
@@ -409,7 +410,7 @@ class PaymentController extends Controller
             'order_ref' => $order->order_ref,
             'payment_status' => $order->payment_status,
             'payment_method' => $order->payment_method,
-            'order_status' => $order->order_status,
+            'order_status' => Order::customerStatus($order->order_status),
             'total_price' => $order->total_price,
             'estimated_serve_time' => $order->estimated_serve_time,
             'created_at' => $order->created_at?->toIso8601String(),
@@ -421,7 +422,7 @@ class PaymentController extends Controller
             'orderRef' => $order->order_ref,
             'paymentStatus' => $order->payment_status,
             'paymentMethod' => $order->payment_method,
-            'orderStatus' => $order->order_status,
+            'orderStatus' => Order::customerStatus($order->order_status),
             'total' => (float) $order->total_price,
             'estimatedServeTime' => $order->estimated_serve_time,
             'createdAt' => $order->created_at?->toIso8601String(),
@@ -600,8 +601,9 @@ class PaymentController extends Controller
                 ],
             ])->save();
 
-            $nextOrderStatus = in_array($order->order_status, ['preparing', 'ready', 'completed', 'cancelled'], true)
-                ? $order->order_status
+            $currentOrderStatus = Order::normalizeStatusForStorage($order->order_status);
+            $nextOrderStatus = in_array($currentOrderStatus, ['preparing', 'ready', 'completed', 'cancelled'], true)
+                ? $currentOrderStatus
                 : 'confirmed';
 
             $order->update([
@@ -627,7 +629,7 @@ class PaymentController extends Controller
             return [
                 'id' => (string) $detail->id,
                 'menuId' => (string) $detail->menu_id,
-                'name' => $detail->menu?->name,
+                'name' => $detail->menu_name ?? $detail->menu?->name,
                 'quantity' => $detail->quantity,
                 'note' => $detail->note,
                 'subtotal' => (float) $detail->subtotal,

@@ -21,6 +21,13 @@ class Menu extends Model
 
     protected $appends = ['image_url'];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Menu $menu): void {
+            OrderDetail::where('menu_id', $menu->id)->update(['menu_id' => null]);
+        });
+    }
+
     public function getImageUrlAttribute()
     {
         if (!$this->image) {

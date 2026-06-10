@@ -48,6 +48,8 @@ class OrderService
                 OrderDetail::create([
                     'order_id' => $order->id,
                     'menu_id' => $item['menu_id'],
+                    'menu_name' => $item['menu_name'],
+                    'unit_price' => $item['unit_price'],
                     'quantity' => $item['quantity'],
                     'note' => $item['note'] ?? null,
                     'subtotal' => $item['subtotal'],
@@ -88,9 +90,10 @@ class OrderService
 
             return [
                 'menu_id' => $menu->id,
+                'menu_name' => $menu->name,
+                'unit_price' => $price,
                 'quantity' => $quantity,
                 'note' => $item['note'] ?? null,
-                'price' => $price,
                 'subtotal' => $price * $quantity,
             ];
         })->all();
@@ -142,18 +145,19 @@ class OrderService
     public function updateOrderStatus(int $orderId, string $status): Order
     {
         $order = Order::findOrFail($orderId);
+        $normalizedStatus = Order::normalizeStatusForStorage($status);
         
-        $order->update(['order_status' => $status]);
+        $order->update(['order_status' => $normalizedStatus]);
         
         // If order is completed and was dine-in, free the table
-        if ($status === 'completed' && $order->order_type === 'dine_in' && $order->table_id) {
+        if ($normalizedStatus === 'completed' && $order->order_type === 'dine_in' && $order->table_id) {
             Table::where('id', $order->table_id)->update(['status' => 'available']);
         }
 
         // Trigger event
         event(new \App\Events\OrderStatusUpdated($order));
 
-        Log::info('Order status updated', ['order_id' => $orderId, 'status' => $status]);
+        Log::info('Order status updated', ['order_id' => $orderId, 'status' => $normalizedStatus]);
 
         return $order;
     }
@@ -190,7 +194,7 @@ class OrderService
     public function getOrdersByStatus(string $status)
     {
         $statuses = match ($status) {
-            'processing' => ['processing', 'preparing'],
+            'processing' => Order::staffProcessingStatuses(),
             default => [$status],
         };
 
@@ -212,7 +216,7 @@ class OrderService
         return [
             'total_orders_today' => Order::whereDate('created_at', $today)->count(),
             'pending_orders' => Order::where('order_status', 'pending')->count(),
-            'processing_orders' => Order::whereIn('order_status', ['processing', 'preparing'])->count(),
+            'processing_orders' => Order::whereIn('order_status', Order::staffProcessingStatuses())->count(),
             'completed_orders_today' => Order::where('order_status', 'completed')
                 ->whereDate('created_at', $today)
                 ->count(),

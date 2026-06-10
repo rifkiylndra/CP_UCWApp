@@ -54,7 +54,7 @@ class OrderController extends Controller
             $orderItems = $request->input('items', []);
             
             try {
-                $currentQueue = Order::whereIn('order_status', ['pending', 'processing'])->count();
+                $currentQueue = Order::whereIn('order_status', Order::activeQueueStatuses())->count();
                 $estimation = $this->aiService->getServingTimeEstimation([
                     'items' => $orderItems,
                     'current_queue' => $currentQueue,
@@ -107,7 +107,7 @@ class OrderController extends Controller
             'estimatedServeTime' => $order->estimated_serve_time,
             'paymentMethod' => $order->payment_method,
             'paymentStatus' => $order->payment_status,
-            'orderStatus' => $order->order_status,
+            'orderStatus' => Order::customerStatus($order->order_status),
             'pakasirMethod' => $this->pakasirMethodFromPaymentMethod($latestPayment?->payment_method ?? $order->payment_method),
             'paymentNumber' => $latestPayment?->payment_number,
             'totalPayment' => $latestPayment?->total_payment,
@@ -116,7 +116,7 @@ class OrderController extends Controller
                 return [
                     'id' => (string) $detail->id,
                     'menuId' => (string) $detail->menu_id,
-                    'name' => $detail->menu?->name,
+                    'name' => $detail->menu_name ?? $detail->menu?->name,
                     'quantity' => $detail->quantity,
                     'note' => $detail->note,
                     'subtotal' => (float) $detail->subtotal,
@@ -142,7 +142,7 @@ class OrderController extends Controller
     {
         $orders = Order::with(['orderDetails.menu'])
             ->where('table_id', $tableId)
-            ->whereIn('order_status', ['pending', 'processing'])
+            ->whereIn('order_status', Order::activeQueueStatuses())
             ->orderBy('created_at', 'desc')
             ->get()
             ->filter(fn (Order $order) => $this->orderAccess->canAccess($request, $order))
@@ -187,7 +187,7 @@ class OrderController extends Controller
         $items = $request->input('items', []);
         
         // Count active queue
-        $currentQueue = Order::whereIn('order_status', ['pending', 'processing'])->count();
+        $currentQueue = Order::whereIn('order_status', Order::activeQueueStatuses())->count();
 
         // Normally we would map items to the required structure for AiService
         // But for proxy, just pass them

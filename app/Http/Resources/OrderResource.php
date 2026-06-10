@@ -22,8 +22,8 @@ class OrderResource extends JsonResource
             'customer_name' => $this->customer_name,
             'order_type' => $this->order_type,
             'order_type_label' => $this->order_type === 'dine_in' ? 'Dine In' : 'Takeaway',
-            'order_status' => $this->order_status,
-            'order_status_label' => $this->getStatusLabel($this->order_status),
+            'order_status' => \App\Models\Order::customerStatus($this->order_status),
+            'order_status_label' => $this->getStatusLabel(\App\Models\Order::customerStatus($this->order_status)),
             'payment_status' => $this->payment_status,
             'payment_status_label' => $this->payment_status === 'paid' ? 'Lunas' : 'Belum Bayar',
             'estimated_serve_time' => $this->estimated_serve_time,
@@ -44,7 +44,10 @@ class OrderResource extends JsonResource
     {
         $labels = [
             'pending' => 'Menunggu',
+            'confirmed' => 'Dikonfirmasi',
             'processing' => 'Diproses',
+            'preparing' => 'Diproses',
+            'ready' => 'Siap',
             'completed' => 'Selesai',
             'cancelled' => 'Dibatalkan',
         ];

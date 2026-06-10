@@ -9,6 +9,7 @@ use App\Models\Review;
 use App\Services\AiService;
 use App\Services\CustomerOrderAccessService;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
@@ -109,6 +110,16 @@ class ReviewController extends Controller
                 'review' => $review,
                 'sentiment_analysis' => $sentimentAnalysis,
             ]);
+        } catch (QueryException $e) {
+            Log::warning('Duplicate review rejected by database constraint', [
+                'order_id' => $order->id,
+                'order_ref' => $order->order_ref,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah memberikan review untuk pesanan ini',
+            ], 400);
         } catch (\Exception $e) {
             Log::error('Error creating review: ' . $e->getMessage());
             
