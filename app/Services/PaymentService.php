@@ -13,6 +13,9 @@ class PaymentService
 {
     /**
      * Create Midtrans Snap transaction
+     *
+     * Midtrans is retained as a legacy/future gateway for migration planning.
+     * Customer production checkout should use Pakasir unless PAYMENT_GATEWAY=midtrans.
      * 
      * @param Order $order
      * @param array $customerData
@@ -54,9 +57,9 @@ class PaymentService
                 'customer_details' => $customerDetails,
                 'item_details' => $itemDetails,
                 'callbacks' => [
-                    'finish' => route('customer.payment.callback'),
-                    'error' => route('customer.payment.error'),
-                    'pending' => route('customer.payment.pending'),
+                    'finish' => route('customer.payment.success', ['order' => $order->order_ref]),
+                    'error' => route('customer.payment.error', ['order' => $order->order_ref]),
+                    'pending' => route('customer.order.status', ['order' => $order->order_ref]),
                 ],
             ];
             

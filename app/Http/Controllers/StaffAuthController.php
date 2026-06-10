@@ -9,7 +9,7 @@ class StaffAuthController extends Controller
 {
     public function showLogin()
     {
-        return inertia('Staff/Login');
+        return inertia('Auth/Login');
     }
 
     public function login(Request $request)
@@ -23,6 +23,14 @@ class StaffAuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
+
+            if (!$user->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors(['username' => 'Akun tidak aktif. Silakan hubungi admin.']);
+            }
 
             if ($user->isStaff()) {
                 return redirect()->intended('/staff/dashboard');

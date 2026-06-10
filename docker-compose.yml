@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: ucw_app
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: PostgreSQL_P
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_password}
     ports:
       - "5432:5432"
     volumes:
@@ -46,7 +46,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ucw_app
       DB_USERNAME: postgres
-      DB_PASSWORD: PostgreSQL_P
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
@@ -109,7 +109,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ucw_app
       DB_USERNAME: postgres
-      DB_PASSWORD: PostgreSQL_P
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_password}
     command: php artisan reverb:start --host=0.0.0.0 --port=8080
     ports:
       - "8080:8080"
@@ -134,7 +134,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ucw_app
       DB_USERNAME: postgres
-      DB_PASSWORD: PostgreSQL_P
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     command: php artisan queue:work --sleep=3 --tries=3
@@ -159,7 +159,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ucw_app
       DB_USERNAME: postgres
-      DB_PASSWORD: PostgreSQL_P
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_password}
     command: |
       sh -c "while true; do
         php artisan schedule:run --verbose --no-interaction &

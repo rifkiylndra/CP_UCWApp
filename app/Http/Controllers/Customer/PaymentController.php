@@ -80,10 +80,21 @@ class PaymentController extends Controller
                 $result = $this->paymentService->createCashPayment($order);
                 break;
 
+            case 'midtrans':
+                // Midtrans is kept for future migration, but production currently uses Pakasir.
+                if (!$this->gatewayIs('midtrans')) {
+                    $result = [
+                        'success' => false,
+                        'message' => 'Midtrans gateway is not active.',
+                    ];
+                    break;
+                }
+
+                $result = $this->paymentService->createSnapTransaction($order);
+                break;
+
             case 'qris':
             case 'qris_pakasir':
-            case 'midtrans':
-            case 'ewallet':
                 $result = $this->createPakasirPaymentForOrder($order, 'qris');
                 break;
 
@@ -104,6 +115,13 @@ class PaymentController extends Controller
 
     public function createPakasirPayment(Request $request, $tableId, $orderRef)
     {
+        if (!$this->gatewayIs('pakasir')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pakasir gateway is not active.',
+            ], 403);
+        }
+
         $request->validate([
             'method' => 'required|in:qris,bri_va',
         ]);
@@ -129,6 +147,13 @@ class PaymentController extends Controller
 
     public function createPakasirPaymentByOrder(Request $request, $orderRef)
     {
+        if (!$this->gatewayIs('pakasir')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pakasir gateway is not active.',
+            ], 403);
+        }
+
         $request->validate([
             'method' => 'required|in:qris,bri_va',
         ]);
@@ -165,6 +190,26 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        $paymentMethod = $this->pakasirService->paymentMethodForPakasirMethod($payload['payment_method']);
+        $existingPaidPayment = $order->payments()
+            ->where('provider', 'pakasir')
+            ->where('payment_method', $paymentMethod)
+            ->where('payment_status', 'paid')
+            ->latest()
+            ->first();
+
+        if ($existingPaidPayment && $order->payment_status === 'paid') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Webhook Pakasir sudah pernah diproses',
+                'order_id' => $order->id,
+                'order_ref' => $order->order_ref,
+                'payment_status' => $order->payment_status,
+                'order_status' => $order->order_status,
+                'idempotent' => true,
+            ]);
+        }
+
         $detail = $this->pakasirService->getTransactionDetail($order);
 
         if (!$detail['success'] || !$this->transactionDetailIsCompleted($detail['data'] ?? [])) {
@@ -174,10 +219,10 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        $paymentMethod = $this->pakasirService->paymentMethodForPakasirMethod($payload['payment_method']);
         $completedAt = isset($payload['completed_at']) ? Carbon::parse($payload['completed_at']) : now();
+        $rawWebhook = $this->safePakasirWebhookPayload($payload);
 
-        DB::transaction(function () use ($order, $payload, $paymentMethod, $completedAt) {
+        DB::transaction(function () use ($order, $rawWebhook, $paymentMethod, $completedAt) {
             $payment = $order->payments()
                 ->where('provider', 'pakasir')
                 ->where('payment_method', $paymentMethod)
@@ -196,7 +241,7 @@ class PaymentController extends Controller
 
             $payment->fill([
                 'payment_status' => 'paid',
-                'raw_webhook' => $payload,
+                'raw_webhook' => $rawWebhook,
                 'paid_at' => $completedAt,
                 'completed_at' => $completedAt,
             ])->save();
@@ -228,7 +273,10 @@ class PaymentController extends Controller
 
     public function simulatePakasirPayment(string $orderRef)
     {
-        if (!app()->environment('local') && config('services.pakasir.mode') !== 'sandbox') {
+        $simulationAllowed = app()->environment(['local', 'testing'])
+            || (!app()->environment('production') && config('services.pakasir.mode') === 'sandbox');
+
+        if (!$simulationAllowed) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pakasir payment simulation is only available in local or sandbox mode.',
@@ -280,6 +328,14 @@ class PaymentController extends Controller
      */
     public function callback(Request $request)
     {
+        // Midtrans is retained as a legacy/future gateway. Ignore callbacks unless explicitly active.
+        if (!$this->gatewayIs('midtrans')) {
+            return response()->json([
+                'status' => 'IGNORED',
+                'message' => 'Midtrans gateway is not active.',
+            ], 403);
+        }
+
         $notification = $request->all();
         
         Log::info('Midtrans callback received', $notification);
@@ -334,7 +390,7 @@ class PaymentController extends Controller
         
         $latestPayment = $order->payments()->latest()->first();
         
-        if ($latestPayment && $latestPayment->payment_method === 'midtrans') {
+        if ($this->gatewayIs('midtrans') && $latestPayment && $latestPayment->payment_method === 'midtrans') {
             $verification = $this->paymentService->verifyPayment($latestPayment);
         }
 
@@ -369,6 +425,13 @@ class PaymentController extends Controller
 
     private function createPakasirPaymentForOrder(Order $order, string $method): array
     {
+        if (!$this->gatewayIs('pakasir')) {
+            return [
+                'success' => false,
+                'message' => 'Pakasir gateway is not active.',
+            ];
+        }
+
         if ((float) $order->total_price <= 0) {
             return [
                 'success' => false,
@@ -472,6 +535,18 @@ class PaymentController extends Controller
         ];
 
         return in_array('completed', array_filter($candidates), true);
+    }
+
+    private function gatewayIs(string $gateway): bool
+    {
+        return strtolower((string) config('services.payment_gateway', 'pakasir')) === $gateway;
+    }
+
+    private function safePakasirWebhookPayload(array $payload): array
+    {
+        return collect($payload)
+            ->only(['project', 'order_id', 'amount', 'status', 'payment_method', 'completed_at'])
+            ->all();
     }
 
     private function markPakasirSimulationPaid(Order $order, array $simulation, array $detail): void

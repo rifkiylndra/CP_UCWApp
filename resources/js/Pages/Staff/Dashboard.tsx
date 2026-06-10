@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
-import KanbanCard from "@/Components/UI/KanbanCard";
+import KanbanCard from "@/Components/ui/KanbanCard";
 import OrderSearchInput from "@/Components/ui/OrderSearchInput";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";

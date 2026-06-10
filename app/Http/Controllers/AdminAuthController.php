@@ -24,6 +24,14 @@ class AdminAuthController extends Controller
 
             $user = Auth::user();
 
+            if (!$user->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors(['username' => 'Akun tidak aktif. Silakan hubungi admin.']);
+            }
+
             if ($user->isAdmin()) {
                 return redirect()->intended('/admin/overview');
             }

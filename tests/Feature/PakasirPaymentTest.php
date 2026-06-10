@@ -21,6 +21,7 @@ class PakasirPaymentTest extends TestCase
         parent::setUp();
 
         config([
+            'services.payment_gateway' => 'pakasir',
             'services.pakasir.project' => 'ucw-sandbox',
             'services.pakasir.api_key' => 'test-pakasir-key',
             'services.pakasir.mode' => 'sandbox',
@@ -303,6 +304,40 @@ class PakasirPaymentTest extends TestCase
         ]);
     }
 
+    public function test_duplicate_webhook_is_idempotent_and_does_not_reprocess_payment(): void
+    {
+        $order = $this->createOrderWithPayment('qris_pakasir', 22000);
+        $payload = [
+            'amount' => 22000,
+            'order_id' => $order->order_ref,
+            'project' => 'ucw-sandbox',
+            'status' => 'completed',
+            'payment_method' => 'qris',
+            'completed_at' => '2026-06-06T08:07:02.819+07:00',
+        ];
+
+        Http::fake([
+            'https://app.pakasir.com/api/transactiondetail*' => Http::response(['status' => 'completed']),
+        ]);
+
+        $this->postJson('/api/webhooks/pakasir', $payload)
+            ->assertOk()
+            ->assertJsonPath('payment_status', 'paid');
+
+        $this->postJson('/api/webhooks/pakasir', $payload)
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('idempotent', true);
+
+        $this->assertSame(1, Payment::where('order_id', $order->id)->count());
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'payment_status' => 'paid',
+            'order_status' => 'confirmed',
+        ]);
+        Http::assertSentCount(1);
+    }
+
     public function test_webhook_valid_bri_va_completed_marks_payment_paid(): void
     {
         $order = $this->createOrderWithPayment('bri_va_pakasir', 44000);
@@ -345,6 +380,10 @@ class PakasirPaymentTest extends TestCase
             'id' => $order->id,
             'payment_status' => 'unpaid',
         ]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'payment_status' => 'unpaid',
+        ]);
     }
 
     public function test_webhook_invalid_project_is_rejected(): void
@@ -360,6 +399,10 @@ class PakasirPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'payment_status' => 'unpaid',
+        ]);
     }
 
     public function test_webhook_invalid_order_id_is_rejected(): void
@@ -494,9 +537,10 @@ class PakasirPaymentTest extends TestCase
         ]);
     }
 
-    public function test_simulation_route_is_blocked_outside_local_or_sandbox(): void
+    public function test_simulation_route_is_blocked_in_production(): void
     {
-        config(['services.pakasir.mode' => 'production']);
+        $this->app->detectEnvironment(fn () => 'production');
+        config(['services.pakasir.mode' => 'sandbox']);
         $order = $this->createOrderWithTable(22000);
 
         $this->postJson("/api/dev/pakasir/payments/{$order->order_ref}/simulate")

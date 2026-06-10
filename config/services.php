@@ -40,6 +40,10 @@ return [
         'timeout'  => env('AI_SERVICE_TIMEOUT', 10),
     ],
 
+    'payment_gateway' => env('PAYMENT_GATEWAY', 'pakasir'),
+
+    // Midtrans is retained as a legacy/future gateway for migration planning.
+    // Production checkout should not call it while PAYMENT_GATEWAY=pakasir.
     'midtrans' => [
         'server_key' => env('MIDTRANS_SERVER_KEY'),
         'client_key' => env('MIDTRANS_CLIENT_KEY'),

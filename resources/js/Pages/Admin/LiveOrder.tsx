@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
-import KanbanCard from "@/Components/UI/KanbanCard";
+import KanbanCard from "@/Components/ui/KanbanCard";
 import OrderSearchInput from "@/Components/ui/OrderSearchInput";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";
