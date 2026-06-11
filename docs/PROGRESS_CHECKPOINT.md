@@ -1,11 +1,114 @@
 # Progress Checkpoint - UCW App
 
-## Last Updated: 2026-06-08 23:59 WIB
+## Last Updated: 2026-06-11 WIB
 
 ## Project
 - Nama: Sistem Manajemen Coffee Shop Unand Co-Workspace
-- Stack aktif: Laravel 12, Inertia.js v2, React 18 + TypeScript, Tailwind CSS, PostgreSQL/SQLite, Pakasir Payment Gateway, FastAPI AI Service, Laravel Reverb.
-- Status umum: customer flow berjalan, staff dashboard berjalan, admin dashboard makin siap demo/UAT, AI dan Pakasir sudah terintegrasi.
+- Stack aktif: Laravel 12, Inertia.js v2, React + TypeScript, Tailwind CSS, PostgreSQL untuk production, Pakasir Payment Gateway aktif, Midtrans future/legacy, FastAPI AI Service, Laravel Reverb.
+- Catatan versi: package frontend saat ini memakai React 19.x, sementara sebagian dokumen/instruksi lama masih menyebut React 18.
+- Status umum: customer flow berjalan dan sudah lebih aman, staff dashboard berjalan, admin dashboard makin siap demo/UAT, AI dan Pakasir sudah di-hardening, frontend sudah lebih modular.
+
+---
+
+## Checkpoint Terbaru Setelah Tahap 1-7F
+
+Skor audit ulang terbaru:
+
+- Overall: 82/100
+- Security: 86/100
+- Backend: 80/100
+- Frontend: 78/100
+- Database: 85/100
+- Performance: 78/100
+- Maintainability: 80/100
+- Production readiness: 76/100
+
+Status kesiapan:
+
+- Demo: aman.
+- UAT: cukup aman, tetapi sebaiknya selesaikan quick wins tahap 8A dulu.
+- Production: belum direkomendasikan penuh sebelum rate limiting, observability, backup, route hardening, dan UAT end-to-end production-like.
+
+Progress tahap 1-7F:
+
+- [x] Tahap 1 critical quick fixes:
+  - secret asli di `.env.example` dan `docker-compose.yml` diganti placeholder;
+  - `.env` tidak ikut tracked;
+  - `SystemConfigController` import `Log` diperbaiki;
+  - import casing `Components/UI` menjadi `Components/ui` diperbaiki;
+  - missing route/resource/page fatal diperbaiki;
+  - login sekarang mengecek `is_active`.
+- [x] Tahap 2 payment gateway:
+  - production payment aktif memakai Pakasir;
+  - Midtrans tetap disimpan sebagai future/legacy gateway;
+  - `PAYMENT_GATEWAY=pakasir` ditambahkan;
+  - webhook Pakasir divalidasi dan dibuat idempotent;
+  - simulasi Pakasir diblokir untuk production.
+- [x] Tahap 3 customer order access dan realtime:
+  - `order_ref` tidak lagi cukup untuk akses order customer;
+  - `CustomerOrderAccessService` berbasis session digunakan untuk ownership;
+  - endpoint customer order/payment/status/review dikunci;
+  - broadcast order/payment/staff memakai `PrivateChannel`;
+  - frontend Echo memakai private channel;
+  - polling fallback tetap dipertahankan.
+- [x] Tahap 4 database integrity:
+  - `order_details` menyimpan snapshot `menu_name`, `unit_price`, dan `subtotal`;
+  - menu delete tidak menghapus histori order detail;
+  - `reviews.order_id` diberi unique constraint;
+  - index dashboard/payment/finance ditambahkan;
+  - status `processing`/`preparing` distandarkan agar customer-safe.
+- [x] Tahap 5 deployment readiness:
+  - `.env.production.example` ditambahkan;
+  - production tidak diarahkan default ke SQLite;
+  - docker-compose path diperbaiki;
+  - Dockerfile AI service, node, nginx, php/supervisor config ditambahkan;
+  - `docs/DEPLOYMENT.md` ditambahkan;
+  - queue, scheduler, Reverb, FastAPI, PostgreSQL, Redis, dan Pakasir production dijelaskan.
+- [x] Tahap 6 AI service hardening:
+  - FastAPI model loading dibuat aman dengan `model_loader.py`;
+  - service tetap hidup jika model hilang/corrupt;
+  - `/health` menampilkan status model dan database;
+  - endpoint estimation, sentiment, dan popular menu punya fallback;
+  - Laravel `AiService` fallback diperkuat;
+  - `AiServiceFallbackTest` ditambahkan.
+- [x] Tahap 7A-7F frontend refactor:
+  - shared formatter/status/type/components/hooks ditambahkan;
+  - customer payment page dipecah;
+  - `OrderType`, `OrderStatus`, `Feedback`, `Cart`, `Estimate`, dan `CashConfirmation` dipisah ke komponen reusable;
+  - Staff/Admin order kanban memakai reusable `OrderKanbanBoard`;
+  - admin/staff table memakai reusable `DataToolbar`, `PaginationFooter`, dan `ActionButtons`;
+  - build dan test terkait dilaporkan lulus pada tahap refactor.
+
+Hasil verifikasi terakhir yang relevan:
+
+- `npm run build`: lulus pada tahap frontend refactor terkait.
+- `git diff --check`: lulus pada tahap refactor terkait.
+- `php artisan test --filter=CustomerOrderAccessTest`: lulus pada tahap akses order/realtime terkait.
+- `php artisan test --filter=PakasirPaymentTest`: lulus pada tahap payment terkait.
+- `php artisan test --filter=OrderIntegrityTest`: lulus pada tahap database integrity terkait.
+- `php artisan test --filter=AiServiceFallbackTest`: lulus pada tahap AI fallback terkait.
+
+Masalah tersisa yang perlu dibawa ke tahap berikutnya:
+
+- [ ] `ReviewController::getStatistics` raw SQL string quoting berisiko di PostgreSQL.
+- [ ] Admin AI Analytics masih perlu cleanup type/interface, `any`, inline style, dan mock data.
+- [ ] Route simulasi Pakasir masih registered, walau controller sudah guard.
+- [ ] Public API settings/review/menu perlu audit data exposure.
+- [ ] Rate limiting eksplisit untuk login, order creation, payment creation, dan webhook belum lengkap.
+- [ ] Inline style frontend masih banyak di beberapa komponen customer/admin.
+- [ ] Ada kemungkinan duplicate/legacy Staff dashboard controller.
+- [ ] Admin/staff validation belum semuanya memakai Form Request.
+- [ ] Observability, backup, alerting, dan log retention production belum detail.
+- [ ] React 19 masih mismatch dengan dokumen lama yang menyebut React 18.
+
+Next step tahap 8A:
+
+1. Perbaiki query/statistik review agar aman untuk PostgreSQL.
+2. Audit public API settings/review/menu untuk data exposure.
+3. Tambahkan rate limiting eksplisit untuk login, order creation, payment creation, dan Pakasir webhook.
+4. Hardening route dev/simulation/debug agar tidak registered atau tidak accessible di production sesuai kebutuhan.
+5. Cleanup Admin AI Analytics type/interface, `any`, inline style, dan mock/static data yang masih tersisa.
+6. Tambahkan smoke/UAT checklist production-like untuk PostgreSQL, Redis, queue, scheduler, Reverb, FastAPI, dan Pakasir.
 
 ---
 
@@ -351,16 +454,22 @@ Lanjutkan project UCW App. Baca dulu:
 - `docs/PROGRESS_CHECKPOINT.md`
 
 Status terakhir:
-- Customer flow sudah berjalan.
-- Bug gambar menu sudah diperbaiki memakai helper image URL dan accessor `Menu::image_url`.
-- Timer OrderStatus sudah berjalan berdasarkan `createdAt + estimatedServeTime`.
-- Customer Feedback sudah optional, bisa rating saja, komentar saja, kombinasi, atau skip kosong.
-- Admin Feedback page sudah dibuat dengan filter, search, pagination, dan export CSV.
-- Staff Dashboard dan Admin Live Orders sudah punya search client-side, mobile kanban scroll/snap, sticky header, dan desktop board lebih tinggi.
-- Admin Overview sudah memakai data completed + paid untuk weekly/daily sales trend dan peak hours.
-- Admin Finances sudah memakai filter bulan yang benar, completed + paid revenue, table tanpa avatar dummy, dan export CSV sesuai bulan.
+- Customer flow sudah berjalan dan akses order/payment/status/review sudah dilindungi ownership session.
+- Payment production memakai Pakasir; Midtrans tetap ada sebagai future/legacy gateway dan tidak boleh terpanggil saat `PAYMENT_GATEWAY=pakasir`.
+- Pakasir webhook sudah divalidasi, cek transaction detail, idempotent untuk duplicate webhook, dan route simulasi sudah guard dari production.
+- Broadcast order/payment/staff sudah private channel; polling fallback tetap ada.
+- Database sudah menyimpan order detail snapshot, menjaga histori saat menu dihapus, unique review per order, index dashboard/payment/finance, dan mapping status customer-safe.
+- FastAPI AI service sudah safe model loading, `/health` status model/database, dan fallback endpoint; Laravel `AiService` juga fallback.
+- Frontend customer sudah banyak dipecah ke komponen reusable; staff/admin order kanban dan table toolbar/pagination/action juga reusable.
+- Project aman untuk demo, cukup aman untuk UAT setelah quick wins 8A, tetapi belum direkomendasikan production penuh.
 
 Prioritas berikutnya:
-1. Selesaikan Admin Settings.
-2. Jalankan UAT penuh.
-3. Siapkan deployment production.
+1. Tahap 8A quick wins:
+   - PostgreSQL-safe `ReviewController::getStatistics`;
+   - audit data exposure public API settings/review/menu;
+   - explicit rate limiting login/order/payment/webhook;
+   - hardening route dev/simulation/debug;
+   - cleanup Admin AI Analytics.
+2. Jalankan UAT penuh di environment production-like.
+3. Lengkapi observability, backup, alerting, log retention, dan runbook production.
+4. Lanjutkan cleanup frontend inline style/type yang masih tersisa.

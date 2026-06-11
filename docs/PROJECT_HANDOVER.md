@@ -12,18 +12,29 @@ UCW App is a QR ordering and coffee shop management web application for Unand Co
 
 Estimated progress based on the current repository snapshot:
 
-- Customer app: 85-90% complete for demo. Main order flow, payment selection, cash confirmation, online payment display, order tracking, and feedback exist.
-- Staff dashboard: 75-85% complete for demo. Kanban dashboard, order status updates, cash verification, transactions page, and export exist. Realtime is mostly polling-backed.
-- Admin dashboard: 65-75% complete. Overview, live orders, menu/category CRUD, staff/admin CRUD, finance, exports, and AI analytics pages exist. Settings is not fully wired.
-- Backend core: 75-85% complete. Main models, controllers, services, requests, migrations, Pakasir tests, and order/payment flows exist.
-- Database: 70-80% complete. Schema is usable, but production integrity improvements are still needed.
-- Payment gateway: 70-80% complete for sandbox; not production-ready until webhook hardening, replay protection, and reconciliation are added.
-- AI analytics: 65-75% complete. Laravel fallback is present; FastAPI service exists with saved models, but startup/model failure handling and DB compatibility need hardening.
-- Deployment readiness: 40-50%. Config, Docker, production env, SSL, queue, Reverb, and security hardening still need work.
+- Customer app: 85-90% complete for demo. Main order flow, payment selection, Pakasir online payment display, cash confirmation, order tracking, and feedback exist. Customer order access is now session/ownership protected.
+- Staff dashboard: 80-88% complete for demo. Kanban dashboard, order status updates, cash verification, transactions page, export, private realtime subscription, and polling fallback exist.
+- Admin dashboard: 70-80% complete. Overview, live orders, menu/category CRUD, staff/admin CRUD, finance, exports, and AI analytics pages exist. Settings is partially wired and still needs review.
+- Backend core: 82-88% complete. Main models, controllers, services, requests, migrations, Pakasir tests, ownership tests, AI fallback tests, and order/payment flows exist.
+- Database: 82-88% complete. Historical order detail snapshots, safer menu delete behavior, review uniqueness, and dashboard/payment indexes are now present.
+- Payment gateway: 82-88% complete for current production gateway choice. Pakasir is active for production QRIS/BRI VA; Midtrans remains in the codebase as future/legacy integration and should only run when explicitly configured.
+- AI analytics: 75-82% complete. FastAPI has safe model loading and endpoint fallbacks; Laravel `AiService` also has graceful fallback behavior. Admin AI Analytics still needs frontend cleanup.
+- Deployment readiness: 70-78%. Production env example, Docker paths, Nginx/PHP/AI service assets, queue, scheduler, Reverb, Redis, PostgreSQL, and deployment docs exist. Observability, backup, alerting, and production-like UAT remain open.
 
-Overall demo readiness: possible with controlled setup and mitigation.
-Overall UAT readiness: not yet complete.
-Overall production readiness: not yet complete.
+Latest audit score after stages 1-7F:
+
+- Overall: 82/100
+- Security: 86/100
+- Backend: 80/100
+- Frontend: 78/100
+- Database: 85/100
+- Performance: 78/100
+- Maintainability: 80/100
+- Production readiness: 76/100
+
+Overall demo readiness: safe.
+Overall UAT readiness: reasonably safe, but stage 8A quick wins should be completed first.
+Overall production readiness: not fully recommended until rate limiting, observability, backup, route hardening, and production-like end-to-end UAT are complete.
 
 ## Tech Stack
 
@@ -34,8 +45,8 @@ Observed in repository:
 - Frontend: React with TypeScript. `package.json` currently uses React 19 packages, even though project docs mention React 18.
 - Styling: Tailwind CSS v4.
 - Realtime: Laravel Reverb, Laravel Echo, Pusher JS client.
-- Database: SQLite locally by default, PostgreSQL intended for production/deployment.
-- Payment: Pakasir sandbox integration is current. Midtrans service code remains as legacy/partial support.
+- Database: PostgreSQL for production/deployment. SQLite may still be used in local/test contexts where configured, but production must not default to SQLite.
+- Payment: Pakasir is the active production gateway through `PAYMENT_GATEWAY=pakasir`. Midtrans service code remains for future migration/legacy support and should be guarded by `PAYMENT_GATEWAY=midtrans`.
 - AI service: Python FastAPI under `ai_service`.
 - Queue: Laravel database queue.
 - Export: Maatwebsite Excel for staff export; CSV streaming for finance/staff transactions.
@@ -125,7 +136,10 @@ Important frontend components:
 
 - Customer navigation and layout: `Components/customer/navigation`, `Components/Layout/CustomerLayout.tsx`.
 - Customer menu: `MenuSidebar`, `MenuCardMobile`, `MenuCardDesktop`, `CartSidebar`, `FloatingCartButton`.
+- Customer refactor components: payment panels, order type cards, order status timeline/cards, cart sections, estimate sections, cash confirmation sections, and feedback sections under `Components/customer`.
 - Staff/Admin order cards and modals: `Components/UI/KanbanCard.tsx`, `Components/Modals/OrderDetailModal.tsx`, `CashPaymentModal.tsx`.
+- Shared order board: reusable `OrderKanbanBoard` used by staff dashboard and admin live orders.
+- Admin/staff table helpers: `DataToolbar`, `PaginationFooter`, and `ActionButtons`.
 - Admin layout: `Components/Layout/AdminLayout.tsx`, `Sidebar.tsx`, `MobileBottomNavAdmin.tsx`.
 - Admin modals: `AddMenuModal`, `MenuCategoryModal`, `DeleteConfirmModal`, `AddAdminModal`.
 
@@ -133,19 +147,25 @@ Important hooks/types:
 
 - `resources/js/hooks/useCart.ts`: localStorage-backed customer cart.
 - `resources/js/hooks/useOrder.ts`: order-related hook file exists.
-- `resources/js/hooks/useEcho.ts`: exists but appears empty in current snapshot.
+- `resources/js/hooks/useModalState.ts`: reusable modal state.
+- `resources/js/hooks/usePaymentStatusPolling.ts`: customer payment polling helper.
+- `resources/js/hooks/useOrderStatusPolling.ts`: customer order polling helper.
+- `resources/js/hooks/usePrivateOrderChannel.ts`: private Echo order channel helper.
 - `resources/js/types/customer.ts`
 - `resources/js/types/staff.ts`
 - `resources/js/types/admin.ts`
+- `resources/js/types/shared.ts`
+- `resources/js/lib/formatters.ts`
+- `resources/js/lib/status.ts`
 - `resources/js/types/global.d.ts`
 
 Frontend known issues:
 
-- Several components use inline `style` attributes, although project rules say Tailwind-only. This is a rule mismatch, not necessarily a runtime blocker.
-- Staff/Admin Kanban sends status `processing`, while Customer OrderStatus stepper mainly expects `preparing`, which can make progress display confusing.
+- Frontend is more modular after stages 7A-7F, but refactor is not 100% complete.
+- Several components still use inline `style` attributes, although project rules say Tailwind-only. This is a maintainability/rule mismatch, not necessarily a runtime blocker.
+- Admin AI Analytics still needs type/interface cleanup, removal of remaining `any`, inline style cleanup, and mock/static data review.
 - Customer cart uses `localStorage` and is not clearly cleared after successful order/feedback.
 - Admin menu availability toggle is visual only and does not call backend.
-- Admin Settings route exists in backend but no matching `resources/js/Pages/Admin/SystemConfig.tsx` was found.
 - Some text appears mojibake/encoding-corrupted in UI strings and docs.
 
 ## Backend Status
@@ -176,12 +196,14 @@ Main job:
 
 Backend known issues:
 
-- `SystemConfigController` uses `Log::info()` and `Log::error()` without importing the `Log` facade, so update endpoints can fatal.
-- Auth login does not check `is_active`.
 - No explicit login throttle was found.
-- Some public customer APIs expose order data by `order_ref`.
-- Realtime events use public channels for some order/payment updates.
+- Explicit rate limiting is still incomplete for order creation, payment creation, and webhook traffic.
+- Customer order/payment/status/review endpoints now use ownership checks, but public settings/review/menu APIs still need a data exposure audit.
+- Realtime events now use private channels, but production Reverb E2E should still be smoke-tested.
 - Controllers still contain some business logic; not all logic is fully moved into services.
+- Some admin/staff validation is still inline instead of Form Request based.
+- `ReviewController::getStatistics` raw SQL string quoting should be made PostgreSQL-safe.
+- There may be duplicate or legacy staff dashboard controller code that needs cleanup.
 
 ## Database Status
 
@@ -219,14 +241,17 @@ Database status:
 - Pakasir migration adds `order_ref`, `payment_method`, provider fields, payment number, fee, total payment, expiry, completed timestamp, raw response, and raw webhook.
 - `orders.order_ref` becomes unique.
 - Order/payment status enum constraints are changed to string in the Pakasir migration.
+- `order_details` now stores `menu_name`, `unit_price`, and `subtotal` snapshots.
+- `order_details.menu_id` no longer deletes historical order detail rows when a menu is deleted.
+- `reviews.order_id` has a unique constraint to prevent duplicate reviews.
+- Order/payment filtering indexes were added for dashboard, finance, and payment queries.
+- `processing` and `preparing` are standardized/mapped so customer and staff views read status consistently.
 
 Database known risks:
 
-- `order_details.menu_id` cascades on delete. Deleting a menu can delete historical order detail rows.
 - `menus.category_id` cascades on delete. Category controller prevents deletion when menus exist, but database still allows cascade if bypassed.
-- Order detail does not store menu name/price snapshot, so historical reporting depends on current menu records.
-- No unique idempotency constraint for Pakasir provider reference/payment method.
-- Additional indexes are recommended for production order/payment dashboards.
+- Existing legacy data before snapshot backfill should be reviewed during UAT.
+- Additional production query profiling is still recommended after real data volume grows.
 
 ## Payment Gateway Status
 
@@ -237,26 +262,29 @@ Implemented:
 - Create QRIS transaction.
 - Create BRI VA transaction.
 - Store Pakasir payment data.
+- Active gateway selection through `PAYMENT_GATEWAY=pakasir`.
 - Pakasir webhook endpoint: `POST /api/webhooks/pakasir`.
 - Transaction detail check before marking payment paid.
-- Sandbox simulation endpoint: `POST /api/dev/pakasir/payments/{order}/simulate`.
-- Tests exist for QRIS, BRI VA, webhook success, invalid amount, invalid project, invalid order, missing credential message, credential rejection message, and sandbox simulation.
+- Webhook validation for project, order reference, amount, and status.
+- Idempotent duplicate webhook handling.
+- Sandbox simulation endpoint: `POST /api/dev/pakasir/payments/{order}/simulate`, guarded outside local/testing or sandbox mode.
+- Tests exist for QRIS, BRI VA, webhook success, duplicate webhook, invalid amount, invalid project, invalid order, missing credential message, credential rejection message, and production simulation guard.
 
 Not production-ready yet:
 
 - No webhook signature/HMAC validation found.
 - No timestamp/nonce/replay protection found.
-- No explicit idempotency key or unique provider transaction constraint.
 - No scheduled reconciliation for expired/failed/stale payments.
 - No automated transition to `expired` based on `expired_at`.
-- Simulation route must be guaranteed unavailable in production.
+- Explicit webhook rate limiting is still needed.
+- Simulation route is still registered, although controller guard blocks production execution.
 
 Midtrans status:
 
 - `PaymentService` still contains Midtrans Snap creation, notification handling, and status verification code.
-- Current customer flow maps online methods to Pakasir.
-- Some Midtrans routes/comments remain legacy.
-- Midtrans implementation should be treated as partial/legacy unless retested.
+- Current production customer flow maps online methods to Pakasir when `PAYMENT_GATEWAY=pakasir`.
+- Midtrans routes/controllers should stay guarded so they only run when `PAYMENT_GATEWAY=midtrans`.
+- Midtrans implementation should be treated as future/legacy unless retested for a migration.
 
 ## AI Analytics Status
 
@@ -287,9 +315,10 @@ Laravel AI integration:
 
 AI known issues:
 
-- FastAPI loads pickle/model files at import time without guard; missing/corrupt model files can prevent service startup.
-- WMA SQL uses database-specific syntax and likely needs adjustment for SQLite/PostgreSQL compatibility.
-- Laravel `AiService` uses fallback behavior, which helps the app continue when FastAPI is down.
+- FastAPI model loading is now guarded through safe loader/status flags, so missing/corrupt model files should not prevent startup.
+- `/health` reports model and database status.
+- Estimation, popular menu, and sentiment endpoints have fallback responses when model/database access fails.
+- Laravel `AiService` uses fallback behavior, which helps the app continue when FastAPI is down or times out.
 - Admin model performance endpoint returns mock/static model data.
 
 ## Progress by Module
@@ -473,37 +502,38 @@ Build:
 ## Known Issues
 
 - Actual stack versions differ from some project instructions.
-- Pakasir API key appears in `.env.example`; rotate and replace with placeholder.
-- Admin Settings frontend page missing.
-- `SystemConfigController` missing `Log` import.
-- Payment webhook lacks signature/replay/idempotency hardening.
-- Reverb channels are not fully private/protected.
-- Customer order channel auth currently allows access without session/order validation.
+- React package version is currently 19.x while legacy docs/instructions still mention React 18.
+- Production examples and compose files should stay placeholder-only; any historical real secrets must be considered rotated outside the repo.
+- Admin Settings still needs a focused verification pass.
+- Pakasir webhook still lacks signature/replay hardening if Pakasir supports it, although payload validation and idempotency are now present.
+- Pakasir simulation route remains registered, although production execution is guarded.
+- Public settings/review/menu APIs need a data exposure audit.
+- Explicit rate limiting for login, order creation, payment creation, and webhook traffic is incomplete.
 - Customer cart may retain old items after successful checkout.
-- Staff status `processing` and customer status `preparing` mismatch.
 - Admin menu availability toggle is not wired to backend.
-- Docker compose references missing/mismatched paths (`ai-service`, `docker/node`, nginx files).
-- AI service model loading can fail service startup.
-- AI WMA SQL may fail depending on DB driver.
-- `is_active` is not enforced during login.
+- Admin AI Analytics still needs type/interface cleanup, inline style cleanup, and mock/static data review.
+- `ReviewController::getStatistics` raw SQL string quoting should be checked/fixed for PostgreSQL.
+- There may be duplicate or legacy staff dashboard controller code.
+- Some admin/staff validation is not yet Form Request based.
 - Default seed passwords must not be used in production.
+- Observability, backup, alerting, and log retention are not fully specified for production.
 - No complete E2E test suite was found.
 
 ## Remaining Tasks
 
 Before demo:
 
-- Fix or work around `processing` vs `preparing` customer tracking display.
 - Clear customer cart after order or manually clear browser storage before demo.
-- Avoid Admin Settings in demo until fixed.
+- Avoid Admin Settings in demo unless it has been specifically smoke-tested.
 - Confirm Pakasir sandbox credentials and webhook URL.
 - Run smoke test for QRIS, BRI VA, cash, staff update, and feedback.
 - Start Laravel, queue worker, Reverb, and FastAPI before demo.
 
 Before UAT:
 
+- Complete stage 8A quick wins.
 - Add UAT checklist for every customer/staff/admin flow.
-- Add tests for failed/expired payment, duplicate webhook, replay attempt, and admin settings.
+- Add tests for failed/expired payment, replay attempt, rate limiting, and admin settings.
 - Validate mobile and desktop layouts.
 - Validate exports.
 - Validate AI service online/offline behavior.
@@ -511,24 +541,25 @@ Before UAT:
 
 Before production:
 
-- Rotate leaked/committed secrets.
-- Harden webhook validation.
-- Add payment idempotency/reconciliation.
-- Protect broadcast channels.
-- Enforce active users and login throttle.
+- Confirm all leaked/committed secrets are rotated outside the repository.
+- Harden webhook validation with signature/replay checks if supported by Pakasir.
+- Add payment reconciliation and expiry handling.
+- Keep private broadcast channels and verify Reverb in production-like environment.
+- Add active-user auth tests and login throttling/rate limiting.
 - Use production env with SSL.
-- Fix Docker/deployment configuration.
-- Add indexes and data-integrity safeguards.
+- Follow `docs/DEPLOYMENT.md` and `.env.production.example`.
 - Add backups, log rotation, queue/scheduler supervision, and monitoring.
 
 ## Next Priorities
 
-1. Security hardening: secrets, webhook signature/replay, auth active check, broadcast privacy.
-2. Payment reliability: idempotency, duplicate webhook handling, expiry/reconcile jobs.
-3. Demo polish: status mismatch, cart cleanup, settings avoidance/fix.
-4. Deployment setup: production env, SSL, queue, scheduler, Reverb, AI Docker.
-5. Testing: PHPUnit feature tests plus Playwright smoke tests.
-6. Database integrity: historical snapshots, delete restrictions, indexes.
+1. Stage 8A quick wins: PostgreSQL-safe `ReviewController::getStatistics`, public API exposure audit, and route hardening for dev/simulation/debug endpoints.
+2. Rate limiting: login, order creation, payment creation, and Pakasir webhook.
+3. Admin AI Analytics cleanup: shared types, remove avoidable `any`, reduce inline styles, and review mock/static model data.
+4. Production observability: backup plan, alerting, log retention, failed job monitoring, and operational runbook.
+5. Payment reliability: scheduled reconciliation and expiry handling for stale Pakasir transactions.
+6. UAT: full customer/staff/admin end-to-end test on production-like PostgreSQL, Redis, Reverb, queue, scheduler, and FastAPI setup.
+7. Frontend maintainability: continue removing inline style and standardize remaining local types.
+8. Documentation alignment: resolve React 19 vs React 18 mismatch in project instructions.
 
 ## How To Run The Project Locally
 
@@ -686,11 +717,11 @@ You are working on UCW App, a Laravel 12 + Inertia + React TypeScript coffee sho
 
 Important constraints: do not change tech stack without confirmation; do not alter database destructively; use Laravel services for business logic; use Form Requests for validation; use Inertia routing for internal frontend navigation; React components are functional.
 
-Current state: Customer flow is mostly complete for demo. Staff dashboard exists with polling-backed Kanban and cash verification. Admin overview/live orders/menu/staff/finance/AI pages exist, but Admin Settings is incomplete. Pakasir sandbox QRIS/BRI VA and webhook are implemented with tests, but production hardening is still needed. FastAPI AI service exists and Laravel has fallbacks, but model startup and WMA SQL need hardening.
+Current state after stages 1-7F: Customer flow is safe for demo and now protects order/payment/status/review access with session-backed ownership. Pakasir is the active production payment gateway through PAYMENT_GATEWAY=pakasir; Midtrans remains as future/legacy code and should only run when PAYMENT_GATEWAY=midtrans. Pakasir webhook has project/order/amount/status validation, transaction detail checking, duplicate webhook idempotency, and production simulation guard. Broadcast channels are private with polling fallback. Database integrity has order detail snapshots, safer menu delete behavior, unique review per order, useful indexes, and customer-safe processing/preparing status mapping. FastAPI AI service uses safe model loading, /health status, and fallback responses; Laravel AiService also falls back gracefully. Frontend has been modularized through shared formatters/status helpers/types/components/hooks, customer component extraction, shared order Kanban, and admin/staff table helpers, but it is not fully finished.
 
-Known priorities: fix processing/preparing status mismatch, clear cart after order, repair Admin Settings or hide it, rotate Pakasir key from .env.example, harden Pakasir webhook with signature/replay/idempotency, protect broadcast channels, enforce is_active on login, fix Docker deployment paths, add payment expiry/reconciliation, add production env and queue/Reverb/AI supervision.
+Known priorities: stage 8A quick wins, PostgreSQL-safe ReviewController statistics, public API exposure audit, explicit rate limiting, Pakasir signature/replay hardening if supported, payment expiry/reconciliation, Admin AI Analytics cleanup, production observability/backup/alerting/log retention, full production-like UAT, and resolving React 19 vs React 18 documentation mismatch.
 
-Start by reading docs/PROJECT_HANDOVER.md and docs/ARCHITECTURE.md, then inspect the relevant files before changing anything.
+Start by reading docs/PROJECT_HANDOVER.md, docs/ARCHITECTURE.md, docs/PROGRESS_CHECKPOINT.md, and docs/DEPLOYMENT.md, then inspect the relevant files before changing anything.
 ```
 
 ## Parts Not Fully Confirmed From Repository
