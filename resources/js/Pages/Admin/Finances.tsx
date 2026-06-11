@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import EmptyState from "@/Components/shared/EmptyState";
+import { formatIDR } from "@/lib/formatters";
+import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/status";
+import type { Paginated } from "@/types/shared";
 import {
     Calendar,
     Download,
@@ -14,7 +18,7 @@ import {
 
 interface FinancesProps {
     auth: { user: AdminUser };
-    transactions?: any;
+    transactions?: Paginated<FinanceTransaction>;
     metrics?: {
         totalSales: number;
         totalSalesChange: string;
@@ -26,6 +30,16 @@ interface FinancesProps {
         averageOrderValueChange: string;
     };
     selectedMonth?: string;
+}
+
+interface FinanceTransaction {
+    id?: number | string;
+    date?: string;
+    order_id?: string;
+    customer_name?: string;
+    amount?: number | string;
+    payment_method?: string;
+    status?: string;
 }
 
 export default function Finances({
@@ -51,9 +65,7 @@ export default function Finances({
                     preserveScroll: true,
                 },
             );
-        } catch {
-            console.log("Month changed:", value);
-        }
+        } catch {}
     };
 
     const handleExport = () => {
@@ -61,9 +73,7 @@ export default function Finances({
             window.location.href = route("admin.finances.export" as any, {
                 month,
             });
-        } catch {
-            console.log("Export CSV for month:", month);
-        }
+        } catch {}
     };
 
     return (
@@ -109,18 +119,14 @@ export default function Finances({
                 <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 lg:mb-12 lg:gap-6">
                     <MetricCard
                         title="Total Penjualan"
-                        value={`Rp ${Number(
-                            currentMetrics?.totalSales || 0,
-                        ).toLocaleString("id-ID")}`}
+                        value={formatIDR(currentMetrics?.totalSales || 0)}
                         footer={currentMetrics?.totalSalesChange || "0%"}
                         desc="dibanding bulan lalu"
                     />
 
                     <MetricCard
                         title="Rata-rata Penjualan Harian"
-                        value={`Rp ${Number(
-                            currentMetrics?.averageDailySales || 0,
-                        ).toLocaleString("id-ID")}`}
+                        value={formatIDR(currentMetrics?.averageDailySales || 0)}
                         footer={currentMetrics?.averageDailySalesChange || "0%"}
                         desc="dalam bulan ini"
                     />
@@ -136,9 +142,7 @@ export default function Finances({
 
                     <MetricCard
                         title="Average Order Value"
-                        value={`Rp ${Number(
-                            currentMetrics?.averageOrderValue || 0,
-                        ).toLocaleString("id-ID")}`}
+                        value={formatIDR(currentMetrics?.averageOrderValue || 0)}
                         footer={currentMetrics?.averageOrderValueChange || "0%"}
                         desc="per transaksi paid"
                     />
@@ -170,7 +174,7 @@ export default function Finances({
 
                             <div className="space-y-4">
                                 {currentTransactions?.data?.length > 0 ? (
-                                    currentTransactions.data.map((tx: any) => (
+                                    currentTransactions.data.map((tx) => (
                                         <TransactionRow
                                             key={tx.id || tx.order_id}
                                             tx={tx}
@@ -186,7 +190,7 @@ export default function Finances({
                     {/* Mobile Cards */}
                     <div className="space-y-4 lg:hidden">
                         {currentTransactions?.data?.length > 0 ? (
-                            currentTransactions.data.map((tx: any) => (
+                            currentTransactions.data.map((tx) => (
                                 <TransactionCard
                                     key={tx.id || tx.order_id}
                                     tx={tx}
@@ -204,7 +208,7 @@ export default function Finances({
     );
 }
 
-function TransactionRow({ tx }: { tx: any }) {
+function TransactionRow({ tx }: { tx: FinanceTransaction }) {
     const Icon = getPaymentIcon(tx.payment_method);
 
     return (
@@ -220,12 +224,12 @@ function TransactionRow({ tx }: { tx: any }) {
             </div>
 
             <p className="text-[14px] font-extrabold">
-                Rp {Number(tx.amount).toLocaleString("id-ID")}
+                {formatIDR(tx.amount)}
             </p>
 
             <div className="flex items-center gap-2 text-[14px] font-medium text-[#5A4A47]">
                 <Icon size={16} />
-                <span>{tx.payment_method}</span>
+                <span>{getPaymentMethodLabel(tx.payment_method)}</span>
             </div>
 
             <StatusBadge status={tx.status} />
@@ -233,7 +237,7 @@ function TransactionRow({ tx }: { tx: any }) {
     );
 }
 
-function TransactionCard({ tx }: { tx: any }) {
+function TransactionCard({ tx }: { tx: FinanceTransaction }) {
     const Icon = getPaymentIcon(tx.payment_method);
 
     return (
@@ -244,7 +248,7 @@ function TransactionCard({ tx }: { tx: any }) {
                         {tx.order_id}
                     </p>
                     <h3 className="mt-1 text-[20px] font-extrabold tracking-[-0.5px]">
-                        Rp {Number(tx.amount).toLocaleString("id-ID")}
+                        {formatIDR(tx.amount)}
                     </h3>
                 </div>
 
@@ -265,14 +269,14 @@ function TransactionCard({ tx }: { tx: any }) {
             <div className="flex items-center justify-between gap-3 border-t border-[#F0ECEA] pt-4">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-[#5A4A47]">
                     <Icon size={16} />
-                    <span>{tx.payment_method}</span>
+                    <span>{getPaymentMethodLabel(tx.payment_method)}</span>
                 </div>
             </div>
         </div>
     );
 }
 
-function getPaymentIcon(method: string) {
+function getPaymentIcon(method?: string | null) {
     const lower = method?.toLowerCase() || "";
 
     if (lower.includes("cash")) return Banknote;
@@ -288,23 +292,20 @@ function getPaymentIcon(method: string) {
 
 function EmptyTransactions() {
     return (
-        <div className="rounded-[18px] border border-dashed border-[#DED7D3] bg-white px-5 py-10 text-center">
-            <h3 className="text-[16px] font-extrabold text-[#271310]">
-                Belum ada transaksi paid
-            </h3>
-            <p className="mt-2 text-[13px] font-medium text-[#5A4A47]">
-                Data akan muncul jika ada order completed dan payment status
-                paid pada bulan yang dipilih.
-            </p>
-        </div>
+        <EmptyState
+            title="Belum ada transaksi paid"
+            message="Data akan muncul jika ada order completed dan payment status paid pada bulan yang dipilih."
+        />
     );
 }
 
 function StatusBadge({ status }: { status: string }) {
     const isCompleted = status === "completed" || status === "paid";
+    const label = getPaymentStatusLabel(status || "completed");
 
     return (
         <span
+            title={label}
             className={`w-fit rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase md:px-4 md:py-2 md:text-[11px] ${
                 isCompleted
                     ? "bg-[#DDEED8] text-[#53664F]"
@@ -316,7 +317,7 @@ function StatusBadge({ status }: { status: string }) {
     );
 }
 
-function PaginationFooter({ data }: { data: any }) {
+function PaginationFooter({ data }: { data?: Paginated<FinanceTransaction> }) {
     if (!data) return null;
 
     const hasLaravelLinks = Array.isArray(data.links) && data.links.length > 0;
@@ -330,7 +331,7 @@ function PaginationFooter({ data }: { data: any }) {
 
             <div className="flex items-center gap-2 md:gap-3">
                 {hasLaravelLinks ? (
-                    data.links.map((link: any, index: number) => {
+                    data.links.map((link, index: number) => {
                         let label = link.label;
 
                         if (String(label).includes("Previous")) {

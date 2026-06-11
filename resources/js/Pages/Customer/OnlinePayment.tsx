@@ -1,12 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import axios from "axios";
 import { Head, Link, router } from "@inertiajs/react";
 import QRCode from "react-qr-code";
 import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
-import { formatIDR } from "@/lib/currency";
-import type { CustomerPaymentStatusResponse, PakasirMethod, PaymentMethod as BackendPaymentMethod, PaymentStatus, PakasirPaymentResponse } from "@/types/customer";
+import {
+    BriVaPanel as OnlineBriVaPanel,
+    OnlinePaymentMethodCard,
+    PaymentHeader as OnlinePaymentHeader,
+    PaymentInstructions as OnlinePaymentInstructions,
+    PaymentStatusCard,
+    PaymentSummaryCard,
+    QrisPanel as OnlineQrisPanel,
+    SelectedMethodSummary as OnlineSelectedMethodSummary,
+    TrackPaymentButton as OnlineTrackPaymentButton,
+} from "@/Components/customer/payment/OnlinePaymentBlocks";
+import { usePaymentStatusPolling } from "@/hooks/usePaymentStatusPolling";
+import { formatIDR } from "@/lib/formatters";
+import { getPaymentStatusLabel } from "@/lib/status";
+import type { PakasirMethod, PaymentMethod as BackendPaymentMethod, PaymentStatus, PakasirPaymentResponse } from "@/types/customer";
 
 interface Props {
     tableId: string;
@@ -75,56 +88,17 @@ export default function OnlinePayment({
     const resolvedExpiredAt = expiredAt ?? stored.expiredAt ?? null;
     const isPaymentRetryable = currentPaymentStatus === "expired" || currentPaymentStatus === "failed";
 
-    useEffect(() => {
-        if (!resolvedOrderRef || resolvedOrderRef === "-") return;
+    const handlePaymentPaid = useCallback(() => {
+        router.visit(route("customer.order.status", { order: resolvedOrderRef }));
+    }, [resolvedOrderRef]);
 
-        let cancelled = false;
-
-        async function pollPaymentStatus() {
-            try {
-                const res = await axios.get<CustomerPaymentStatusResponse>(
-                    `/customer/order/${encodeURIComponent(resolvedOrderRef)}/payment/status`,
-                );
-
-                if (cancelled) return;
-
-                const nextPaymentStatus = res.data.paymentStatus ?? res.data.payment_status;
-
-                if (nextPaymentStatus) {
-                    setCurrentPaymentStatus(nextPaymentStatus);
-                }
-
-                if (nextPaymentStatus === "paid") {
-                    router.visit(route("customer.order.status", { order: resolvedOrderRef }));
-                    return;
-                }
-
-                if (nextPaymentStatus === "expired") {
-                    setPaymentMessage("Payment has expired. Please create a new payment.");
-                    return;
-                }
-
-                if (nextPaymentStatus === "failed") {
-                    setPaymentMessage("Payment failed. Please create a new payment.");
-                    return;
-                }
-
-                setPaymentMessage("Waiting for Pakasir payment confirmation.");
-            } catch {
-                if (!cancelled && currentPaymentStatus === "unpaid") {
-                    setPaymentMessage("Still waiting for payment confirmation. We will retry shortly.");
-                }
-            }
-        }
-
-        pollPaymentStatus();
-        const interval = window.setInterval(pollPaymentStatus, 7000);
-
-        return () => {
-            cancelled = true;
-            window.clearInterval(interval);
-        };
-    }, [resolvedOrderRef, currentPaymentStatus]);
+    usePaymentStatusPolling({
+        orderRef: resolvedOrderRef,
+        currentPaymentStatus,
+        onStatusChange: setCurrentPaymentStatus,
+        onPaid: handlePaymentPaid,
+        onMessageChange: setPaymentMessage,
+    });
 
     function handleTrackOrder() {
         if (!resolvedOrderRef || resolvedOrderRef === "-") return;
@@ -187,16 +161,16 @@ export default function OnlinePayment({
                     />
 
                     <div className="flex-1 px-5 pb-36">
-                        <PaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} />
+                        <OnlinePaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} />
 
                         <div className="flex flex-col gap-3 mt-6">
-                            <PaymentMethodCard
+                            <OnlinePaymentMethodCard
                                 method="qris"
                                 selected={selected === "qris"}
                                 onSelect={() => setSelected("qris")}
                             />
 
-                            <PaymentMethodCard
+                            <OnlinePaymentMethodCard
                                 method="bri_va"
                                 selected={selected === "bri_va"}
                                 onSelect={() => setSelected("bri_va")}
@@ -205,14 +179,14 @@ export default function OnlinePayment({
 
                         <div className="mt-6">
                             {selected === "qris" ? (
-                                <QrisPanel
+                                <OnlineQrisPanel
                                     paymentNumber={resolvedPaymentNumber}
                                     orderRef={resolvedOrderRef}
                                     totalPayment={resolvedTotalPayment}
                                     expiredAt={resolvedExpiredAt}
                                 />
                             ) : (
-                                <BriVaPanel
+                                <OnlineBriVaPanel
                                     paymentNumber={resolvedPaymentNumber}
                                     orderRef={resolvedOrderRef}
                                     totalPayment={resolvedTotalPayment}
@@ -223,8 +197,8 @@ export default function OnlinePayment({
                             )}
                         </div>
 
-                        <PaymentInstructions method={selected} />
-                        <PaymentNotice status={currentPaymentStatus} message={paymentMessage} />
+                        <OnlinePaymentInstructions method={selected} />
+                        <PaymentStatusCard status={currentPaymentStatus} message={paymentMessage} />
                     </div>
 
                     <div
@@ -235,13 +209,13 @@ export default function OnlinePayment({
                         }}
                     >
                         {isPaymentRetryable ? (
-                            <TrackPaymentButton
+                            <OnlineTrackPaymentButton
                                 label={isRecreatingPayment ? "Creating Payment..." : "Pay Again"}
                                 onTrack={handlePayAgain}
                                 disabled={isRecreatingPayment}
                             />
                         ) : (
-                            <TrackPaymentButton onTrack={handleTrackOrder} />
+                            <OnlineTrackPaymentButton onTrack={handleTrackOrder} />
                         )}
                         <p
                             className="text-center mt-3 uppercase tracking-[0.12em]"
@@ -250,7 +224,7 @@ export default function OnlinePayment({
                                 color: "var(--color-ucw-text-muted)",
                             }}
                         >
-                            {formatPaymentStatus(currentPaymentStatus)}
+                            {getPaymentStatusLabel(currentPaymentStatus)}
                         </p>
                     </div>
                 </div>
@@ -270,17 +244,17 @@ export default function OnlinePayment({
                         />
 
                         <div className="flex-1 max-w-4xl mx-auto w-full px-8 lg:px-10 py-8">
-                            <PaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} desktop />
+                            <OnlinePaymentHeader total={resolvedTotalPayment} orderRef={resolvedOrderRef} desktop />
 
                             <div className="grid grid-cols-2 gap-5 mt-7">
-                                <PaymentMethodCard
+                                <OnlinePaymentMethodCard
                                     method="qris"
                                     selected={selected === "qris"}
                                     onSelect={() => setSelected("qris")}
                                     desktop
                                 />
 
-                                <PaymentMethodCard
+                                <OnlinePaymentMethodCard
                                     method="bri_va"
                                     selected={selected === "bri_va"}
                                     onSelect={() => setSelected("bri_va")}
@@ -290,22 +264,20 @@ export default function OnlinePayment({
 
                             <div className="mt-6">
                                 {selected === "qris" ? (
-                                    <QrisPanel
+                                    <OnlineQrisPanel
                                         paymentNumber={resolvedPaymentNumber}
                                         orderRef={resolvedOrderRef}
                                         totalPayment={resolvedTotalPayment}
                                         expiredAt={resolvedExpiredAt}
-                                        desktop
                                     />
                                 ) : (
-                                    <BriVaPanel
+                                    <OnlineBriVaPanel
                                         paymentNumber={resolvedPaymentNumber}
                                         orderRef={resolvedOrderRef}
                                         totalPayment={resolvedTotalPayment}
                                         expiredAt={resolvedExpiredAt}
                                         copied={copied}
                                         onCopy={handleCopyPaymentNumber}
-                                        desktop
                                     />
                                 )}
                             </div>
@@ -341,53 +313,26 @@ export default function OnlinePayment({
                         </div>
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
-                            <SelectedMethodSummary selected={selected} />
+                            <OnlineSelectedMethodSummary selected={selected} />
 
-                            <div
-                                className="rounded-2xl p-5"
-                                style={{ backgroundColor: "var(--color-ucw-dark)" }}
-                            >
-                                <p
-                                    className="font-semibold uppercase tracking-[0.12em] mb-1"
-                                    style={{
-                                        fontSize: "10px",
-                                        color: "rgba(255,255,255,0.55)",
-                                    }}
-                                >
-                                    TOTAL PAYMENT
-                                </p>
+                            <PaymentSummaryCard
+                                totalPayment={resolvedTotalPayment}
+                                orderRef={resolvedOrderRef}
+                            />
 
-                                <p
-                                    className="font-black"
-                                    style={{ fontSize: "28px", color: "white" }}
-                                >
-                                    {formatIDR(resolvedTotalPayment)}
-                                </p>
-
-                                <p
-                                    className="mt-1"
-                                    style={{
-                                        fontSize: "11px",
-                                        color: "rgba(255,255,255,0.45)",
-                                    }}
-                                >
-                                    Order #{resolvedOrderRef}
-                                </p>
-                            </div>
-
-                            <PaymentInstructions method={selected} compact />
-                            <PaymentNotice status={currentPaymentStatus} message={paymentMessage} />
+                            <OnlinePaymentInstructions method={selected} compact />
+                            <PaymentStatusCard status={currentPaymentStatus} message={paymentMessage} />
                         </div>
 
                         <div className="px-8 pb-8">
                             {isPaymentRetryable ? (
-                                <TrackPaymentButton
+                                <OnlineTrackPaymentButton
                                     label={isRecreatingPayment ? "Creating Payment..." : "Pay Again"}
                                     onTrack={handlePayAgain}
                                     disabled={isRecreatingPayment}
                                 />
                             ) : (
-                                <TrackPaymentButton onTrack={handleTrackOrder} />
+                                <OnlineTrackPaymentButton onTrack={handleTrackOrder} />
                             )}
 
                             <Link

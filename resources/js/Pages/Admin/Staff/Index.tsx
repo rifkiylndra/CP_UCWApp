@@ -4,6 +4,7 @@ import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
 import AddUserModal from "@/Components/Modals/AddAdminModal";
 import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
+import { useModalState } from "@/hooks/useModalState";
 import {
   UserPlus,
   ShieldPlus,
@@ -24,7 +25,7 @@ interface StaffIndexProps {
 }
 
 export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
-  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+  const staffModal = useModalState();
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
   const [modalRole, setModalRole] = useState<"staff" | "admin">("staff");
   const [roleFilter, setRoleFilter] = useState(filters?.role || "all");
@@ -46,13 +47,13 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
   const handleAdd = (role: "staff" | "admin") => {
     setSelectedStaff(null);
     setModalRole(role);
-    setIsStaffModalOpen(true);
+    staffModal.open();
   };
 
   const handleEdit = (item: any) => {
     setSelectedStaff(item);
     setModalRole(item.role === "admin" ? "admin" : "staff");
-    setIsStaffModalOpen(true);
+    staffModal.open();
   };
 
   const handleDelete = (item: any) => {
@@ -92,9 +93,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
           preserveState: true,
         }
       );
-    } catch {
-      console.log("Filter role:", role);
-    }
+    } catch {}
   };
 
   const exportHref = route("admin.staff.export" as any, {
@@ -104,8 +103,8 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
   return (
     <AdminLayout auth={auth} title="Staff Management" currentRoute="admin.staff">
       <AddUserModal
-        isOpen={isStaffModalOpen}
-        onClose={() => setIsStaffModalOpen(false)}
+        isOpen={staffModal.isOpen}
+        onClose={staffModal.close}
         staffToEdit={selectedStaff}
         defaultRole={modalRole}
       />

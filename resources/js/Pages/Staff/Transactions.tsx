@@ -1,13 +1,14 @@
 import { Head } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
 import type { StaffUser, DailyTransaction } from "@/types/staff";
+import { formatIDR } from "@/lib/formatters";
+import { getPaymentStatusLabel } from "@/lib/status";
 import { ReactNode, useState } from "react";
 import {
     Banknote,
     CreditCard,
     Download,
     Search,
-    Star,
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
@@ -31,13 +32,6 @@ export default function Transactions({
     summary,
     date,
 }: Props) {
-    const formatCurrency = (value: number) =>
-        new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-            maximumFractionDigits: 0,
-        }).format(value);
-
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredTransactions = transactions.filter((trx) => {
@@ -76,7 +70,7 @@ export default function Transactions({
                                 Today's Revenue
                             </p>
                             <p className="mt-1 text-[18px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[20px]">
-                                {formatCurrency(summary.totalRevenue)}
+                                {formatIDR(summary.totalRevenue)}
                             </p>
                         </div>
 
@@ -97,14 +91,14 @@ export default function Transactions({
     <SummaryCard
         icon={<Banknote size={20} />}
         label="Cash Transactions"
-        value={formatCurrency(summary.cashTotal)}
+        value={formatIDR(summary.cashTotal)}
         variant="light"
     />
 
     <SummaryCard
         icon={<CreditCard size={20} />}
         label="Digital Payments"
-        value={formatCurrency(summary.digitalTotal)}
+        value={formatIDR(summary.digitalTotal)}
         variant="green"
     />
 </div>
@@ -174,7 +168,7 @@ export default function Transactions({
                                         </TableCell>
 
                                         <TableCell className="font-extrabold text-[#271310]">
-                                            {formatCurrency(trx.totalPrice)}
+                                            {formatIDR(trx.totalPrice)}
                                         </TableCell>
 
                                         <TableCell className="text-[#5A4A47]">
@@ -196,7 +190,6 @@ export default function Transactions({
                             <TransactionMobileCard
                                 key={trx.id}
                                 trx={trx}
-                                formatCurrency={formatCurrency}
                             />
                         ))}
                     </div>
@@ -319,10 +312,8 @@ function Avatar({ transaction }: { transaction: DailyTransaction }) {
 
 function TransactionMobileCard({
     trx,
-    formatCurrency,
 }: {
     trx: DailyTransaction;
-    formatCurrency: (value: number) => string;
 }) {
     return (
         <article className="rounded-[20px] bg-white p-4 shadow-[0_3px_14px_rgba(39,19,16,0.04)]">
@@ -350,7 +341,7 @@ function TransactionMobileCard({
                 </div>
 
                 <p className="text-right text-[17px] font-extrabold tracking-[-0.03em] text-[#271310]">
-                    {formatCurrency(trx.totalPrice)}
+                    {formatIDR(trx.totalPrice)}
                 </p>
             </div>
         </article>
@@ -358,10 +349,12 @@ function TransactionMobileCard({
 }
 
 function StatusBadge({ status }: { status: DailyTransaction["status"] | string }) {
+    const label = getPaymentStatusLabel(status);
+
     if (status === "refunded") {
         return (
             <span className="inline-flex rounded-full bg-[#FFD9D6] px-3 py-1 text-[10px] font-extrabold uppercase text-[#C62828]">
-                Refunded
+                {label}
             </span>
         );
     }
@@ -369,7 +362,7 @@ function StatusBadge({ status }: { status: DailyTransaction["status"] | string }
     if (status === "pending") {
         return (
             <span className="inline-flex rounded-full bg-[#FFF0C7] px-3 py-1 text-[10px] font-extrabold uppercase text-[#A46A00]">
-                Pending
+                {label}
             </span>
         );
     }
@@ -377,7 +370,7 @@ function StatusBadge({ status }: { status: DailyTransaction["status"] | string }
     if (status === "processing") {
         return (
             <span className="inline-flex rounded-full bg-[#E3F2FD] px-3 py-1 text-[10px] font-extrabold uppercase text-[#1565C0]">
-                Processing
+                {label}
             </span>
         );
     }
@@ -385,14 +378,14 @@ function StatusBadge({ status }: { status: DailyTransaction["status"] | string }
     if (status === "cancelled") {
         return (
             <span className="inline-flex rounded-full bg-[#EEEEEE] px-3 py-1 text-[10px] font-extrabold uppercase text-[#616161]">
-                Cancelled
+                {label}
             </span>
         );
     }
 
     return (
         <span className="inline-flex rounded-full bg-[#DCEED8] px-3 py-1 text-[10px] font-extrabold uppercase text-[#4F654D]">
-            Completed
+            {label}
         </span>
     );
 }

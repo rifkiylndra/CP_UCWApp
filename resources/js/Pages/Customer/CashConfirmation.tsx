@@ -3,7 +3,7 @@ import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
-import { formatIDR } from "@/lib/currency";
+import { formatIDR } from "@/lib/formatters";
 import type { PaymentStatus } from "@/types/customer";
 
 interface Props {

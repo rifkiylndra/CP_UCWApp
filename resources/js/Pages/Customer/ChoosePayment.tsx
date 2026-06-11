@@ -5,7 +5,15 @@ import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
-import { formatIDR } from "@/lib/currency";
+import {
+    ConfirmPaymentButton,
+    PaymentError as ChoosePaymentError,
+    PaymentMethodCard as ChoosePaymentMethodCard,
+    SelectedPaymentSummary as ChooseSelectedPaymentSummary,
+    TotalCard as ChooseTotalCard,
+    type PaymentChoice,
+} from "@/Components/customer/payment/ChoosePaymentBlocks";
+import { formatIDR } from "@/lib/formatters";
 import { useCart } from "@/hooks/useCart";
 import type { PakasirPaymentResponse } from "@/types/customer";
 
@@ -16,8 +24,6 @@ interface Props {
     orderId?: number;
     orderRef?: string;
 }
-
-type PaymentChoice = "qris" | "bri_va" | "cash" | null;
 
 export default function ChoosePayment({
     tableId,
@@ -49,27 +55,11 @@ export default function ChoosePayment({
         try {
             if (selected === "cash") {
                 const url = route("customer.payment.process", { order: orderRef });
-                console.log("Creating payment", { orderRef, method: "cash", url });
-
-                console.log("Before axios.post", {
-                    orderRef,
-                    method: "cash",
-                    url,
-                    axiosAvailable: Boolean(axios?.post),
-                    windowAxiosAvailable: Boolean(window.axios?.post),
-                });
 
                 const res = await axios.post<PakasirPaymentResponse>(
                     url,
                     { payment_method: "cash" },
                 );
-
-                console.log("After axios.post", {
-                    orderRef,
-                    method: "cash",
-                    status: res.status,
-                    data: res.data,
-                });
 
                 sessionStorage.setItem(paymentStorageKey, JSON.stringify(res.data));
                 clearCart();
@@ -78,27 +68,11 @@ export default function ChoosePayment({
             }
 
             const url = route("customer.payment.pakasir.order", { order: orderRef });
-            console.log("Creating payment", { orderRef, method: selected, url });
-
-            console.log("Before axios.post", {
-                orderRef,
-                method: selected,
-                url,
-                axiosAvailable: Boolean(axios?.post),
-                windowAxiosAvailable: Boolean(window.axios?.post),
-            });
 
             const res = await axios.post<PakasirPaymentResponse>(
                 url,
                 { method: selected },
             );
-
-            console.log("After axios.post", {
-                orderRef,
-                method: selected,
-                status: res.status,
-                data: res.data,
-            });
 
             if (!res.data.success) {
                 setErrorMessage(res.data.message || "Failed to create payment.");
@@ -148,27 +122,27 @@ export default function ChoosePayment({
                         </div>
 
                         <div className="flex flex-col gap-3 mb-6">
-                            <PaymentMethodCard
+                            <ChoosePaymentMethodCard
                                 type="qris"
                                 selected={selected === "qris"}
                                 onSelect={() => setSelected("qris")}
                             />
 
-                            <PaymentMethodCard
+                            <ChoosePaymentMethodCard
                                 type="bri_va"
                                 selected={selected === "bri_va"}
                                 onSelect={() => setSelected("bri_va")}
                             />
 
-                            <PaymentMethodCard
+                            <ChoosePaymentMethodCard
                                 type="cash"
                                 selected={selected === "cash"}
                                 onSelect={() => setSelected("cash")}
                             />
                         </div>
 
-                        {errorMessage && <PaymentError message={errorMessage} />}
-                        <TotalCard total={total} />
+                        {errorMessage && <ChoosePaymentError message={errorMessage} />}
+                        <ChooseTotalCard total={total} />
                         <TrustBlurb className="mt-4" />
                     </div>
 
@@ -179,7 +153,7 @@ export default function ChoosePayment({
                                 "linear-gradient(to top, var(--color-ucw-bg) 65%, transparent)",
                         }}
                     >
-                        <ConfirmButton
+                        <ConfirmPaymentButton
                             selected={selected}
                             onConfirm={handleConfirm}
                             isLoading={isProcessing}
@@ -209,21 +183,21 @@ export default function ChoosePayment({
                             </div>
 
                             <div className="grid grid-cols-3 gap-5 mt-7">
-                                <PaymentMethodCard
+                                <ChoosePaymentMethodCard
                                     type="qris"
                                     selected={selected === "qris"}
                                     onSelect={() => setSelected("qris")}
                                     desktop
                                 />
 
-                                <PaymentMethodCard
+                                <ChoosePaymentMethodCard
                                     type="bri_va"
                                     selected={selected === "bri_va"}
                                     onSelect={() => setSelected("bri_va")}
                                     desktop
                                 />
 
-                                <PaymentMethodCard
+                                <ChoosePaymentMethodCard
                                     type="cash"
                                     selected={selected === "cash"}
                                     onSelect={() => setSelected("cash")}
@@ -264,13 +238,13 @@ export default function ChoosePayment({
                         </div>
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
-                            <SelectedPaymentSummary selected={selected} />
-                            {errorMessage && <PaymentError message={errorMessage} />}
-                            <TotalCard total={total} compact />
+                            <ChooseSelectedPaymentSummary selected={selected} />
+                            {errorMessage && <ChoosePaymentError message={errorMessage} />}
+                            <ChooseTotalCard total={total} compact />
                         </div>
 
                         <div className="px-8 pb-8">
-                            <ConfirmButton
+                            <ConfirmPaymentButton
                                 selected={selected}
                                 onConfirm={handleConfirm}
                                 isLoading={isProcessing}
