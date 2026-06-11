@@ -539,12 +539,29 @@ class PakasirPaymentTest extends TestCase
 
     public function test_simulation_route_is_blocked_in_production(): void
     {
-        $this->app->detectEnvironment(fn () => 'production');
-        config(['services.pakasir.mode' => 'sandbox']);
-        $order = $this->createOrderWithTable(22000);
+        $originalRoutes = \Illuminate\Support\Facades\Route::getRoutes();
+        $originalEnv = config('app.env');
+        $originalPakasirMode = config('services.pakasir.mode');
 
-        $this->postJson("/api/dev/pakasir/payments/{$order->order_ref}/simulate")
-            ->assertForbidden();
+        try {
+            \Illuminate\Support\Facades\Route::setRoutes(new \Illuminate\Routing\RouteCollection());
+            config([
+                'app.env' => 'production',
+                'services.pakasir.mode' => 'sandbox',
+            ]);
+
+            require base_path('routes/api.php');
+
+            $this->assertNull(
+                \Illuminate\Support\Facades\Route::getRoutes()->getByName('api.dev.pakasir.payments.simulate')
+            );
+        } finally {
+            \Illuminate\Support\Facades\Route::setRoutes($originalRoutes);
+            config([
+                'app.env' => $originalEnv,
+                'services.pakasir.mode' => $originalPakasirMode,
+            ]);
+        }
     }
 
     private function createMenu(int $price): Menu

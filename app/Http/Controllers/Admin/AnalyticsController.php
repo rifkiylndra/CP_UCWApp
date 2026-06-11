@@ -57,6 +57,7 @@ class AnalyticsController extends Controller
         }
 
         $efficiencyData = [];
+        $efficiencyIsFallback = false;
         foreach ($timeSlots as $slot => $config) {
             $totalActual = 0;
             $totalEstimated = 0;
@@ -76,6 +77,7 @@ class AnalyticsController extends Controller
             } else {
                 $actual = $config['base_actual'];
                 $estimated = $config['base_estimated'];
+                $efficiencyIsFallback = true;
             }
 
             $efficiencyData[] = [
@@ -90,6 +92,7 @@ class AnalyticsController extends Controller
             'sentimentSummary' => $sentimentSummary,
             'recentReviews' => $recentReviews,
             'efficiencyData' => $efficiencyData,
+            'efficiencyIsFallback' => $efficiencyIsFallback,
             'aiServiceStatus' => $this->checkAiServiceStatus(),
         ]);
     }

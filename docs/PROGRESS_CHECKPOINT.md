@@ -112,6 +112,36 @@ Next step tahap 8A:
 
 ---
 
+## Checkpoint Tahap 8B
+
+Fokus tahap 8B:
+
+- [x] Cleanup `resources/js/Pages/Admin/AIAnalytics.tsx`:
+  - type/interface props dan view model ditambahkan;
+  - `any` yang mudah diganti dihapus;
+  - angka statis `Active Forecasts 2,142` diganti menjadi jumlah tracker points aktual;
+  - data live/fallback/demo diberi label agar tidak misleading;
+  - loading, empty, dan fallback/error state ditampilkan tanpa redesign besar.
+- [x] Backend maintainability kecil:
+  - validasi `Admin/StaffController@store` dipindah ke `StoreStaffRequest`;
+  - validasi `Admin/StaffController@update` dipindah ke `UpdateStaffRequest`;
+  - payload dan redirect response tetap sama.
+- [x] Audit controller staff legacy:
+  - route aktif `routes/web.php` dan `routes/api.php` memakai `App\Http\Controllers\Staff\DashboardController`;
+  - `App\Http\Controllers\Staff\StaffDashboardController` berisi dummy data dan tidak ditemukan referensi route/test;
+  - file tidak dihapus pada tahap ini, direkomendasikan sebagai kandidat cleanup setelah konfirmasi.
+- [x] Production operations documentation:
+  - `docs/DEPLOYMENT.md` ditambah backup checklist, restore procedure, log rotation, monitoring/alerting, process monitoring, production-like smoke test, dan UAT checklist singkat.
+
+Next after 8B:
+
+1. Konfirmasi apakah `StaffDashboardController.php` boleh dihapus atau dipindahkan sebagai arsip.
+2. Lanjut cleanup Admin AI Analytics backend agar efficiency data tidak memakai fallback slot statis tanpa flag eksplisit.
+3. Tambahkan CI/checklist untuk backup restore drill dan process monitoring.
+4. Lanjut Form Request terbatas untuk controller admin/staff lain yang masih aman.
+
+---
+
 ## Ringkasan Status Akhir
 
 - [x] Customer app utama selesai dan sudah diperbaiki beberapa bug penting.

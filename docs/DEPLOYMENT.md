@@ -98,6 +98,58 @@ cd ai_service
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
+## Production Operations
+
+Database backup checklist:
+
+- Run a daily PostgreSQL logical backup with `pg_dump`.
+- Store backups outside the application container or VPS data disk.
+- Encrypt backups before moving them to external storage.
+- Keep at least 7 daily backups and 4 weekly backups for UAT/early production.
+- Record the backup timestamp, database name, app commit/checkpoint, and operator.
+- Test restore on a non-production database before relying on the backup policy.
+
+Example backup command:
+
+```bash
+pg_dump --format=custom --no-owner --no-acl --file=/backups/ucw_$(date +%F_%H%M).dump "$DATABASE_URL"
+```
+
+Restore procedure:
+
+1. Stop queue, scheduler, and Reverb workers to prevent writes during restore.
+2. Create a fresh database or confirm the restore target is non-production.
+3. Restore with `pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" /backups/ucw_YYYY-MM-DD_HHMM.dump`.
+4. Run `php artisan migrate --force` only after confirming schema state.
+5. Run a smoke test for login, customer order, Pakasir payment status, staff status update, admin dashboard, and AI fallback.
+6. Restart queue, scheduler, Reverb, and FastAPI processes.
+
+Log rotation:
+
+- Rotate Laravel logs under `storage/logs`.
+- Keep Nginx access/error logs with a retention window appropriate for the server disk.
+- Keep queue worker, scheduler, Reverb, and FastAPI process logs separate enough to debug incidents.
+- Alert on repeated `ERROR` logs, failed jobs, Pakasir webhook failures, and FastAPI health failures.
+
+Process monitoring:
+
+- Monitor `queue` worker count and failed jobs.
+- Monitor `scheduler` last successful run.
+- Monitor `reverb` process uptime and websocket connection errors.
+- Monitor `ai-service` `/health`, including model status and database connectivity.
+- Monitor PostgreSQL disk, connections, CPU, memory, and backup freshness.
+- Monitor Redis memory and eviction policy if Redis is used for queues/cache.
+
+Minimum alerting:
+
+- Application returns 5xx repeatedly.
+- Queue worker stopped or failed jobs are increasing.
+- Scheduler has not run in the expected interval.
+- Reverb process is down.
+- FastAPI `/health` is down or reports model/database failure.
+- Pakasir webhook returns non-2xx or invalid payload spikes.
+- Latest database backup is older than the configured retention target.
+
 ## Dev And Simulation Routes
 
 Pakasir simulation is routed at `/api/dev/pakasir/payments/{order}/simulate`, but the controller blocks it outside local/testing or non-production sandbox mode. Keep `PAKASIR_MODE=production` and `APP_ENV=production` in production.
@@ -115,6 +167,41 @@ Pakasir simulation is routed at `/api/dev/pakasir/payments/{order}/simulate`, bu
 - Admin dashboard and finance pages load.
 - Reverb private order channel authorizes only the owning customer session or staff/admin.
 - AI service health check is reachable, or Laravel fallback behavior is acceptable.
+
+## Production-Like UAT Checklist
+
+Customer:
+
+- QR landing opens with the expected table context.
+- Menu search/filter works and only public menu fields are visible.
+- Cart, order type, estimate, order creation, and payment selection work.
+- Pakasir QRIS and BRI VA creation work in the configured environment.
+- Cash flow waits for staff verification.
+- Order status updates through polling and Reverb when available.
+- Feedback/review works only for the owning customer session and completed orders.
+
+Staff:
+
+- Staff login works for active users and rejects inactive users.
+- Dashboard loads incoming/processing/completed orders.
+- Staff can verify cash and update status.
+- Transactions and export work for the selected day.
+
+Admin:
+
+- Admin login works for active users and rejects inactive users.
+- Overview, live orders, menu/category CRUD, staff/admin CRUD, finance, export, feedback, and AI analytics load.
+- AI Analytics clearly indicates live versus fallback/demo data.
+- Admin Settings is smoke-tested before being used in UAT.
+
+Operations:
+
+- Queue, scheduler, Reverb, FastAPI, PostgreSQL, Redis, and Nginx are supervised.
+- `php artisan test --filter=PakasirPaymentTest` passes in CI/local verification.
+- `php artisan test --filter=CustomerOrderAccessTest` passes.
+- `php artisan test --filter=OrderIntegrityTest` passes.
+- `npm run build` passes.
+- Backup and restore procedure has been tested on non-production data.
 
 ## Verification Commands
 

@@ -36,16 +36,25 @@ Route::middleware('api')->group(function () {
     
     // Order API (public for QR ordering)
     Route::prefix('order')->group(function () {
-        Route::post('/', [\App\Http\Controllers\Customer\OrderController::class, 'store']);
+        Route::post('/', [\App\Http\Controllers\Customer\OrderController::class, 'store'])->middleware('throttle:30,1');
         Route::get('/{order}', [\App\Http\Controllers\Customer\OrderController::class, 'show']);
         Route::get('/table/{table}/orders', [\App\Http\Controllers\Customer\OrderController::class, 'getTableOrders']);
     });
     
     // Payment callback (Midtrans)
     Route::post('/payment/callback', [\App\Http\Controllers\Customer\PaymentController::class, 'callback']);
-    Route::post('/webhooks/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'pakasirWebhook']);
-    Route::post('/dev/pakasir/payments/{order}/simulate', [\App\Http\Controllers\Customer\PaymentController::class, 'simulatePakasirPayment'])
-        ->name('api.dev.pakasir.payments.simulate');
+    Route::post('/webhooks/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'pakasirWebhook'])
+        ->middleware('throttle:120,1');
+
+    $environment = config('app.env');
+    $pakasirSimulationRouteEnabled = in_array($environment, ['local', 'testing'], true)
+        || ($environment !== 'production' && config('services.pakasir.mode') === 'sandbox');
+
+    if ($pakasirSimulationRouteEnabled) {
+        Route::post('/dev/pakasir/payments/{order}/simulate', [\App\Http\Controllers\Customer\PaymentController::class, 'simulatePakasirPayment'])
+            ->middleware('throttle:30,1')
+            ->name('api.dev.pakasir.payments.simulate');
+    }
     
     // Review API
     Route::prefix('review')->group(function () {

@@ -14,7 +14,7 @@ Route::get('/', fn () => redirect()->route('customer.landing'))->name('welcome')
 
 // ==================== AUTHENTICATION (UNIVERSAL) ====================
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::post('/realtime/auth', function (Request $request) {
@@ -158,7 +158,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::get('/cart', [\App\Http\Controllers\Customer\OrderController::class, 'cart'])->name('cart');
     
     // Create order
-    Route::post('/order', [\App\Http\Controllers\Customer\OrderController::class, 'store'])->name('order.store');
+    Route::post('/order', [\App\Http\Controllers\Customer\OrderController::class, 'store'])->middleware('throttle:30,1')->name('order.store');
     
     // Order status tracking
     Route::get('/order/{order}/status', [\App\Http\Controllers\Customer\OrderController::class, 'status'])->name('order.status');
@@ -180,9 +180,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
     
     // Payment
     Route::get('/order/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'index'])->name('payment');
-    Route::post('/order/{order}/payment/process', [\App\Http\Controllers\Customer\PaymentController::class, 'process'])->name('payment.process');
-    Route::post('/order/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPaymentByOrder'])->name('payment.pakasir.order');
-    Route::post('/{tableId}/orders/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPayment'])->name('payment.pakasir');
+    Route::post('/order/{order}/payment/process', [\App\Http\Controllers\Customer\PaymentController::class, 'process'])->middleware('throttle:30,1')->name('payment.process');
+    Route::post('/order/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPaymentByOrder'])->middleware('throttle:30,1')->name('payment.pakasir.order');
+    Route::post('/{tableId}/orders/{order}/payments/pakasir', [\App\Http\Controllers\Customer\PaymentController::class, 'createPakasirPayment'])->middleware('throttle:30,1')->name('payment.pakasir');
     Route::get('/order/{order}/payment/success', [\App\Http\Controllers\Customer\PaymentController::class, 'success'])->name('payment.success');
     Route::get('/order/{order}/payment/error', [\App\Http\Controllers\Customer\PaymentController::class, 'error'])->name('payment.error');
     Route::get('/order/{order}/payment/status', [\App\Http\Controllers\Customer\PaymentController::class, 'checkStatus'])->name('payment.status');

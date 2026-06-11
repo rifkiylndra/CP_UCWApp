@@ -149,7 +149,25 @@ class ReviewController extends Controller
         $reviews = Review::with(['order.orderDetails.menu'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function (Review $review) {
+                return [
+                    'id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'sentiment_label' => $review->sentiment_label,
+                    'created_at' => $review->created_at?->toIso8601String(),
+                    'updated_at' => $review->updated_at?->toIso8601String(),
+                    'order' => $review->order ? [
+                        'order_type' => $review->order->order_type,
+                        'created_at' => $review->order->created_at?->toIso8601String(),
+                        'items' => $review->order->orderDetails->map(fn ($detail) => [
+                            'name' => $detail->menu_name ?? $detail->menu?->name,
+                            'quantity' => $detail->quantity,
+                        ])->values(),
+                    ] : null,
+                ];
+            });
         
         return response()->json($reviews);
     }
@@ -159,23 +177,17 @@ class ReviewController extends Controller
      */
     public function getStatistics()
     {
-        $statistics = \DB::table('reviews')
-            ->selectRaw('
-                COUNT(*) as total_reviews,
-                AVG(rating) as average_rating,
-                SUM(CASE WHEN sentiment_label = "positive" THEN 1 ELSE 0 END) as positive_count,
-                SUM(CASE WHEN sentiment_label = "neutral" THEN 1 ELSE 0 END) as neutral_count,
-                SUM(CASE WHEN sentiment_label = "negative" THEN 1 ELSE 0 END) as negative_count
-            ')
-            ->first();
+        $reviews = Review::query()
+            ->select(['rating', 'sentiment_label'])
+            ->get();
         
         return response()->json([
-            'total_reviews' => $statistics->total_reviews ?? 0,
-            'average_rating' => round($statistics->average_rating ?? 0, 1),
+            'total_reviews' => $reviews->count(),
+            'average_rating' => round((float) ($reviews->avg('rating') ?? 0), 1),
             'sentiment_distribution' => [
-                'positive' => $statistics->positive_count ?? 0,
-                'neutral' => $statistics->neutral_count ?? 0,
-                'negative' => $statistics->negative_count ?? 0,
+                'positive' => $reviews->where('sentiment_label', 'positive')->count(),
+                'neutral' => $reviews->where('sentiment_label', 'neutral')->count(),
+                'negative' => $reviews->where('sentiment_label', 'negative')->count(),
             ],
         ]);
     }

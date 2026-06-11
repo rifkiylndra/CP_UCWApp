@@ -417,7 +417,7 @@ class PaymentController extends Controller
             'updated_at' => $order->updated_at?->toIso8601String(),
             'table_number' => $order->table?->table_number,
             'items' => $items,
-            'payments' => $order->payments,
+            'payments' => $order->payments->map(fn (Payment $payment) => $this->formatPublicPayment($payment))->values(),
             'orderId' => $order->id,
             'orderRef' => $order->order_ref,
             'paymentStatus' => $order->payment_status,
@@ -491,6 +491,24 @@ class PaymentController extends Controller
             'totalPayment' => $payment->total_payment ? (float) $payment->total_payment : null,
             'expiredAt' => $payment->expired_at?->toIso8601String(),
             'payment_id' => $payment->id,
+        ];
+    }
+
+    private function formatPublicPayment(Payment $payment): array
+    {
+        return [
+            'id' => $payment->id,
+            'provider' => $payment->provider,
+            'payment_method' => $payment->payment_method,
+            'payment_status' => $payment->payment_status,
+            'amount' => (float) $payment->amount,
+            'fee' => $payment->fee !== null ? (float) $payment->fee : null,
+            'total_payment' => $payment->total_payment !== null ? (float) $payment->total_payment : null,
+            'payment_number' => $payment->payment_number,
+            'expired_at' => $payment->expired_at?->toIso8601String(),
+            'paid_at' => $payment->paid_at?->toIso8601String(),
+            'completed_at' => $payment->completed_at?->toIso8601String(),
+            'created_at' => $payment->created_at?->toIso8601String(),
         ];
     }
 

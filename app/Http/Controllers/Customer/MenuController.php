@@ -102,12 +102,14 @@ class MenuController extends Controller
     {
         $query = $request->query('q');
         
-        $menus = Menu::where('is_available', true)
+        $menus = Menu::with('category')
+            ->where('is_available', true)
             ->where(function($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                   ->orWhere('description', 'like', "%{$query}%");
             })
-            ->get();
+            ->get()
+            ->map(fn (Menu $menu) => $this->formatMenu($menu));
 
         return response()->json($menus);
     }
@@ -119,6 +121,25 @@ class MenuController extends Controller
     {
         $menu = Menu::with('category')->findOrFail($id);
         
-        return response()->json($menu);
+        return response()->json($this->formatMenu($menu));
+    }
+
+    private function formatMenu(Menu $menu): array
+    {
+        return [
+            'id' => (string) $menu->id,
+            'category_id' => $menu->category_id,
+            'name' => $menu->name,
+            'subtitle' => $menu->description ?? '',
+            'description' => $menu->description ?? '',
+            'price' => (float) $menu->price,
+            'estimated_time' => (int) $menu->estimated_time,
+            'category_name' => $menu->category?->name,
+            'image' => $menu->image,
+            'image_url' => $menu->image_url,
+            'imageUrl' => $menu->image_url,
+            'isAvailable' => (bool) $menu->is_available,
+            'isPopular' => false,
+        ];
     }
 }

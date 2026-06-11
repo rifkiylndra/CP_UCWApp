@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Exports\StaffExport;
+use App\Http\Requests\Admin\StoreStaffRequest;
+use App\Http\Requests\Admin\UpdateStaffRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
-use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class StaffController extends Controller
@@ -31,15 +32,9 @@ class StaffController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreStaffRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,staff',
-        ]);
+        $validated = $request->validated();
 
         User::create([
             'name' => $validated['name'],
@@ -53,17 +48,10 @@ class StaffController extends Controller
         return redirect()->back()->with('success', 'Staff created successfully');
     }
 
-    public function update(Request $request, User $staff)
+    public function update(UpdateStaffRequest $request, User $staff)
     {
         // Cegah menghapus/edit diri sendiri (optional) atau biarkan saja
-        
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($staff->id)],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($staff->id)],
-            'password' => 'nullable|string|min:8',
-            'role' => 'required|in:admin,staff',
-        ]);
+        $validated = $request->validated();
 
         $updateData = [
             'name' => $validated['name'],

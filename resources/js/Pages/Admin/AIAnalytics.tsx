@@ -1,5 +1,8 @@
 import React from "react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
+import EmptyState from "@/Components/shared/EmptyState";
+import ErrorState from "@/Components/shared/ErrorState";
+import LoadingState from "@/Components/shared/LoadingState";
 import type { AdminUser } from "@/types/admin";
 import {
     ResponsiveContainer,
@@ -11,16 +14,85 @@ import {
     Tooltip,
 } from "recharts";
 
-interface AIAnalyticsProps {
-    auth: { user: AdminUser };
-    popularMenus?: any;
-    sentimentSummary?: any;
-    recentReviews?: any[];
-    efficiencyData?: any[];
-    aiServiceStatus?: any;
+type SentimentLabel = "positive" | "neutral" | "negative" | null;
+
+interface PopularMenuItem {
+    nama?: string;
+    name?: string;
+    persentase?: number;
+    total_sold?: number;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface PopularMenusPayload {
+    success?: boolean;
+    message?: string;
+    is_fallback?: boolean;
+    menus?: PopularMenuItem[];
+}
+
+interface SentimentSummaryPayload {
+    success?: boolean;
+    message?: string;
+    is_fallback?: boolean;
+    summary?: {
+        positive_percentage?: number;
+        neutral_percentage?: number;
+        negative_percentage?: number;
+        average_rating?: number;
+        total_reviews?: number;
+    };
+}
+
+interface RecentReview {
+    id: number | string;
+    rating?: number | null;
+    comment?: string | null;
+    sentiment_label?: SentimentLabel;
+    created_at?: string | null;
+    order?: {
+        customer_name?: string | null;
+    } | null;
+}
+
+interface EfficiencyDataPoint {
+    time: string;
+    Actual: number;
+    Estimated: number;
+}
+
+interface AiServiceStatus {
+    status?: "online" | "offline" | "loading" | string;
+    message?: string;
+    response_time?: number;
+}
+
+interface AIAnalyticsProps {
+    auth: { user: AdminUser };
+    popularMenus?: PopularMenusPayload;
+    sentimentSummary?: SentimentSummaryPayload;
+    recentReviews?: RecentReview[];
+    efficiencyData?: EfficiencyDataPoint[];
+    efficiencyIsFallback?: boolean;
+    aiServiceStatus?: AiServiceStatus;
+}
+
+interface ChartTooltipProps {
+    active?: boolean;
+    payload?: Array<{ value?: number | string }>;
+    label?: string | number;
+}
+
+interface ReviewViewModel {
+    id: number | string;
+    name: string;
+    status: string;
+    rating: number;
+    text: string;
+    time: string;
+    img: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="rounded-[10px] bg-[#301713] p-3 shadow-lg border border-[#5A4A47] text-white font-['Manrope'] text-left">
@@ -49,19 +121,21 @@ export default function AIAnalytics({
     sentimentSummary,
     recentReviews,
     efficiencyData = [],
+    efficiencyIsFallback = false,
     aiServiceStatus,
 }: AIAnalyticsProps) {
     const aiMenus = popularMenus?.menus || [];
-    const reviews = (recentReviews || []).map((review: any) => {
-        const dateObj = new Date(review.created_at);
-        const timeString = dateObj.toLocaleTimeString("en-US", {
+    const reviews: ReviewViewModel[] = (recentReviews || []).map((review) => {
+        const dateObj = review.created_at ? new Date(review.created_at) : null;
+        const hasValidDate = dateObj !== null && !Number.isNaN(dateObj.getTime());
+        const timeString = hasValidDate ? dateObj.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
-        });
-        const dateString = dateObj.toLocaleDateString("en-US", {
+        }) : "";
+        const dateString = hasValidDate ? dateObj.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
-        });
+        }) : "No date";
 
         let statusText = "Neutral";
         if (review.sentiment_label === "positive") statusText = "Highly Satisfied";
@@ -73,7 +147,7 @@ export default function AIAnalytics({
             status: statusText,
             rating: review.rating || 0,
             text: review.comment || "",
-            time: `${dateString}, ${timeString}`,
+            time: timeString ? `${dateString}, ${timeString}` : dateString,
             img: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.order?.customer_name || 'Guest')}&background=random`,
         };
     });
@@ -86,6 +160,15 @@ export default function AIAnalytics({
     const donutBg = hasSentimentData
         ? `conic-gradient(#60765D 0% ${positivePercent}%, #D8D1CE ${positivePercent}% ${positivePercent + neutralPercent}%, #B91C1C ${positivePercent + neutralPercent}% 100%)`
         : '#F2EFEE';
+    const aiStatus = aiServiceStatus?.status ?? "offline";
+    const aiIsOnline = aiStatus === "online";
+    const aiIsLoading = aiStatus === "loading";
+    const hasEfficiencyData = efficiencyData.length > 0;
+    const hasPopularMenus = aiMenus.length > 0;
+    const hasReviews = reviews.length > 0;
+    const dataSourceLabel = efficiencyIsFallback || popularMenus?.is_fallback || sentimentSummary?.is_fallback || !aiIsOnline
+        ? "Fallback/Demo"
+        : "Live";
 
     return (
         <AdminLayout
@@ -94,6 +177,24 @@ export default function AIAnalytics({
             currentRoute="admin.analytics"
         >
             <section className="font-['Manrope'] text-[#271310]">
+                {aiIsLoading && (
+                    <div className="mb-6">
+                        <LoadingState
+                            title="Loading AI analytics"
+                            message="Preparing model status, demand ranking, sentiment summary, and efficiency data."
+                        />
+                    </div>
+                )}
+
+                {!aiIsOnline && !aiIsLoading && (
+                    <div className="mb-6">
+                        <ErrorState
+                            title="AI service fallback mode"
+                            message={aiServiceStatus?.message || "FastAPI is offline or unavailable. Dashboard data may use Laravel fallback or demo placeholders."}
+                        />
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="mb-8 flex flex-col gap-5 xl:mb-10 xl:flex-row xl:items-start xl:justify-between">
                     <div>
@@ -126,11 +227,14 @@ export default function AIAnalytics({
 
                         <div className="rounded-[10px] bg-[#301713] px-8 py-4 text-center text-white">
                             <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/50">
-                                Active Forecasts
+                                Tracker Points
                             </p>
                             <h2 className="mt-1 text-[24px] font-extrabold">
-                                2,142
+                                {efficiencyData.length}
                             </h2>
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">
+                                {dataSourceLabel} data
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -160,6 +264,7 @@ export default function AIAnalytics({
                             </div>
                         </div>
 
+                        {hasEfficiencyData ? (
                         <div className="h-[250px] w-full mt-4">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart
@@ -211,6 +316,12 @@ export default function AIAnalytics({
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
+                        ) : (
+                            <EmptyState
+                                title="No efficiency data"
+                                message="Completed paid orders are needed before the efficiency tracker can compare estimated and actual serving time."
+                            />
+                        )}
                     </div>
 
                     <div className="rounded-[20px] bg-[#FAFAF9] p-5 sm:p-6 xl:rounded-[28px] xl:p-8">
@@ -222,8 +333,8 @@ export default function AIAnalytics({
                         </h2>
 
                         <div className="mt-8 space-y-6">
-                            {aiMenus.length > 0 ? (
-                                aiMenus.map((item: any, idx: number) => {
+                            {hasPopularMenus ? (
+                                aiMenus.map((item, idx) => {
                                     const name = item.nama || item.name || "Unknown Menu";
                                     const value = item.persentase || Math.min(100, (item.total_sold || 0) * 2);
 
@@ -245,9 +356,10 @@ export default function AIAnalytics({
                                     );
                                 })
                             ) : (
-                                <p className="text-[12px] font-medium text-[#A69D9A]">
-                                    Belum ada data WMA populer.
-                                </p>
+                                <EmptyState
+                                    title="No demand ranking yet"
+                                    message="Popular menu ranking will appear after the AI service or database fallback has enough order history."
+                                />
                             )}
                         </div>
 
@@ -263,7 +375,7 @@ export default function AIAnalytics({
                         <h2 className="text-[24px] font-extrabold">
                             Sentiment Polarity{" "}
                             <span className="text-[12px] text-[#60765D]">
-                                ↗ +12% vs LY
+                                {sentimentSummary?.is_fallback ? "fallback summary" : "live summary"}
                             </span>
                         </h2>
 
@@ -283,24 +395,33 @@ export default function AIAnalytics({
                             </div>
                         </div>
 
-                        <div className="mt-12 grid grid-cols-2 gap-4">
-                            <div className="rounded-[12px] bg-[#F3F8F1] py-5 text-center">
-                                <p className="text-[10px] font-extrabold uppercase text-[#60765D]">
-                                    Positive
-                                </p>
-                                <h3 className="text-[22px] font-extrabold text-[#60765D]">
-                                    {sentimentSummary?.summary?.positive_percentage || 0}%
-                                </h3>
+                        {hasSentimentData ? (
+                            <div className="mt-12 grid grid-cols-2 gap-4">
+                                <div className="rounded-[12px] bg-[#F3F8F1] py-5 text-center">
+                                    <p className="text-[10px] font-extrabold uppercase text-[#60765D]">
+                                        Positive
+                                    </p>
+                                    <h3 className="text-[22px] font-extrabold text-[#60765D]">
+                                        {sentimentSummary?.summary?.positive_percentage || 0}%
+                                    </h3>
+                                </div>
+                                <div className="rounded-[12px] bg-[#FFF6F6] py-5 text-center">
+                                    <p className="text-[10px] font-extrabold uppercase text-[#B91C1C]">
+                                        Critical
+                                    </p>
+                                    <h3 className="text-[22px] font-extrabold text-[#B91C1C]">
+                                        {sentimentSummary?.summary?.negative_percentage || 0}%
+                                    </h3>
+                                </div>
                             </div>
-                            <div className="rounded-[12px] bg-[#FFF6F6] py-5 text-center">
-                                <p className="text-[10px] font-extrabold uppercase text-[#B91C1C]">
-                                    Critical
-                                </p>
-                                <h3 className="text-[22px] font-extrabold text-[#B91C1C]">
-                                    {sentimentSummary?.summary?.negative_percentage || 0}%
-                                </h3>
+                        ) : (
+                            <div className="mt-8">
+                                <EmptyState
+                                    title="No sentiment distribution"
+                                    message="Sentiment distribution will appear after customer reviews have been analyzed."
+                                />
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="rounded-[28px] bg-white p-8 shadow-[0_10px_30px_rgba(39,19,16,0.04)]">
@@ -309,8 +430,8 @@ export default function AIAnalytics({
                         </h2>
 
                         <div className="space-y-5">
-                            {reviews.length > 0 ? (
-                                reviews.map((item: any) => (
+                            {hasReviews ? (
+                                reviews.map((item) => (
                                     <div
                                         key={item.id}
                                         className="border-l-4 border-[#60765D] rounded-[14px] bg-[#F5F4F3] p-5"
@@ -358,9 +479,10 @@ export default function AIAnalytics({
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-8 text-[#A69D9A] font-semibold">
-                                    No recent reviews yet.
-                                </div>
+                                <EmptyState
+                                    title="No recent reviews"
+                                    message="Customer feedback will appear here after completed orders receive reviews."
+                                />
                             )}
                         </div>
                     </div>
