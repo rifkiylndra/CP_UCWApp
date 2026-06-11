@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
-import KanbanCard from "@/Components/ui/KanbanCard";
 import OrderSearchInput from "@/Components/ui/OrderSearchInput";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";
+import OrderKanbanBoard from "@/Components/shared/order-kanban/OrderKanbanBoard";
+import {
+    countKanbanOrders,
+    filterOrdersByQuery,
+    flattenKanbanOrders,
+    type KanbanOrderGroups,
+} from "@/lib/orderKanban";
 import type { StaffUser, KanbanOrder, KanbanColumn } from "@/types/staff";
 import axios from "axios";
 
 interface Props {
     auth: { user: StaffUser };
-    orders: {
-        incoming: any[];
-        processing: any[];
-        completed: any[];
-    };
+    orders: KanbanOrderGroups;
 }
 
 export default function Dashboard({ auth, orders: initialOrders }: Props) {
@@ -38,19 +40,12 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         return () => clearInterval(interval);
     }, []);
 
-    const allOrders = [
-        ...orders.incoming,
-        ...orders.processing,
-        ...orders.completed,
-    ];
+    const allOrders = flattenKanbanOrders(orders);
     const filteredOrders = useMemo(
         () => filterOrdersByQuery(orders, searchQuery),
         [orders, searchQuery],
     );
-    const filteredTotal =
-        filteredOrders.incoming.length +
-        filteredOrders.processing.length +
-        filteredOrders.completed.length;
+    const filteredTotal = countKanbanOrders(filteredOrders);
 
     const handleViewDetail = (order: KanbanOrder) => {
         setSelectedOrder(order);
@@ -176,59 +171,12 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
                     />
                 </div>
 
-                <div className="styled-scrollbar flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 lg:h-[calc(100vh-178px)] lg:min-h-[76vh] lg:grid-cols-3 lg:gap-7">
-                    <OrderColumn
-                        title="Incoming"
-                        count={filteredOrders.incoming.length}
-                        color="#C62828"
-                    >
-                        {filteredOrders.incoming.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="incoming"
-                                onViewDetail={handleViewDetail}
-                                onVerifyPayment={handleVerifyPayment}
-                                onUpdateStatus={handleUpdateStatus}
-                            />
-                        ))}
-                    </OrderColumn>
-
-                    <OrderColumn
-                        title="Processing"
-                        count={filteredOrders.processing.length}
-                        color="#D99A2B"
-                    >
-                        {filteredOrders.processing.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="processing"
-                                onViewDetail={handleViewDetail}
-                                onVerifyPayment={handleVerifyPayment}
-                                onUpdateStatus={handleUpdateStatus}
-                            />
-                        ))}
-                    </OrderColumn>
-
-                    <OrderColumn
-                        title="Completed"
-                        count={filteredOrders.completed.length}
-                        color="#5E735B"
-                        rightLabel="Today"
-                        dashed
-                    >
-                        {filteredOrders.completed.map((order) => (
-                            <KanbanCard
-                                key={order.id}
-                                order={order}
-                                columnType="completed"
-                                onViewDetail={handleViewDetail}
-                                readOnly
-                            />
-                        ))}
-                    </OrderColumn>
-                </div>
+                <OrderKanbanBoard
+                    orders={filteredOrders}
+                    onViewDetail={handleViewDetail}
+                    onVerifyPayment={handleVerifyPayment}
+                    onUpdateStatus={handleUpdateStatus}
+                />
             </div>
 
             <OrderDetailModal
@@ -276,89 +224,4 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
             `}</style>
         </StaffLayout>
     );
-}
-
-interface OrderColumnProps {
-    title: string;
-    count: number;
-    color: string;
-    children: React.ReactNode;
-    rightLabel?: string;
-    dashed?: boolean;
-}
-
-function OrderColumn({
-    title,
-    count,
-    color,
-    children,
-    rightLabel,
-    dashed = false,
-}: OrderColumnProps) {
-    return (
-        <section
-            className={[
-                "flex min-w-full snap-start flex-col rounded-[26px] bg-[#F4F4F3] md:min-w-0 lg:max-h-full lg:overflow-hidden lg:rounded-[30px]",
-                dashed
-                    ? "border border-dashed border-[#E6DED8]"
-                    : "border border-[#ECE8E4]",
-            ].join(" ")}
-        >
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#ECE8E4] bg-[#F4F4F3] px-5 py-4 lg:px-6 lg:py-5">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#271310] lg:text-[17px]">
-                        {title}
-                    </h2>
-
-                    {rightLabel && (
-                        <span className="text-[11px] font-bold text-[#5A4A47]">
-                            {rightLabel}
-                        </span>
-                    )}
-                </div>
-
-                <div
-                    className="flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11px] font-bold text-white lg:h-8 lg:min-w-8 lg:text-[12px]"
-                    style={{ backgroundColor: color }}
-                >
-                    {count}
-                </div>
-            </div>
-
-            <div className="styled-scrollbar flex max-h-[68vh] flex-col gap-4 overflow-y-auto scroll-smooth p-4 lg:max-h-none lg:flex-1 lg:gap-5 lg:p-5">
-                {children}
-            </div>
-        </section>
-    );
-}
-
-function filterOrdersByQuery(
-    source: Props["orders"],
-    query: string,
-): Props["orders"] {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (!normalizedQuery) return source;
-
-    return {
-        incoming: source.incoming.filter((order) => orderMatchesQuery(order, normalizedQuery)),
-        processing: source.processing.filter((order) => orderMatchesQuery(order, normalizedQuery)),
-        completed: source.completed.filter((order) => orderMatchesQuery(order, normalizedQuery)),
-    };
-}
-
-function orderMatchesQuery(order: KanbanOrder, query: string): boolean {
-    const searchableText = [
-        order.id,
-        order.orderId,
-        order.tableLabel,
-        order.customerName,
-        order.orderType,
-        ...order.items.map((item) => item.menuItem?.name),
-    ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-    return searchableText.includes(query);
 }

@@ -1,37 +1,50 @@
 import React, { useState } from "react";
-import { router, Link } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import ActionButtons from "@/Components/admin/ActionButtons";
+import PaginationFooter from "@/Components/admin/PaginationFooter";
 import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
+import { formatIDR } from "@/lib/formatters";
+import type { Nullable, Paginated } from "@/types/shared";
 import MenuModal from "@/Components/Modals/AddMenuModal";
 import MenuCategoryModal from "@/Components/Modals/MenuCategoryModal";
 import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
-import {
-    Filter,
-    Plus,
-    TrendingUp,
-    Utensils,
-    Star,
-    ChevronLeft,
-    ChevronRight,
-    Pencil,
-    Trash2,
-} from "lucide-react";
+import { Plus, Utensils } from "lucide-react";
 
 interface MenuIndexProps {
     auth: { user: AdminUser };
-    menus: any; // data pagination dari Laravel
-    categories: any[];
+    menus: Paginated<MenuItem>;
+    categories: MenuCategory[];
+}
+
+interface MenuCategory {
+    id: string | number;
+    name: string;
+}
+
+interface MenuItem {
+    id: string | number;
+    name: string;
+    description?: string;
+    price: number | string;
+    category_id?: string | number;
+    category?: MenuCategory | null;
+    image?: string | null;
+    image_url?: string | null;
+    imageUrl?: string | null;
+    is_available: boolean;
+    color?: string;
+    estimated_time?: number | string;
 }
 
 export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
     const [openModal, setOpenModal] = useState(false);
-    const [editData, setEditData] = useState<any | null>(null);
+    const [editData, setEditData] = useState<Nullable<MenuItem>>(null);
     const [openCategoryModal, setOpenCategoryModal] = useState(false);
-    const [menuToDelete, setMenuToDelete] = useState<any | null>(null);
+    const [menuToDelete, setMenuToDelete] = useState<Nullable<MenuItem>>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Pakai data dari prop, fallback ke array kosong kalau belum ada data
     const items = menus?.data || [];
 
     const handleAdd = () => {
@@ -39,12 +52,12 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
         setOpenModal(true);
     };
 
-    const handleEdit = (menu: any) => {
+    const handleEdit = (menu: MenuItem) => {
         setEditData(menu);
         setOpenModal(true);
     };
 
-    const handleDelete = (menu: any) => {
+    const handleDelete = (menu: MenuItem) => {
         setMenuToDelete(menu);
     };
 
@@ -70,11 +83,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
     };
 
     return (
-        <AdminLayout
-            auth={auth}
-            title="Menu Management"
-            currentRoute="admin.menu"
-        >
+        <AdminLayout auth={auth} title="Menu Management" currentRoute="admin.menu">
             <MenuModal
                 open={openModal}
                 onClose={() => setOpenModal(false)}
@@ -105,7 +114,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                             Menu Management
                         </h1>
                         <p className="mt-2 max-w-[620px] text-[14px] leading-relaxed text-[#5A4A47] md:text-[16px]">
-                            Refine your café's offerings. Manage seasonal
+                            Refine your cafÃ©'s offerings. Manage seasonal
                             roasts, botanical infusions, and the signature
                             pastries that define the digital morning ritual.
                         </p>
@@ -113,6 +122,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
 
                     <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-4">
                         <button
+                            type="button"
                             onClick={() => setOpenCategoryModal(true)}
                             className="flex h-[54px] items-center justify-center gap-3 rounded-[12px] border border-[#E8E3E1] bg-white px-4 text-[12px] font-extrabold shadow-[0_10px_24px_rgba(39,19,16,0.04)] md:h-[68px] md:w-[190px] md:text-[14px]"
                         >
@@ -124,6 +134,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                         </button>
 
                         <button
+                            type="button"
                             onClick={handleAdd}
                             className="flex h-[54px] items-center justify-center gap-3 rounded-[12px] bg-[#301713] px-4 text-[12px] font-extrabold text-white shadow-[0_16px_30px_rgba(39,19,16,0.18)] md:h-[68px] md:w-[190px] md:gap-4 md:text-[15px]"
                         >
@@ -135,7 +146,6 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                     </div>
                 </div>
 
-                {/* Desktop Table */}
                 <div className="mb-10 hidden overflow-hidden rounded-[28px] bg-white shadow-[0_18px_45px_rgba(39,19,16,0.06)] lg:block lg:mb-16">
                     <div className="grid grid-cols-[120px_1.4fr_170px_130px_160px_120px] bg-[#FAFAF9] px-8 py-6 text-[10px] font-extrabold uppercase tracking-[0.28em] text-[#8B807D]">
                         <span>Visual</span>
@@ -170,7 +180,7 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                             <CategoryBadge item={item} />
 
                             <p className="text-[15px] font-extrabold">
-                                Rp {Number(item.price).toLocaleString("id-ID")}
+                                {formatIDR(item.price)}
                             </p>
 
                             <AvailabilityToggle available={item.is_available} />
@@ -182,10 +192,9 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                         </div>
                     ))}
 
-                    <PaginationFooter data={menus} />
+                    <PaginationFooter data={menus} itemLabel="items" compactLinks />
                 </div>
 
-                {/* Mobile Card List */}
                 <div className="mb-10 space-y-4 lg:hidden">
                     {items.map((item) => (
                         <div
@@ -212,53 +221,33 @@ export default function MenuIndex({ auth, menus, categories }: MenuIndexProps) {
                                         </div>
 
                                         <p className="shrink-0 text-[15px] font-extrabold">
-                                            Rp{" "}
-                                            {Number(item.price).toLocaleString(
-                                                "id-ID",
-                                            )}
+                                            {formatIDR(item.price)}
                                         </p>
                                     </div>
 
                                     <div className="mb-4 flex items-center justify-between gap-3">
                                         <CategoryBadge item={item} />
-                                        <AvailabilityToggle
-                                            available={item.is_available}
-                                        />
+                                        <AvailabilityToggle available={item.is_available} />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => handleEdit(item)}
-                                            className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#ECE8E6] bg-[#FAFAF9] text-[12px] font-extrabold text-[#271310]"
-                                        >
-                                            <Pencil size={14} />
-                                            Edit
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDelete(item)}
-                                            className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#F3DEDE] bg-[#FFF8F8] text-[12px] font-extrabold text-[#B42318]"
-                                        >
-                                            <Trash2 size={14} />
-                                            Delete
-                                        </button>
-                                    </div>
+                                    <ActionButtons
+                                        variant="labeled"
+                                        onEdit={() => handleEdit(item)}
+                                        onDelete={() => handleDelete(item)}
+                                    />
                                 </div>
                             </div>
                         </div>
                     ))}
 
-                    <PaginationFooter data={menus} mobile />
+                    <PaginationFooter data={menus} itemLabel="items" mobile compactLinks />
                 </div>
-
-                
             </section>
         </AdminLayout>
     );
 }
 
-function CategoryBadge({ item }: { item: any }) {
-    // Gunakan category.name atau category_id jika direlasi
+function CategoryBadge({ item }: { item: MenuItem }) {
     const categoryName = item.category?.name || "Unknown";
 
     return (
@@ -279,6 +268,7 @@ function CategoryBadge({ item }: { item: any }) {
 function AvailabilityToggle({ available }: { available: boolean }) {
     return (
         <button
+            type="button"
             className={`flex h-6 w-11 items-center rounded-full p-0.5 transition ${
                 available ? "bg-[#60765D]" : "bg-[#E5E5E3]"
             }`}
@@ -289,98 +279,5 @@ function AvailabilityToggle({ available }: { available: boolean }) {
                 }`}
             />
         </button>
-    );
-}
-
-function ActionButtons({
-    onEdit,
-    onDelete,
-}: {
-    onEdit: () => void;
-    onDelete: () => void;
-}) {
-    return (
-        <div className="flex justify-center gap-2">
-            <button
-                onClick={onEdit}
-                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#ECE8E6] bg-white text-[#5A4A47] transition hover:bg-[#F5F4F3] hover:text-[#271310]"
-            >
-                <Pencil size={15} strokeWidth={2.4} />
-            </button>
-
-            <button
-                onClick={onDelete}
-                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#F3DEDE] bg-[#FFF8F8] text-[#B42318] transition hover:bg-[#FDECEC]"
-            >
-                <Trash2 size={15} strokeWidth={2.4} />
-            </button>
-        </div>
-    );
-}
-
-function PaginationFooter({
-    data,
-    mobile = false,
-}: {
-    data: any;
-    mobile?: boolean;
-}) {
-    if (!data || !data.links) return null;
-
-    return (
-        <div
-            className={[
-                "flex items-center justify-between border-t border-[#F0ECEA]",
-                mobile ? "border-0 px-1 py-3" : "px-8 py-6",
-            ].join(" ")}
-        >
-            <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-                Showing {data.from || 0}–{data.to || 0} of {data.total || 0}{" "}
-                items
-            </p>
-
-            <div className="flex items-center gap-1 md:gap-2">
-                {data.links.map((link: any, index: number) => {
-                    let label = link.label;
-                    if (String(label).includes("Previous"))
-                        label = <ChevronLeft size={17} />;
-                    if (String(label).includes("Next"))
-                        label = <ChevronRight size={17} />;
-
-                    return link.url ? (
-                        <Link
-                            key={index}
-                            href={link.url}
-                            className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-semibold transition md:h-10 md:w-10 ${
-                                link.active
-                                    ? "bg-[#301713] text-white"
-                                    : "border border-[#E8E3E1] bg-white text-[#5A4A47] hover:bg-[#F4F4F3]"
-                            }`}
-                        >
-                            {typeof label === "string" ? (
-                                <span
-                                    dangerouslySetInnerHTML={{ __html: label }}
-                                />
-                            ) : (
-                                label
-                            )}
-                        </Link>
-                    ) : (
-                        <span
-                            key={index}
-                            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10 md:w-10"
-                        >
-                            {typeof label === "string" ? (
-                                <span
-                                    dangerouslySetInnerHTML={{ __html: label }}
-                                />
-                            ) : (
-                                label
-                            )}
-                        </span>
-                    );
-                })}
-            </div>
-        </div>
     );
 }

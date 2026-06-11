@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { router, Link } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import ActionButtons from "@/Components/admin/ActionButtons";
+import DataToolbar from "@/Components/admin/DataToolbar";
+import PaginationFooter from "@/Components/admin/PaginationFooter";
+import { formatDate } from "@/lib/formatters";
+import type { Paginated, SelectOption } from "@/types/shared";
 import AddUserModal from "@/Components/Modals/AddAdminModal";
 import DeleteConfirmModal from "@/Components/Modals/DeleteConfirmModal";
 import { useModalState } from "@/hooks/useModalState";
@@ -10,37 +15,49 @@ import {
   ShieldPlus,
   Filter,
   Download,
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  Trash2,
 } from "lucide-react";
 
 interface StaffIndexProps {
   auth: { user: AdminUser };
-  staffs: any;
+  staffs: Paginated<StaffMember>;
   filters?: {
     role?: string;
   };
 }
 
+interface StaffMember {
+  id: string | number;
+  name: string;
+  email?: string;
+  username?: string;
+  role: string;
+  avatar?: string | null;
+  created_at?: string;
+}
+
+const ROLE_FILTER_OPTIONS: SelectOption[] = [
+  { value: "all", label: "All Users" },
+  { value: "staff", label: "Staff Only" },
+  { value: "admin", label: "Admin Only" },
+];
+
 export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
   const staffModal = useModalState();
-  const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [modalRole, setModalRole] = useState<"staff" | "admin">("staff");
   const [roleFilter, setRoleFilter] = useState(filters?.role || "all");
-  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<StaffMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const users = staffs?.data || [];
 
   const totalStaff = useMemo(
-    () => users.filter((item: any) => item.role !== "admin").length,
+    () => users.filter((item) => item.role !== "admin").length,
     [users]
   );
 
   const totalAdmin = useMemo(
-    () => users.filter((item: any) => item.role === "admin").length,
+    () => users.filter((item) => item.role === "admin").length,
     [users]
   );
 
@@ -50,13 +67,13 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
     staffModal.open();
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: StaffMember) => {
     setSelectedStaff(item);
     setModalRole(item.role === "admin" ? "admin" : "staff");
     staffModal.open();
   };
 
-  const handleDelete = (item: any) => {
+  const handleDelete = (item: StaffMember) => {
     setUserToDelete(item);
   };
 
@@ -167,7 +184,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
             <span className="text-center">Action</span>
           </div>
 
-          {users.map((item: any) => (
+          {users.map((item) => (
             <div
               key={item.id}
               className="grid min-h-[84px] grid-cols-[1.6fr_160px_200px_130px] items-center border-t border-[#F0ECEA] px-8"
@@ -176,7 +193,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
               <RoleBadge item={item} />
 
               <p className="text-[14px] font-medium text-[#5A4A47]">
-                {formatDate(item.created_at)}
+                {formatDate(item.created_at, "en-US")}
               </p>
 
               <ActionButtons
@@ -186,7 +203,13 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
             </div>
           ))}
 
-          <PaginationFooter data={staffs} roleFilter={roleFilter} />
+          <PaginationFooter
+            data={staffs}
+            itemLabel="users"
+            linkData={{ role: roleFilter === "all" ? undefined : roleFilter }}
+            preserveScroll
+            preserveState
+          />
         </div>
 
         {/* Mobile Card List */}
@@ -213,7 +236,7 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
             </div>
           </div>
 
-          {users.map((item: any) => (
+          {users.map((item) => (
             <div
               key={item.id}
               className="rounded-[22px] border border-[#EFEAE7] bg-white p-4 shadow-[0_10px_28px_rgba(39,19,16,0.04)]"
@@ -235,32 +258,27 @@ export default function StaffIndex({ auth, staffs, filters }: StaffIndexProps) {
                   </div>
 
                   <p className="mb-4 text-[12px] font-medium text-[#5A4A47]">
-                    Registered: {formatDate(item.created_at)}
+                    Registered: {formatDate(item.created_at, "en-US")}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#ECE8E6] bg-[#FAFAF9] text-[12px] font-extrabold text-[#271310]"
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(item)}
-                      className="flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#F3DEDE] bg-[#FFF8F8] text-[12px] font-extrabold text-[#B42318]"
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
-                  </div>
+                  <ActionButtons
+                    variant="labeled"
+                    onEdit={() => handleEdit(item)}
+                    onDelete={() => handleDelete(item)}
+                  />
                 </div>
               </div>
             </div>
           ))}
 
-          <PaginationFooter data={staffs} roleFilter={roleFilter} mobile />
+          <PaginationFooter
+            data={staffs}
+            itemLabel="users"
+            mobile
+            linkData={{ role: roleFilter === "all" ? undefined : roleFilter }}
+            preserveScroll
+            preserveState
+          />
         </div>
       </section>
     </AdminLayout>
@@ -277,36 +295,18 @@ function RosterHeader({
   exportHref: string;
 }) {
   return (
-    <div className="flex items-center justify-between px-8 py-8">
-      <h2 className="text-[18px] font-extrabold">Team Roster</h2>
-
-      <div className="flex items-center gap-4">
-        <div className="flex h-10 items-center gap-2 rounded-[12px] border border-[#ECE8E6] bg-[#FAFAF9] px-3">
-          <Filter size={16} />
-          <select
-            value={roleFilter}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="border-0 bg-transparent text-[13px] font-bold text-[#271310] outline-none focus:ring-0"
-          >
-            <option value="all">All Users</option>
-            <option value="staff">Staff Only</option>
-            <option value="admin">Admin Only</option>
-          </select>
-        </div>
-
-        <a
-          href={exportHref}
-          className="flex h-10 items-center gap-2 rounded-[12px] bg-[#DDEED8] px-4 text-[13px] font-extrabold text-[#53664F]"
-        >
-          <Download size={16} />
-          Export
-        </a>
-      </div>
-    </div>
+    <DataToolbar
+      title="Team Roster"
+      filterValue={roleFilter}
+      filterOptions={ROLE_FILTER_OPTIONS}
+      onFilterChange={onFilterChange}
+      exportHref={exportHref}
+      exportLabel="Export"
+    />
   );
 }
 
-function StaffIdentity({ item }: { item: any }) {
+function StaffIdentity({ item }: { item: StaffMember }) {
   return (
     <div className="flex items-center gap-4">
       <Avatar item={item} />
@@ -320,7 +320,7 @@ function StaffIdentity({ item }: { item: any }) {
   );
 }
 
-function Avatar({ item, size = "sm" }: { item: any; size?: "sm" | "lg" }) {
+function Avatar({ item, size = "sm" }: { item: StaffMember; size?: "sm" | "lg" }) {
   const dimension = size === "lg" ? "h-[64px] w-[64px] rounded-[18px]" : "h-10 w-10 rounded-[10px]";
 
   return (
@@ -335,7 +335,7 @@ function Avatar({ item, size = "sm" }: { item: any; size?: "sm" | "lg" }) {
   );
 }
 
-function RoleBadge({ item }: { item: any }) {
+function RoleBadge({ item }: { item: StaffMember }) {
   const isAdmin = item.role === "admin";
 
   return (
@@ -373,105 +373,4 @@ function StatBox({
       <p className="mt-5 text-[12px] font-semibold text-[#53664F]">{desc}</p>
     </div>
   );
-}
-
-function ActionButtons({
-  onEdit,
-  onDelete,
-}: {
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div className="flex justify-center gap-2">
-      <button
-        onClick={onEdit}
-        className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#ECE8E6] bg-white text-[#5A4A47] transition hover:bg-[#F5F4F3] hover:text-[#271310]"
-      >
-        <Pencil size={15} strokeWidth={2.4} />
-      </button>
-
-      <button
-        onClick={onDelete}
-        className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#F3DEDE] bg-[#FFF8F8] text-[#B42318] transition hover:bg-[#FDECEC]"
-      >
-        <Trash2 size={15} strokeWidth={2.4} />
-      </button>
-    </div>
-  );
-}
-
-function PaginationFooter({
-  data,
-  roleFilter,
-  mobile = false,
-}: {
-  data: any;
-  roleFilter: string;
-  mobile?: boolean;
-}) {
-  if (!data || !data.links) return null;
-
-  return (
-    <div
-      className={[
-        "flex items-center justify-between border-t border-[#F0ECEA]",
-        mobile ? "border-0 px-1 py-3" : "px-8 py-6",
-      ].join(" ")}
-    >
-      <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-        Showing {data.from || 0} to {data.to || 0} of {data.total || 0} users
-      </p>
-
-      <div className="flex items-center gap-1 md:gap-2">
-        {data.links.map((link: any, index: number) => {
-          let label = link.label;
-          if (String(label).includes("Previous")) label = <ChevronLeft size={17} />;
-          if (String(label).includes("Next")) label = <ChevronRight size={17} />;
-
-          return link.url ? (
-            <Link
-              key={index}
-              href={link.url}
-              data={{ role: roleFilter === "all" ? undefined : roleFilter }}
-              preserveScroll
-              preserveState
-              className={`flex h-9 min-w-9 items-center justify-center rounded-[10px] px-3 text-[13px] font-semibold transition md:h-10 ${
-                link.active
-                  ? "bg-[#301713] text-white"
-                  : "border border-[#E8E3E1] bg-white text-[#5A4A47] hover:bg-[#F4F4F3]"
-              }`}
-            >
-              {typeof label === "string" ? (
-                <span dangerouslySetInnerHTML={{ __html: label }} />
-              ) : (
-                label
-              )}
-            </Link>
-          ) : (
-            <span
-              key={index}
-              className="flex h-9 min-w-9 items-center justify-center rounded-[10px] border border-[#E8E3E1] bg-white/50 px-3 text-[13px] font-semibold text-[#A69D9A] opacity-50 md:h-10"
-            >
-              {typeof label === "string" ? (
-                <span dangerouslySetInnerHTML={{ __html: label }} />
-              ) : (
-                label
-              )}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }

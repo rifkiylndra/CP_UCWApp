@@ -1,14 +1,13 @@
 import { Head } from "@inertiajs/react";
 import StaffLayout from "@/Components/Layout/StaffLayout";
 import type { StaffUser, DailyTransaction } from "@/types/staff";
+import DataToolbar from "@/Components/admin/DataToolbar";
 import { formatIDR } from "@/lib/formatters";
-import { getPaymentStatusLabel } from "@/lib/status";
+import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/status";
 import { ReactNode, useState } from "react";
 import {
     Banknote,
     CreditCard,
-    Download,
-    Search,
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
@@ -104,31 +103,16 @@ export default function Transactions({
 </div>
 
                 <section className="rounded-[26px] bg-[#F4F4F3] p-4 lg:rounded-[30px] lg:p-6">
-                    <div className="mb-5 flex flex-col gap-3 lg:mb-6 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <div className="relative w-full sm:w-[280px] lg:w-[260px]">
-                                <Search
-                                    size={16}
-                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A4A47]"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Search order ID or customer..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="h-11 w-full rounded-[14px] border-none bg-white pl-11 pr-4 text-[13px] font-medium text-[#271310] outline-none placeholder:text-[#9A8F8B]"
-                                />
-                            </div>
-                        </div>
-
-                        <a
-                            href="/staff/transactions/export"
-                            className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white"
-                        >
-                            <Download size={15} />
-                            Export CSV
-                        </a>
-                    </div>
+                    <DataToolbar
+                        searchValue={searchQuery}
+                        searchPlaceholder="Search order ID or customer..."
+                        onSearchChange={setSearchQuery}
+                        exportHref="/staff/transactions/export"
+                        exportLabel="Export CSV"
+                        className="mb-5 flex flex-col gap-3 lg:mb-6 lg:flex-row lg:items-center lg:justify-between"
+                        controlsClassName="flex flex-col gap-3 sm:flex-row sm:items-center lg:w-full lg:justify-between"
+                        exportClassName="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-[13px] font-extrabold text-[#271310] transition hover:bg-[#E7E7E6] lg:bg-transparent lg:hover:bg-white"
+                    />
 
                     {/* Desktop Table */}
                     <div className="hidden overflow-hidden rounded-[22px] lg:block">
@@ -172,7 +156,7 @@ export default function Transactions({
                                         </TableCell>
 
                                         <TableCell className="text-[#5A4A47]">
-                                            {trx.paymentMethod}
+                                            {getPaymentMethodLabel(trx.paymentMethod)}
                                         </TableCell>
 
                                         <TableCell className="text-right">
@@ -336,7 +320,7 @@ function TransactionMobileCard({
                         Payment
                     </p>
                     <p className="mt-1 text-[13px] font-bold text-[#5A4A47]">
-                        {trx.paymentMethod} • {trx.time}
+                        {getPaymentMethodLabel(trx.paymentMethod)} • {trx.time}
                     </p>
                 </div>
 

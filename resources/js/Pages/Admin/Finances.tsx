@@ -1,20 +1,13 @@
 import React, { useState } from "react";
-import { Link, router } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import PaginationFooter from "@/Components/admin/PaginationFooter";
 import EmptyState from "@/Components/shared/EmptyState";
 import { formatIDR } from "@/lib/formatters";
 import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/status";
 import type { Paginated } from "@/types/shared";
-import {
-    Calendar,
-    Download,
-    CreditCard,
-    Banknote,
-    Landmark,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react";
+import { Banknote, Calendar, CreditCard, Download, Landmark } from "lucide-react";
 
 interface FinancesProps {
     auth: { user: AdminUser };
@@ -77,11 +70,7 @@ export default function Finances({
     };
 
     return (
-        <AdminLayout
-            auth={auth}
-            title="Finances"
-            currentRoute="admin.finances-page"
-        >
+        <AdminLayout auth={auth} title="Finances" currentRoute="admin.finances-page">
             <section className="font-['Manrope'] text-[#271310]">
                 <div className="mb-8 flex flex-col gap-5 lg:mb-12 xl:flex-row xl:items-end xl:justify-between">
                     <div>
@@ -99,14 +88,13 @@ export default function Finances({
                             <input
                                 type="month"
                                 value={month}
-                                onChange={(e) =>
-                                    handleMonthChange(e.target.value)
-                                }
+                                onChange={(event) => handleMonthChange(event.target.value)}
                                 className="border-0 bg-transparent p-0 text-[12px] font-semibold text-[#271310] focus:outline-none focus:ring-0 md:text-[14px]"
                             />
                         </label>
 
                         <button
+                            type="button"
                             onClick={handleExport}
                             className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#DDEED8] px-5 text-[12px] font-extrabold text-[#53664F] md:h-10 md:px-6 md:text-[14px]"
                         >
@@ -116,7 +104,7 @@ export default function Finances({
                     </div>
                 </div>
 
-                <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 lg:mb-12 lg:gap-6">
+                <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mb-12 lg:gap-6 xl:grid-cols-4">
                     <MetricCard
                         title="Total Penjualan"
                         value={formatIDR(currentMetrics?.totalSales || 0)}
@@ -133,9 +121,7 @@ export default function Finances({
 
                     <MetricCard
                         title="Jumlah Transaksi"
-                        value={Number(
-                            currentMetrics?.transactionCount || 0,
-                        ).toLocaleString("id-ID")}
+                        value={Number(currentMetrics?.transactionCount || 0).toLocaleString("id-ID")}
                         footer={currentMetrics?.transactionCountChange || "0%"}
                         desc="dibanding bulan lalu"
                     />
@@ -160,7 +146,6 @@ export default function Finances({
                         </div>
                     </div>
 
-                    {/* Desktop Table */}
                     <div className="hidden overflow-x-auto lg:block">
                         <div className="min-w-[900px]">
                             <div className="grid grid-cols-[130px_150px_1.3fr_150px_180px_150px] px-4 pb-5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#5A4A47]">
@@ -175,10 +160,7 @@ export default function Finances({
                             <div className="space-y-4">
                                 {currentTransactions?.data?.length > 0 ? (
                                     currentTransactions.data.map((tx) => (
-                                        <TransactionRow
-                                            key={tx.id || tx.order_id}
-                                            tx={tx}
-                                        />
+                                        <TransactionRow key={tx.id || tx.order_id} tx={tx} />
                                     ))
                                 ) : (
                                     <EmptyTransactions />
@@ -187,21 +169,24 @@ export default function Finances({
                         </div>
                     </div>
 
-                    {/* Mobile Cards */}
                     <div className="space-y-4 lg:hidden">
                         {currentTransactions?.data?.length > 0 ? (
                             currentTransactions.data.map((tx) => (
-                                <TransactionCard
-                                    key={tx.id || tx.order_id}
-                                    tx={tx}
-                                />
+                                <TransactionCard key={tx.id || tx.order_id} tx={tx} />
                             ))
                         ) : (
                             <EmptyTransactions />
                         )}
                     </div>
 
-                    <PaginationFooter data={currentTransactions} />
+                    <PaginationFooter
+                        data={currentTransactions}
+                        itemLabel="transactions"
+                        variant="panel"
+                        showFallbackControls
+                        preserveScroll
+                        preserveState
+                    />
                 </div>
             </section>
         </AdminLayout>
@@ -215,17 +200,13 @@ function TransactionRow({ tx }: { tx: FinanceTransaction }) {
         <div className="grid min-h-[78px] grid-cols-[130px_150px_1.3fr_150px_180px_150px] items-center bg-white px-4">
             <p className="text-[14px] font-extrabold">{tx.date}</p>
 
-            <p className="text-[14px] font-medium text-[#5A4A47]">
-                {tx.order_id}
-            </p>
+            <p className="text-[14px] font-medium text-[#5A4A47]">{tx.order_id}</p>
 
             <div className="flex items-center gap-3">
                 <p className="text-[14px] font-medium">{tx.customer_name}</p>
             </div>
 
-            <p className="text-[14px] font-extrabold">
-                {formatIDR(tx.amount)}
-            </p>
+            <p className="text-[14px] font-extrabold">{formatIDR(tx.amount)}</p>
 
             <div className="flex items-center gap-2 text-[14px] font-medium text-[#5A4A47]">
                 <Icon size={16} />
@@ -257,12 +238,8 @@ function TransactionCard({ tx }: { tx: FinanceTransaction }) {
 
             <div className="mb-4 flex items-center gap-3">
                 <div className="min-w-0">
-                    <p className="truncate text-[14px] font-extrabold">
-                        {tx.customer_name}
-                    </p>
-                    <p className="text-[12px] font-medium text-[#5A4A47]">
-                        {tx.date}
-                    </p>
+                    <p className="truncate text-[14px] font-extrabold">{tx.customer_name}</p>
+                    <p className="text-[12px] font-medium text-[#5A4A47]">{tx.date}</p>
                 </div>
             </div>
 
@@ -280,12 +257,9 @@ function getPaymentIcon(method?: string | null) {
     const lower = method?.toLowerCase() || "";
 
     if (lower.includes("cash")) return Banknote;
-    if (
-        lower.includes("wire") ||
-        lower.includes("transfer") ||
-        lower.includes("va")
-    )
+    if (lower.includes("wire") || lower.includes("transfer") || lower.includes("va")) {
         return Landmark;
+    }
 
     return CreditCard;
 }
@@ -299,7 +273,7 @@ function EmptyTransactions() {
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status?: string }) {
     const isCompleted = status === "completed" || status === "paid";
     const label = getPaymentStatusLabel(status || "completed");
 
@@ -307,98 +281,11 @@ function StatusBadge({ status }: { status: string }) {
         <span
             title={label}
             className={`w-fit rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase md:px-4 md:py-2 md:text-[11px] ${
-                isCompleted
-                    ? "bg-[#DDEED8] text-[#53664F]"
-                    : "bg-[#FFE3A7] text-[#8C651C]"
+                isCompleted ? "bg-[#DDEED8] text-[#53664F]" : "bg-[#FFE3A7] text-[#8C651C]"
             }`}
         >
             • {status || "completed"}
         </span>
-    );
-}
-
-function PaginationFooter({ data }: { data?: Paginated<FinanceTransaction> }) {
-    if (!data) return null;
-
-    const hasLaravelLinks = Array.isArray(data.links) && data.links.length > 0;
-
-    return (
-        <div className="mt-6 flex items-center justify-between gap-4 px-1 md:mt-10 md:px-4">
-            <p className="text-[12px] font-medium text-[#5A4A47] md:text-[13px]">
-                Showing {data.from || 0}–{data.to || 0} of {data.total || 0}{" "}
-                transactions
-            </p>
-
-            <div className="flex items-center gap-2 md:gap-3">
-                {hasLaravelLinks ? (
-                    data.links.map((link, index: number) => {
-                        let label = link.label;
-
-                        if (String(label).includes("Previous")) {
-                            label = <ChevronLeft size={17} />;
-                        }
-
-                        if (String(label).includes("Next")) {
-                            label = <ChevronRight size={17} />;
-                        }
-
-                        return link.url ? (
-                            <Link
-                                key={index}
-                                href={link.url}
-                                preserveScroll
-                                preserveState
-                                className={`flex h-9 min-w-9 items-center justify-center rounded-[9px] px-3 text-[13px] font-extrabold ${
-                                    link.active
-                                        ? "bg-[#301713] text-white"
-                                        : "bg-white text-[#5A4A47]"
-                                }`}
-                            >
-                                {typeof label === "string" ? (
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: label,
-                                        }}
-                                    />
-                                ) : (
-                                    label
-                                )}
-                            </Link>
-                        ) : (
-                            <span
-                                key={index}
-                                className="flex h-9 min-w-9 items-center justify-center rounded-[9px] bg-white/60 px-3 text-[13px] font-extrabold text-[#A69D9A]"
-                            >
-                                {typeof label === "string" ? (
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: label,
-                                        }}
-                                    />
-                                ) : (
-                                    label
-                                )}
-                            </span>
-                        );
-                    })
-                ) : (
-                    <>
-                        <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
-                            <ChevronLeft size={17} />
-                        </button>
-                        <button className="h-9 w-9 rounded-[9px] bg-[#301713] text-[13px] font-extrabold text-white">
-                            1
-                        </button>
-                        <button className="hidden h-9 w-9 rounded-[9px] bg-white text-[13px] font-extrabold md:block">
-                            2
-                        </button>
-                        <button className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-white">
-                            <ChevronRight size={17} />
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
     );
 }
 
@@ -427,9 +314,7 @@ function MetricCard({
                 <span className="rounded-full bg-[#DDEED8] px-3 py-1 text-[11px] font-extrabold text-[#53664F]">
                     {footer}
                 </span>
-                <span className="text-[11px] font-medium text-[#6F625F]">
-                    {desc}
-                </span>
+                <span className="text-[11px] font-medium text-[#6F625F]">{desc}</span>
             </div>
         </div>
     );
