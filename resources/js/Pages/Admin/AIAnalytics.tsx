@@ -1,20 +1,54 @@
 import React from "react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
 import type { AdminUser } from "@/types/admin";
+import {
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+} from "recharts";
 
 interface AIAnalyticsProps {
     auth: { user: AdminUser };
     popularMenus?: any;
     sentimentSummary?: any;
     recentReviews?: any[];
+    efficiencyData?: any[];
     aiServiceStatus?: any;
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="rounded-[10px] bg-[#301713] p-3 shadow-lg border border-[#5A4A47] text-white font-['Manrope'] text-left">
+                <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-1">
+                    Time: {label}
+                </p>
+                <p className="text-[12px] font-extrabold text-[#F3F8F1] flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#60765D]" />
+                    AI Estimate: {payload[0]?.value} mins
+                </p>
+                {payload[1] && (
+                    <p className="text-[12px] font-extrabold text-[#EEEAE8] flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-[#301713]" />
+                        Actual: {payload[1]?.value} mins
+                    </p>
+                )}
+            </div>
+        );
+    }
+    return null;
+};
 
 export default function AIAnalytics({
     auth,
     popularMenus,
     sentimentSummary,
     recentReviews,
+    efficiencyData = [],
     aiServiceStatus,
 }: AIAnalyticsProps) {
     const aiMenus = popularMenus?.menus || [];
@@ -43,6 +77,15 @@ export default function AIAnalytics({
             img: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.order?.customer_name || 'Guest')}&background=random`,
         };
     });
+
+    const positivePercent = sentimentSummary?.summary?.positive_percentage ?? 0;
+    const neutralPercent = sentimentSummary?.summary?.neutral_percentage ?? 0;
+    const negativePercent = sentimentSummary?.summary?.negative_percentage ?? 0;
+
+    const hasSentimentData = (positivePercent + neutralPercent + negativePercent) > 0;
+    const donutBg = hasSentimentData
+        ? `conic-gradient(#60765D 0% ${positivePercent}%, #D8D1CE ${positivePercent}% ${positivePercent + neutralPercent}%, #B91C1C ${positivePercent + neutralPercent}% 100%)`
+        : '#F2EFEE';
 
     return (
         <AdminLayout
@@ -117,25 +160,56 @@ export default function AIAnalytics({
                             </div>
                         </div>
 
-                        <div className="flex h-[250px] flex-col justify-end">
-                            <div className="relative h-[190px]">
-                                <div className="absolute left-0 top-[55%] h-[3px] w-full rounded-full bg-[#E8E3E1]" />
-                                <div className="absolute left-[8%] top-[45%] h-[3px] w-[78%] rotate-[-8deg] rounded-full bg-[#60765D]" />
-                                <div className="absolute left-[12%] top-[60%] h-[3px] w-[72%] rotate-[5deg] rounded-full bg-[#301713]" />
-                            </div>
-
-                            <div className="grid grid-cols-6 text-center text-[10px] font-semibold text-[#A69D9A]">
-                                {[
-                                    "08:00",
-                                    "10:00",
-                                    "12:00",
-                                    "14:00",
-                                    "16:00",
-                                    "18:00",
-                                ].map((item) => (
-                                    <span key={item}>{item}</span>
-                                ))}
-                            </div>
+                        <div className="h-[250px] w-full mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={efficiencyData}
+                                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="colorEstimated" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#60765D" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#60765D" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#301713" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#301713" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E3E1" />
+                                    <XAxis 
+                                        dataKey="time" 
+                                        tickLine={false} 
+                                        axisLine={false}
+                                        tick={{ fill: '#A69D9A', fontSize: 10, fontWeight: 600 }}
+                                    />
+                                    <YAxis 
+                                        tickLine={false} 
+                                        axisLine={false}
+                                        tick={{ fill: '#A69D9A', fontSize: 10, fontWeight: 600 }}
+                                        unit="m"
+                                    />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="Estimated"
+                                        stroke="#60765D"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorEstimated)"
+                                        name="AI Estimated"
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="Actual"
+                                        stroke="#301713"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorActual)"
+                                        name="Actual"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
@@ -193,14 +267,19 @@ export default function AIAnalytics({
                             </span>
                         </h2>
 
-                        <div className="mx-auto mt-8 flex h-[160px] w-[160px] sm:h-[190px] sm:w-[190px] items-center justify-center rounded-full border-[16px] border-[#F2EFEE]">
-                            <div className="text-center">
-                                <h3 className="text-[28px] font-extrabold sm:text-[34px]">
-                                    {sentimentSummary?.summary?.average_rating || 0}
-                                </h3>
-                                <p className="text-[10px] font-bold uppercase text-[#A69D9A]">
-                                    Avg Index
-                                </p>
+                        <div 
+                            className="mx-auto mt-8 flex h-[160px] w-[160px] sm:h-[190px] sm:w-[190px] items-center justify-center rounded-full transition-all duration-500 ease-in-out shadow-sm"
+                            style={{ background: donutBg }}
+                        >
+                            <div className="flex h-[128px] w-[128px] sm:h-[158px] sm:w-[158px] items-center justify-center rounded-full bg-white text-center shadow-inner">
+                                <div>
+                                    <h3 className="text-[28px] font-extrabold sm:text-[34px]">
+                                        {sentimentSummary?.summary?.average_rating || 0}
+                                    </h3>
+                                    <p className="text-[10px] font-bold uppercase text-[#A69D9A]">
+                                        Avg Index
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

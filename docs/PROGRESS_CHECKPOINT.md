@@ -200,6 +200,14 @@ Endpoint terkait:
 - `GET /admin/finances?month=YYYY-MM`
 - `GET /admin/finances/export?month=YYYY-MM`
 
+### Admin AI Analytics
+- [x] Perbaikan visual donut chart Sentiment Polarity agar dinamis menggunakan CSS `conic-gradient` berdasarkan data sentimen riil (`positive_percentage`, `neutral_percentage`, `negative_percentage`).
+- [x] Integrasi grafik Efficiency Tracker dengan data pelayanan riil (selisih waktu bayar/dibuat dengan waktu selesai) vs estimasi AI model (Multiple Linear Regression) per-jam.
+- [x] Menampilkan data tren secara interaktif menggunakan Recharts AreaChart & Custom Tooltip.
+
+Endpoint terkait:
+- `GET /admin/ai-analytics`
+
 ---
 
 ## Backend / Data Correctness
