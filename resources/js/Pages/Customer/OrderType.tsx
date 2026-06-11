@@ -4,6 +4,13 @@ import CustomerLayout from "@/Components/Layout/CustomerLayout";
 import TopBar from "@/Components/customer/navigation/TopBar";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
+import OrderTypeActions from "@/Components/customer/order-type/OrderTypeActions";
+import {
+    DineInCard as OrderTypeDineInCard,
+    TakeawayCard as OrderTypeTakeawayCard,
+} from "@/Components/customer/order-type/OrderTypeCard";
+import OrderTypeExpectationTips from "@/Components/customer/order-type/ExpectationTips";
+import SelectedOrderTypeSummary from "@/Components/customer/order-type/SelectedOrderTypeSummary";
 import { useCart } from "@/hooks/useCart";
 
 interface Props {
@@ -74,7 +81,7 @@ export default function OrderTypePage({
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <DineInCard
+                            <OrderTypeDineInCard
                                 selected={selected === "dine-in"}
                                 tableNumber={tableNumber}
                                 tableNumberError={tableNumberError}
@@ -89,7 +96,7 @@ export default function OrderTypePage({
                                 }}
                             />
 
-                            <TakeawayCard
+                            <OrderTypeTakeawayCard
                                 selected={selected === "takeaway"}
                                 name={customerName}
                                 nameError={nameError}
@@ -115,7 +122,7 @@ export default function OrderTypePage({
                                 "linear-gradient(to top, var(--color-ucw-bg) 65%, transparent)",
                         }}
                     >
-                        <ConfirmButton
+                        <OrderTypeActions
                             selected={selected}
                             onConfirm={handleConfirm}
                         />
@@ -144,7 +151,7 @@ export default function OrderTypePage({
                             </div>
 
                             <div className="grid grid-cols-2 gap-5 mt-6">
-                                <DineInCard
+                                <OrderTypeDineInCard
                                     selected={selected === "dine-in"}
                                     tableNumber={tableNumber}
                                     tableNumberError={tableNumberError}
@@ -160,7 +167,7 @@ export default function OrderTypePage({
                                     desktop
                                 />
 
-                                <TakeawayCard
+                                <OrderTypeTakeawayCard
                                     selected={selected === "takeaway"}
                                     name={customerName}
                                     nameError={nameError}
@@ -211,17 +218,17 @@ export default function OrderTypePage({
                         </div>
 
                         <div className="flex-1 px-8 py-6 flex flex-col gap-5">
-                            <SelectedSummary
+                            <SelectedOrderTypeSummary
                                 selected={selected as 'dine-in' | 'takeaway' | null}
                                 tableNumber={displayTableNumber}
                                 name={customerName}
                             />
 
-                            <ExpectationTips selected={selected as 'dine-in' | 'takeaway' | null} />
+                            <OrderTypeExpectationTips selected={selected as 'dine-in' | 'takeaway' | null} />
                         </div>
 
                         <div className="px-8 pb-8">
-                            <ConfirmButton
+                            <OrderTypeActions
                                 selected={selected}
                                 onConfirm={handleConfirm}
                             />
@@ -277,477 +284,5 @@ function PageHeading({ desktop = false }: { desktop?: boolean }) {
                 takeaway if you prefer to pick it up by name.
             </p>
         </div>
-    );
-}
-
-function DineInCard({
-    selected,
-    tableNumber,
-    tableNumberError,
-    onSelect,
-    onTableNumberChange,
-    desktop = false,
-}: {
-    selected: boolean;
-    tableNumber: string;
-    tableNumberError: string;
-    onSelect: () => void;
-    onTableNumberChange: (value: string) => void;
-    desktop?: boolean;
-}) {
-    return (
-        <button
-            onClick={onSelect}
-            className="w-full rounded-3xl p-5 text-left transition-all duration-200"
-            style={{
-                backgroundColor: "white",
-                border: `1.5px solid ${
-                    selected ? "var(--color-ucw-dark)" : "var(--color-ucw-border)"
-                }`,
-                boxShadow: selected ? "0 14px 35px rgba(45,26,14,0.10)" : "none",
-                minHeight: desktop ? "260px" : "auto",
-            }}
-        >
-            <div className="flex items-start justify-between mb-4">
-                <OptionIcon type="dine-in" />
-                {selected && <SelectedPill />}
-            </div>
-
-            <h3
-                className="font-black mb-1"
-                style={{
-                    fontSize: "19px",
-                    color: selected
-                        ? "var(--color-ucw-dark)"
-                        : "var(--color-ucw-text)",
-                }}
-            >
-                Dine-in
-            </h3>
-
-            <p
-                className="leading-relaxed mb-4"
-                style={{
-                    fontSize: "13px",
-                    color: "var(--color-ucw-text-muted)",
-                }}
-            >
-                Enjoy your drink in our curated creative space.
-            </p>
-
-            {selected ? (
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex flex-col gap-1.5"
-                >
-                    <label
-                        className="font-semibold uppercase tracking-[0.12em]"
-                        style={{
-                            fontSize: "10px",
-                            color: "var(--color-ucw-text-muted)",
-                        }}
-                    >
-                        TABLE NUMBER
-                    </label>
-
-                    <input
-                        type="text"
-                        placeholder="Enter table number"
-                        value={tableNumber}
-                        onChange={(e) => onTableNumberChange(e.target.value)}
-                        autoFocus
-                        className="w-full h-12 px-4 rounded-xl outline-none transition-colors"
-                        style={{
-                            fontSize: "14px",
-                            backgroundColor: "var(--color-ucw-bg-warm)",
-                            border: `1.5px solid ${
-                                tableNumberError
-                                    ? "var(--color-ucw-red)"
-                                    : "var(--color-ucw-border)"
-                            }`,
-                            color: "var(--color-ucw-text)",
-                        }}
-                    />
-
-                    {tableNumberError && (
-                        <p
-                            style={{
-                                fontSize: "11px",
-                                color: "var(--color-ucw-red)",
-                            }}
-                        >
-                            {tableNumberError}
-                        </p>
-                    )}
-                </div>
-            ) : (
-                <div
-                    className="flex items-center justify-between px-4 py-3 rounded-xl"
-                    style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
-                >
-                    <span
-                        className="font-semibold uppercase tracking-[0.12em]"
-                        style={{
-                            fontSize: "10px",
-                            color: "var(--color-ucw-text-muted)",
-                        }}
-                    >
-                        YOUR SPOT
-                    </span>
-
-                    <span
-                        className="font-black"
-                        style={{
-                            fontSize: "15px",
-                            color: "var(--color-ucw-dark)",
-                        }}
-                    >
-                        Table {tableNumber || "-"}
-                    </span>
-                </div>
-            )}
-        </button>
-    );
-}
-
-function TakeawayCard({
-    selected,
-    name,
-    nameError,
-    onSelect,
-    onNameChange,
-    desktop = false,
-}: {
-    selected: boolean;
-    name: string;
-    nameError: string;
-    onSelect: () => void;
-    onNameChange: (value: string) => void;
-    desktop?: boolean;
-}) {
-    return (
-        <button
-            onClick={onSelect}
-            className="w-full rounded-3xl p-5 text-left transition-all duration-200"
-            style={{
-                backgroundColor: "white",
-                border: `1.5px solid ${
-                    selected ? "var(--color-ucw-dark)" : "var(--color-ucw-border)"
-                }`,
-                boxShadow: selected ? "0 14px 35px rgba(45,26,14,0.10)" : "none",
-                minHeight: desktop ? "260px" : "auto",
-            }}
-        >
-            <div className="flex items-start justify-between mb-4">
-                <OptionIcon type="takeaway" />
-                {selected && <SelectedPill />}
-            </div>
-
-            <h3
-                className="font-black mb-1"
-                style={{
-                    fontSize: "19px",
-                    color: selected
-                        ? "var(--color-ucw-dark)"
-                        : "var(--color-ucw-text)",
-                }}
-            >
-                Takeaway
-            </h3>
-
-            <p
-                className="leading-relaxed mb-4"
-                style={{
-                    fontSize: "13px",
-                    color: "var(--color-ucw-text-muted)",
-                }}
-            >
-                Perfect if you are on the move or prefer pickup.
-            </p>
-
-            {selected ? (
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex flex-col gap-1.5"
-                >
-                    <label
-                        className="font-semibold uppercase tracking-[0.12em]"
-                        style={{
-                            fontSize: "10px",
-                            color: "var(--color-ucw-text-muted)",
-                        }}
-                    >
-                        YOUR NAME
-                    </label>
-
-                    <input
-                        type="text"
-                        placeholder="Enter name for order"
-                        value={name}
-                        onChange={(e) => onNameChange(e.target.value)}
-                        autoFocus
-                        className="w-full h-12 px-4 rounded-xl outline-none transition-colors"
-                        style={{
-                            fontSize: "14px",
-                            backgroundColor: "var(--color-ucw-bg-warm)",
-                            border: `1.5px solid ${
-                                nameError
-                                    ? "var(--color-ucw-red)"
-                                    : "var(--color-ucw-border)"
-                            }`,
-                            color: "var(--color-ucw-text)",
-                        }}
-                    />
-
-                    {nameError && (
-                        <p
-                            style={{
-                                fontSize: "11px",
-                                color: "var(--color-ucw-red)",
-                            }}
-                        >
-                            {nameError}
-                        </p>
-                    )}
-                </div>
-            ) : (
-                <div
-                    className="flex items-center justify-between px-4 py-3 rounded-xl"
-                    style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
-                >
-                    <span
-                        className="font-semibold uppercase tracking-[0.12em]"
-                        style={{
-                            fontSize: "10px",
-                            color: "var(--color-ucw-text-muted)",
-                        }}
-                    >
-                        PICKUP BY
-                    </span>
-
-                    <span
-                        className="font-black"
-                        style={{
-                            fontSize: "15px",
-                            color: "var(--color-ucw-dark)",
-                        }}
-                    >
-                        Name
-                    </span>
-                </div>
-            )}
-        </button>
-    );
-}
-
-function SelectedSummary({
-    selected,
-    tableNumber,
-    name,
-}: {
-    selected: 'dine-in' | 'takeaway' | null;
-    tableNumber: string;
-    name: string;
-}) {
-    return (
-        <div>
-            <p
-                className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
-                style={{ color: "var(--color-ucw-text-muted)" }}
-            >
-                Your choice
-            </p>
-
-            {selected ? (
-                <div
-                    className="flex items-center gap-3 p-4 rounded-2xl"
-                    style={{
-                        background: "var(--color-ucw-bg-warm)",
-                        border: "1px solid var(--color-ucw-border)",
-                    }}
-                >
-                    <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: "var(--color-ucw-dark)" }}
-                    >
-                        {selected === "dine-in" ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="10" rx="2" />
-                                <path d="M8 13v8M16 13v8M5 21h14" />
-                            </svg>
-                        ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <path d="M16 10a4 4 0 0 1-8 0" />
-                            </svg>
-                        )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                        <p
-                            className="font-bold text-sm"
-                            style={{ color: "var(--color-ucw-dark)" }}
-                        >
-                            {selected === "dine-in" ? "Dine-in" : "Takeaway"}
-                        </p>
-
-                        <p
-                            className="text-xs mt-0.5 truncate"
-                            style={{ color: "var(--color-ucw-text-muted)" }}
-                        >
-                            {selected === "dine-in"
-                                ? tableNumber
-                                  ? `Table ${tableNumber}`
-                                  : "Enter table number"
-                                : name
-                                  ? `Name: ${name}`
-                                  : "Enter your name"}
-                        </p>
-                    </div>
-
-                    <span
-                        className="text-[9px] font-bold px-2.5 py-1 rounded-full text-white shrink-0"
-                        style={{ backgroundColor: "var(--color-ucw-dark)" }}
-                    >
-                        SELECTED
-                    </span>
-                </div>
-            ) : (
-                <div
-                    className="flex items-center gap-3 p-4 rounded-2xl"
-                    style={{
-                        background: "var(--color-ucw-border)",
-                        border: "1px dashed var(--color-ucw-border-dark)",
-                    }}
-                >
-                    <p
-                        className="text-sm"
-                        style={{ color: "var(--color-ucw-text-muted)" }}
-                    >
-                        No option selected yet
-                    </p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function ExpectationTips({ selected }: { selected: 'dine-in' | 'takeaway' | null }) {
-    const tips =
-        selected === "takeaway"
-            ? [
-                  { icon: "⏱", text: "Estimated wait: 5–10 minutes" },
-                  { icon: "🏷", text: "Your order will be prepared by name" },
-                  { icon: "🔔", text: "We'll notify you when it is ready" },
-              ]
-            : [
-                  { icon: "⏱", text: "Estimated wait: 5–10 minutes" },
-                  { icon: "📍", text: "Order delivered to your table" },
-                  { icon: "🔔", text: "We'll notify you when it is ready" },
-              ];
-
-    return (
-        <div className="flex flex-col gap-3">
-            <p
-                className="text-xs font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "var(--color-ucw-text-muted)" }}
-            >
-                What to expect
-            </p>
-
-            {tips.map((tip) => (
-                <div key={tip.text} className="flex items-center gap-3">
-                    <span className="text-base">{tip.icon}</span>
-                    <span
-                        className="text-xs"
-                        style={{ color: "var(--color-ucw-text-muted)" }}
-                    >
-                        {tip.text}
-                    </span>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-function OptionIcon({ type }: { type: "dine-in" | "takeaway" }) {
-    return (
-        <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: "var(--color-ucw-bg-warm)" }}
-        >
-            {type === "dine-in" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-ucw-dark)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="10" rx="2" />
-                    <path d="M8 13v8M16 13v8M5 21h14" />
-                </svg>
-            ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-ucw-dark)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                </svg>
-            )}
-        </div>
-    );
-}
-
-function SelectedPill() {
-    return (
-        <span
-            className="px-3 py-1 rounded-full font-bold tracking-wider text-white"
-            style={{
-                fontSize: "9px",
-                backgroundColor: "var(--color-ucw-dark)",
-            }}
-        >
-            SELECTED
-        </span>
-    );
-}
-
-
-
-function ConfirmButton({
-    selected,
-    onConfirm,
-}: {
-    selected: 'dine-in' | 'takeaway' | null;
-    onConfirm: () => void;
-}) {
-    return (
-        <button
-            onClick={onConfirm}
-            disabled={!selected}
-            className="w-full flex items-center justify-center gap-2.5 rounded-2xl font-bold transition-all active:scale-[0.98]"
-            style={{
-                height: "54px",
-                fontSize: "15px",
-                backgroundColor: selected
-                    ? "var(--color-ucw-dark)"
-                    : "var(--color-ucw-border)",
-                color: selected ? "white" : "var(--color-ucw-text-muted)",
-                boxShadow: selected
-                    ? "0 4px 20px rgba(45,26,14,0.25)"
-                    : "none",
-                cursor: selected ? "pointer" : "not-allowed",
-            }}
-        >
-            Confirm Details
-
-            <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-        </button>
     );
 }
