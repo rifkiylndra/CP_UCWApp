@@ -4,16 +4,20 @@ import TopBar from "@/Components/customer/navigation/TopBar";
 import BottomNav from "@/Components/customer/navigation/BottomNav";
 import CustomerDesktopHeader from "@/Components/customer/common/CustomerDesktopHeader";
 import CheckoutSteps from "@/Components/customer/common/CheckoutSteps";
-import { formatIDR } from "@/lib/currency";
-import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
-import { useCart, CartItem } from "@/hooks/useCart";
+import {
+    AddMoreLink,
+    CartEmptyState,
+    CartItemList,
+    CartSummaryCard,
+    CheckoutButton,
+    MiniCartItemList,
+} from "@/Components/customer/cart/CartBlocks";
+import { useCart } from "@/hooks/useCart";
 
 interface Props {
     tableId: string;
     tableNumber?: string;
 }
-
-const PLACEHOLDER = MENU_IMAGE_PLACEHOLDER;
 
 export default function Cart({ tableId, tableNumber = "" }: Props) {
     const { items, subtotal, total, totalItems, adjustQuantity, updateNotes, tableNumber: storedTableNumber } = useCart();
@@ -37,7 +41,7 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                             backHref={route("customer.menu")}
                         />
 
-                        <EmptyCart tableId={tableId} />
+                        <CartEmptyState tableId={tableId} />
 
                         <div
                             className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40"
@@ -60,7 +64,7 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                                 active="cart"
                             />
 
-                            <EmptyCart tableId={tableId} desktop />
+                            <CartEmptyState tableId={tableId} desktop />
                         </main>
                     </div>
                 </CustomerLayout>
@@ -109,29 +113,16 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                         </div>
 
                         <div className="flex flex-col px-5">
-                            {items.map((item, index) => (
-                                <div key={item.id}>
-                                    <CartItemRow
-                                        item={item}
-                                        onAdjust={adjustQuantity}
-                                        onUpdateNotes={updateNotes}
-                                    />
-
-                                    {index < items.length - 1 && (
-                                        <div
-                                            style={{
-                                                height: "1px",
-                                                backgroundColor: "var(--color-ucw-border)",
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            ))}
+                            <CartItemList
+                                items={items}
+                                onAdjust={adjustQuantity}
+                                onUpdateNotes={updateNotes}
+                            />
                         </div>
 
                         <AddMoreLink tableId={tableId} className="mx-5 mt-2" />
 
-                        <PriceSummary
+                        <CartSummaryCard
                             subtotal={subtotal}
                             total={total}
                             className="mx-5 mt-6"
@@ -200,25 +191,12 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                                     border: "1px solid var(--color-ucw-border)",
                                 }}
                             >
-                                {items.map((item, index) => (
-                                    <div key={item.id}>
-                                        <CartItemRow
-                                            item={item}
-                                            onAdjust={adjustQuantity}
-                                            onUpdateNotes={updateNotes}
-                                            desktop
-                                        />
-
-                                        {index < items.length - 1 && (
-                                            <div
-                                                style={{
-                                                    height: "1px",
-                                                    backgroundColor: "var(--color-ucw-border)",
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                ))}
+                                <CartItemList
+                                    items={items}
+                                    onAdjust={adjustQuantity}
+                                    onUpdateNotes={updateNotes}
+                                    desktop
+                                />
                             </div>
 
                             <AddMoreLink tableId={tableId} className="mt-5" />
@@ -255,9 +233,7 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-4">
-                            {items.map((item) => (
-                                <MiniCartItem key={item.id} item={item} />
-                            ))}
+                            <MiniCartItemList items={items} />
                         </div>
 
                         <div
@@ -267,7 +243,7 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                                 paddingTop: "20px",
                             }}
                         >
-                            <PriceSummary subtotal={subtotal} total={total} compact />
+                            <CartSummaryCard subtotal={subtotal} total={total} compact />
 
                             <div className="mt-6">
                                 <CheckoutButton tableId={tableId} />
@@ -285,359 +261,5 @@ export default function Cart({ tableId, tableNumber = "" }: Props) {
                 </div>
             </CustomerLayout>
         </>
-    );
-}
-
-function EmptyCart({
-    tableId,
-    desktop = false,
-}: {
-    tableId: string;
-    desktop?: boolean;
-}) {
-    return (
-        <div className="flex flex-col items-center justify-center flex-1 px-8 text-center py-20">
-            <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-                style={{ backgroundColor: "var(--color-ucw-border)" }}
-            >
-                <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--color-ucw-text-muted)"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 1.99-1.77L23 6H6" />
-                </svg>
-            </div>
-
-            <h2
-                className="font-bold mb-1.5"
-                style={{
-                    fontSize: desktop ? "22px" : "18px",
-                    color: "var(--color-ucw-text)",
-                }}
-            >
-                Your cart is empty
-            </h2>
-
-            <p
-                className="text-sm mb-6"
-                style={{ color: "var(--color-ucw-text-muted)" }}
-            >
-                Add something delicious from the menu.
-            </p>
-
-            <Link
-                href={route("customer.menu")}
-                className="px-6 h-11 rounded-xl text-sm font-semibold flex items-center text-white"
-                style={{ backgroundColor: "var(--color-ucw-dark)" }}
-            >
-                Browse Menu
-            </Link>
-        </div>
-    );
-}
-
-function CartItemRow({
-    item,
-    onAdjust,
-    onUpdateNotes,
-    desktop = false,
-}: {
-    item: CartItem;
-    onAdjust: (id: string, delta: number) => void;
-    onUpdateNotes: (id: string, notes: string) => void;
-    desktop?: boolean;
-}) {
-    const imageSrc = firstImageUrl(item.imageUrl);
-
-    return (
-        <div className={desktop ? "py-6" : "py-5"}>
-            <div className="flex gap-4">
-                <div
-                    className="rounded-2xl overflow-hidden shrink-0"
-                    style={{
-                        width: desktop ? "124px" : "110px",
-                        height: desktop ? "112px" : "100px",
-                        backgroundColor: "var(--color-ucw-border)",
-                    }}
-                >
-                    <img
-                        src={imageSrc || PLACEHOLDER}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        onError={useFallbackImage}
-                    />
-                </div>
-
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                    <div>
-                        <div className="flex items-start justify-between gap-2">
-                            <h3
-                                className="font-bold leading-tight flex-1"
-                                style={{
-                                    fontSize: desktop ? "16px" : "15px",
-                                    color: "var(--color-ucw-text)",
-                                }}
-                            >
-                                {item.name}
-                            </h3>
-
-                            <span
-                                className="font-bold shrink-0"
-                                style={{
-                                    fontSize: "15px",
-                                    color: "var(--color-ucw-dark)",
-                                }}
-                            >
-                                {formatIDR(item.price)}
-                            </span>
-                        </div>
-
-                        <p
-                            className="mt-1 leading-snug"
-                            style={{
-                                fontSize: "12px",
-                                color: "var(--color-ucw-text-muted)",
-                            }}
-                        >
-                            {item.subtitle}
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3 mt-3">
-                        <button
-                            onClick={() => onAdjust(item.id, -1)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-transform active:scale-90"
-                            style={{
-                                backgroundColor: "var(--color-ucw-border)",
-                                color: "var(--color-ucw-dark)",
-                            }}
-                        >
-                            −
-                        </button>
-
-                        <span
-                            className="w-5 text-center font-bold"
-                            style={{
-                                fontSize: "15px",
-                                color: "var(--color-ucw-text)",
-                            }}
-                        >
-                            {item.quantity}
-                        </span>
-
-                        <button
-                            onClick={() => onAdjust(item.id, 1)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-transform active:scale-90 text-white"
-                            style={{ backgroundColor: "var(--color-ucw-dark)" }}
-                        >
-                            +
-                        </button>
-
-                        <button
-                            onClick={() => onAdjust(item.id, -item.quantity)}
-                            className="ml-auto w-8 h-8 rounded-full flex items-center justify-center transition-opacity active:opacity-50"
-                            style={{ color: "var(--color-ucw-text-muted)" }}
-                        >
-                            <svg
-                                width="15"
-                                height="15"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6l-1 14H6L5 6" />
-                                <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <input
-                type="text"
-                placeholder="Add special notes (e.g. Extra hot, oat milk...)"
-                value={item.notes ?? ""}
-                onChange={(e) => onUpdateNotes(item.id, e.target.value)}
-                className="w-full mt-3 px-4 h-10 rounded-xl text-xs outline-none"
-                style={{
-                    backgroundColor: "var(--color-ucw-bg-warm)",
-                    border: "1px solid var(--color-ucw-border)",
-                    color: "var(--color-ucw-text)",
-                }}
-            />
-        </div>
-    );
-}
-
-function MiniCartItem({ item }: { item: CartItem }) {
-    const imageSrc = firstImageUrl(item.imageUrl);
-
-    return (
-        <div className="flex items-center gap-3">
-            <div
-                className="w-12 h-12 rounded-xl overflow-hidden shrink-0"
-                style={{ backgroundColor: "var(--color-ucw-border)" }}
-            >
-                <img
-                    src={imageSrc || PLACEHOLDER}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                    onError={useFallbackImage}
-                />
-            </div>
-
-            <div className="flex-1 min-w-0">
-                <p
-                    className="font-semibold text-sm leading-tight truncate"
-                    style={{ color: "var(--color-ucw-dark)" }}
-                >
-                    {item.name}
-                </p>
-
-                <p
-                    className="text-xs mt-0.5"
-                    style={{ color: "var(--color-ucw-text-muted)" }}
-                >
-                    {formatIDR(item.price)} × {item.quantity}
-                </p>
-            </div>
-
-            <span
-                className="font-bold text-sm shrink-0"
-                style={{ color: "var(--color-ucw-dark)" }}
-            >
-                {formatIDR(item.price * item.quantity)}
-            </span>
-        </div>
-    );
-}
-
-function PriceSummary({
-    subtotal,
-    total,
-    className = "",
-    compact = false,
-}: {
-    subtotal: number;
-    total: number;
-    className?: string;
-    compact?: boolean;
-}) {
-    return (
-        <div className={className}>
-            <div className="flex justify-between items-center mb-3">
-                <span
-                    className="font-semibold uppercase tracking-[0.12em]"
-                    style={{ fontSize: "11px", color: "var(--color-ucw-text-muted)" }}
-                >
-                    SUBTOTAL
-                </span>
-                <span
-                    className="font-semibold"
-                    style={{ fontSize: "14px", color: "var(--color-ucw-text)" }}
-                >
-                    {formatIDR(subtotal)}
-                </span>
-            </div>
-
-            <div style={{ height: "1px", backgroundColor: "var(--color-ucw-border)" }} />
-
-            <div className="flex justify-between items-center mt-4">
-                <span
-                    className="font-black"
-                    style={{
-                        fontSize: compact ? "15px" : "17px",
-                        color: "var(--color-ucw-text)",
-                    }}
-                >
-                    Total
-                </span>
-
-                <span
-                    className="font-black"
-                    style={{
-                        fontSize: compact ? "18px" : "22px",
-                        color: "var(--color-ucw-dark)",
-                    }}
-                >
-                    {formatIDR(total)}
-                </span>
-            </div>
-        </div>
-    );
-}
-
-function AddMoreLink({
-    tableId,
-    className = "",
-}: {
-    tableId: string;
-    className?: string;
-}) {
-    return (
-        <Link
-            href={route("customer.menu")}
-            className={`flex items-center justify-center gap-1.5 h-11 rounded-xl text-sm font-medium transition-opacity active:opacity-60 ${className}`}
-            style={{
-                border: "1.5px dashed var(--color-ucw-border-dark)",
-                color: "var(--color-ucw-text-muted)",
-            }}
-        >
-            <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-            >
-                <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add more items
-        </Link>
-    );
-}
-
-function CheckoutButton({ tableId }: { tableId: string }) {
-    return (
-        <Link
-            href={route("customer.order-type")}
-            className="w-full flex items-center justify-between px-6 rounded-2xl font-bold transition-all active:scale-[0.98] text-white"
-            style={{
-                height: "56px",
-                fontSize: "15px",
-                backgroundColor: "var(--color-ucw-dark)",
-                boxShadow: "0 4px 20px rgba(45,26,14,0.25)",
-            }}
-        >
-            <span>Proceed to Checkout</span>
-
-            <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-        </Link>
     );
 }
