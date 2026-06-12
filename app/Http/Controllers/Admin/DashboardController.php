@@ -86,6 +86,9 @@ class DashboardController extends Controller
                             'id' => (string) ($menu?->id ?? $detail->menu_id ?? $detail->id),
                             'name' => $detail->menu_name ?? $menu?->name ?? 'Deleted menu',
                             'price' => (float) ($detail->unit_price ?? $menu?->price ?? 0),
+                            'image' => $menu?->image,
+                            'image_url' => $menu?->image_url,
+                            'imageUrl' => $menu?->image_url,
                         ],
                         'quantity' => $detail->quantity,
                         'notes' => $detail->note,
@@ -98,6 +101,9 @@ class DashboardController extends Controller
                 'placedAt' => $order->created_at->format('H:i'),
                 'customerName' => $order->customer_name,
                 'isPriority' => false,
+                'estimatedServeTime' => $order->estimated_serve_time,
+                'createdAt' => $order->created_at?->toIso8601String(),
+                'updatedAt' => $order->updated_at?->toIso8601String(),
             ];
         })->toArray();
     }

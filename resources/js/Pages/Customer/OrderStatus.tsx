@@ -69,11 +69,21 @@ interface Props {
     estimatedServeTime?: number | null;
 }
 
-function remainingSeconds(status: OrderStatus, startTime?: string | null, estimatedServeTime?: number | null) {
+function remainingSeconds(
+    status: OrderStatus,
+    createdAt?: string | null,
+    updatedAt?: string | null,
+    estimatedServeTime?: number | null
+) {
     if (status === "ready" || status === "completed" || status === "cancelled") {
         return 0;
     }
 
+    if (status !== "processing" && status !== "preparing") {
+        return Math.max(0, (estimatedServeTime || 15) * 60);
+    }
+
+    const startTime = updatedAt || createdAt;
     if (!startTime || !estimatedServeTime) return Math.max(0, (estimatedServeTime || 15) * 60);
 
     const startTimeMs = new Date(startTime).getTime();
@@ -121,7 +131,12 @@ export default function OrderStatusPage({
         estimatedServeTime || order?.estimated_serve_time || 15,
     );
     const [timeLeft, setTimeLeft] = useState(() =>
-        remainingSeconds(defaultStatus, createdAt || order?.created_at, estimatedServeTime || order?.estimated_serve_time || 15),
+        remainingSeconds(
+            defaultStatus,
+            createdAt || order?.created_at,
+            updatedAt || (order as BackendOrder | undefined)?.updated_at,
+            estimatedServeTime || order?.estimated_serve_time || 15
+        ),
     );
     
     const [receivedAt] = useState(() => {
@@ -151,6 +166,8 @@ export default function OrderStatusPage({
         orderId: resolvedOrderId,
         onOrderStatus: setStatus,
         onPaymentStatus: setCurrentPaymentStatus,
+        onUpdatedAt: setCurrentUpdatedAt,
+        onEstimatedServeTime: setCurrentEstimatedServeTime,
     });
 
     useOrderStatusPolling({
@@ -171,14 +188,14 @@ export default function OrderStatusPage({
         }
 
         const tick = () => {
-            setTimeLeft(remainingSeconds(status, currentCreatedAt, currentEstimatedServeTime));
+            setTimeLeft(remainingSeconds(status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime));
         };
 
         tick();
         const timer = window.setInterval(tick, 1000);
 
         return () => window.clearInterval(timer);
-    }, [status, currentCreatedAt, currentEstimatedServeTime]);
+    }, [status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime]);
 
     useEffect(() => {
         if (status === "ready" || status === "completed") {

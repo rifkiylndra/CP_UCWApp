@@ -126,6 +126,9 @@ class DashboardController extends Controller
                 'placedAt' => $order->created_at->format('H:i'),
                 'customerName' => $order->customer_name,
                 'isPriority' => false,
+                'estimatedServeTime' => $order->estimated_serve_time,
+                'createdAt' => $order->created_at?->toIso8601String(),
+                'updatedAt' => $order->updated_at?->toIso8601String(),
             ];
         })->toArray();
     }

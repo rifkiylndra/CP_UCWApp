@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { KanbanOrder, KanbanColumn } from "@/types/staff";
 
 interface Props {
@@ -9,6 +10,25 @@ interface Props {
     readOnly?: boolean;
 }
 
+function getRemainingSeconds(createdAt?: string, updatedAt?: string, estimatedServeTime?: number) {
+    if (!estimatedServeTime) return 15 * 60;
+
+    const startTime = updatedAt || createdAt;
+    if (!startTime) return estimatedServeTime * 60;
+
+    const startTimeMs = new Date(startTime).getTime();
+    if (Number.isNaN(startTimeMs)) return estimatedServeTime * 60;
+
+    const estimatedEndTime = startTimeMs + estimatedServeTime * 60 * 1000;
+    return Math.max(0, Math.floor((estimatedEndTime - Date.now()) / 1000));
+}
+
+function formatTime(secs: number) {
+    const m = String(Math.floor(secs / 60)).padStart(2, "0");
+    const s = String(secs % 60).padStart(2, "0");
+    return `${m}:${s}`;
+}
+
 export default function KanbanCard({
     order,
     columnType,
@@ -18,6 +38,27 @@ export default function KanbanCard({
     readOnly = false,
 }: Props) {
     const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+    const [timeLeft, setTimeLeft] = useState(() =>
+        columnType === "processing"
+            ? getRemainingSeconds(order.createdAt, order.updatedAt, order.estimatedServeTime)
+            : (order.estimatedServeTime || 15) * 60
+    );
+
+    useEffect(() => {
+        if (columnType !== "processing") {
+            setTimeLeft((order.estimatedServeTime || 15) * 60);
+            return;
+        }
+
+        const tick = () => {
+            setTimeLeft(getRemainingSeconds(order.createdAt, order.updatedAt, order.estimatedServeTime));
+        };
+
+        tick();
+        const timer = window.setInterval(tick, 1000);
+        return () => window.clearInterval(timer);
+    }, [columnType, order.createdAt, order.updatedAt, order.estimatedServeTime]);
 
     const indicatorColor =
         columnType === "incoming"
@@ -165,7 +206,19 @@ export default function KanbanCard({
             )}
 
             <div className="mt-4 flex items-center justify-between gap-3 pl-1 text-[11px] font-semibold text-[#8A7B77] lg:mt-5 lg:text-[12px]">
-                <span className="line-clamp-1">{order.placedAt}</span>
+                <span className="line-clamp-1">
+                    {order.placedAt}
+                    {columnType === "processing" && (
+                        <span className={`ml-2 font-extrabold tabular-nums ${timeLeft === 0 ? "text-[#C62828] animate-pulse" : "text-[#D99A2B]"}`}>
+                            • Prep: {formatTime(timeLeft)}
+                        </span>
+                    )}
+                    {columnType === "incoming" && order.estimatedServeTime && (
+                        <span className="ml-2 font-medium text-[#8A7B77]">
+                            • Est: {order.estimatedServeTime}m
+                        </span>
+                    )}
+                </span>
                 <span className="shrink-0">
                     {totalItems} item{totalItems > 1 ? "s" : ""}
                 </span>

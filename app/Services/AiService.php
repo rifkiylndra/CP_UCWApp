@@ -44,12 +44,22 @@ class AiService
                     
                     if ($menu) {
                         $catName = strtolower($menu->category->name ?? '');
+                        $menuName = strtolower($menu->name ?? '');
                         $qty = $item['quantity'] ?? 1;
                         
-                        if (str_contains($catName, 'manual')) {
+                        // 1. Identify Non-Coffee first to prevent matching 'coffee' substring in 'non-coffee'
+                        if (str_contains($catName, 'non-coffee') || str_contains($catName, 'non-kopi')) {
+                            $jumlahNonKopi += $qty;
+                        // 2. Identify Manual Brew based on specific UCW menu names or categories
+                        } elseif (str_contains($catName, 'manual') || 
+                                  str_contains($menuName, 'v60') || 
+                                  str_contains($menuName, 'vietnam drip') || 
+                                  str_contains($menuName, 'japanese')) {
                             $jumlahKopiManual += $qty;
+                        // 3. Regular Coffee
                         } elseif (str_contains($catName, 'kopi') || str_contains($catName, 'coffee') || str_contains($catName, 'espresso')) {
                             $jumlahKopi += $qty;
+                        // 4. Food and Snacks
                         } elseif (str_contains($catName, 'makanan') || str_contains($catName, 'snack') || str_contains($catName, 'food') || str_contains($catName, 'pastry')) {
                             $jumlahMakanan += $qty;
                         } else {

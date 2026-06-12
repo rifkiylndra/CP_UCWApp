@@ -68,6 +68,7 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         const updatedOrder = {
             ...order,
             status: newStatus,
+            updatedAt: newStatus === "processing" ? new Date().toISOString() : order.updatedAt,
         };
 
         setOrders((prev) => {
@@ -87,7 +88,12 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         });
 
         try {
-            await axios.put(`/staff/order/${orderId}/status`, { status: newStatus });
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            await axios.put(`/staff/order/${orderId}/status`, { status: newStatus }, {
+                headers: {
+                    'X-CSRF-TOKEN': token || ''
+                }
+            });
         } catch (error) {
             console.error("Failed to update order status:", error);
             alert("Gagal mengubah status pesanan. Pastikan koneksi internet stabil.");
@@ -101,8 +107,13 @@ export default function Dashboard({ auth, orders: initialOrders }: Props) {
         if (!order) return;
 
         try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             await axios.post(`/staff/payments/order/${orderId}/verify-cash`, {
                 amount_received: amount
+            }, {
+                headers: {
+                    'X-CSRF-TOKEN': token || ''
+                }
             });
             
             // Update UI state to Processing (since it's paid, it moves to kitchen/processing)

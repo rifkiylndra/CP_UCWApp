@@ -71,6 +71,7 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
     const updatedOrder = {
       ...order,
       status: newStatus,
+      updatedAt: newStatus === "processing" ? new Date().toISOString() : order.updatedAt,
     };
 
     setOrders((prev) => {
@@ -101,7 +102,12 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
     });
 
     try {
-        await axios.put(`/staff/order/${orderId}/status`, { status: newStatus });
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        await axios.put(`/staff/order/${orderId}/status`, { status: newStatus }, {
+            headers: {
+                'X-CSRF-TOKEN': token || ''
+            }
+        });
     } catch (error) {
         console.error("Failed to update order status:", error);
     }
@@ -112,8 +118,13 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
     if (!order) return;
 
     try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       await axios.post(`/staff/payments/order/${orderId}/verify-cash`, {
           amount_received: amount
+      }, {
+          headers: {
+              'X-CSRF-TOKEN': token || ''
+          }
       });
 
       const updatedOrder = {

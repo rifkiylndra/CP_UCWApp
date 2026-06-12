@@ -47,6 +47,9 @@ export interface KanbanOrder {
     status: KanbanColumn;
     placedAt: string;        // Waktu order dibuat
     avgWaitMins?: number;
+    estimatedServeTime?: number;
+    createdAt?: string;
+    updatedAt?: string;
     
     // Detail khusus untuk Order Detail Modal
     customerName?: string;

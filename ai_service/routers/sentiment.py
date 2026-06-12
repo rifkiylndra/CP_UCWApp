@@ -86,17 +86,24 @@ def hybrid_predict(teks: str, rating: int) -> dict:
 
     proba_d  = {k: round(float(v), 4) for k, v in zip(MODEL.classes_, proba)}
     ai_conf  = proba_d[ai_label]
-    if not is_conflict(ai_label, rating):
+
+    # 1. Jika AI label sama dengan rating label, maka hasil sangat konsisten
+    if ai_label == rating_label:
         return {"label_final": ai_label, "ai_label": ai_label, "ai_confidence": ai_conf,
                 "rating_label": rating_label, "sumber": "ai_model",
-                "probabilitas": proba_d, "keterangan": f"AI={ai_label}({ai_conf:.2f}) konsisten"}
+                "probabilitas": proba_d, "keterangan": f"AI={ai_label}({ai_conf:.2f}) konsisten dengan rating"}
+
+    # 2. Jika terjadi perbedaan (mismatch/conflict):
+    # Jika AI sangat percaya diri (>= THRESHOLD), gunakan hasil AI (AI override)
     if ai_conf >= THRESHOLD:
         return {"label_final": ai_label, "ai_label": ai_label, "ai_confidence": ai_conf,
                 "rating_label": rating_label, "sumber": "ai_override",
-                "probabilitas": proba_d, "keterangan": f"KONFLIK: AI override (confidence tinggi)"}
-    return {"label_final": "netral", "ai_label": ai_label, "ai_confidence": ai_conf,
-            "rating_label": rating_label, "sumber": "conflict_resolved",
-            "probabilitas": proba_d, "keterangan": f"KONFLIK: resolve ke netral (confidence rendah)"}
+                "probabilitas": proba_d, "keterangan": f"KONFLIK: AI override ({ai_conf:.2f} >= {THRESHOLD})"}
+
+    # 3. Jika AI kurang percaya diri (< THRESHOLD), gunakan rating bintang sebagai penentu utama (rating override)
+    return {"label_final": rating_label, "ai_label": ai_label, "ai_confidence": ai_conf,
+            "rating_label": rating_label, "sumber": "rating_override",
+            "probabilitas": proba_d, "keterangan": f"KONFLIK: AI kurang yakin ({ai_conf:.2f} < {THRESHOLD}), prioritaskan rating {rating}★"}
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────

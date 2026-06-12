@@ -1,5 +1,5 @@
 {
-  "confidence_threshold": 0.6,
+  "confidence_threshold": 0.7,
   "rating_mapping": {
     "4-5": "positif",
     "3": "netral",
@@ -8,6 +8,6 @@
   "conflict_rule": {
     "positif_vs_low_rating": "rating <= 2",
     "negatif_vs_high_rating": "rating >= 4",
-    "resolution": "netral jika confidence < threshold, else ai_label"
+    "resolution": "rating_label jika confidence < threshold, else ai_label"
   }
 }
