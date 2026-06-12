@@ -73,6 +73,8 @@ class PaymentService
                 // Create payment record
                 $payment = Payment::create([
                     'order_id' => $order->id,
+                    'provider' => 'midtrans',
+                    'provider_reference' => $transactionDetails['order_id'],
                     'payment_method' => 'midtrans',
                     'payment_status' => 'pending',
                     'amount' => $order->total_price,

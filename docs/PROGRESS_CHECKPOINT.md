@@ -4,8 +4,8 @@
 
 ## Project
 - Nama: Sistem Manajemen Coffee Shop Unand Co-Workspace
-- Stack aktif: Laravel 12, Inertia.js v2, React + TypeScript, Tailwind CSS, PostgreSQL untuk production, Pakasir Payment Gateway aktif, Midtrans future/legacy, FastAPI AI Service, Laravel Reverb.
-- Catatan versi: package frontend saat ini memakai React 19.x, sementara sebagian dokumen/instruksi lama masih menyebut React 18.
+- Stack aktif: Laravel 12, Inertia.js v2, React 19 + TypeScript, Tailwind CSS, PostgreSQL untuk production, Pakasir Payment Gateway aktif, Midtrans future/legacy, FastAPI AI Service, Laravel Reverb.
+- Catatan versi: `package.json` memakai React 19.x dan dokumentasi utama sekarang mengikuti versi tersebut.
 - Status umum: customer flow berjalan dan sudah lebih aman, staff dashboard berjalan, admin dashboard makin siap demo/UAT, AI dan Pakasir sudah di-hardening, frontend sudah lebih modular.
 
 ---
@@ -99,7 +99,7 @@ Masalah tersisa yang perlu dibawa ke tahap berikutnya:
 - [ ] Ada kemungkinan duplicate/legacy Staff dashboard controller.
 - [ ] Admin/staff validation belum semuanya memakai Form Request.
 - [ ] Observability, backup, alerting, dan log retention production belum detail.
-- [ ] React 19 masih mismatch dengan dokumen lama yang menyebut React 18.
+- [x] Dokumentasi utama disinkronkan dengan React 19 sesuai `package.json`.
 
 Next step tahap 8A:
 
@@ -138,6 +138,28 @@ Next after 8B:
 1. Konfirmasi apakah `StaffDashboardController.php` boleh dihapus atau dipindahkan sebagai arsip.
 2. Lanjut cleanup Admin AI Analytics backend agar efficiency data tidak memakai fallback slot statis tanpa flag eksplisit.
 3. Tambahkan CI/checklist untuk backup restore drill dan process monitoring.
+
+---
+
+## Checkpoint Week 1 Final Hardening
+
+- [x] CSRF exception dipersempit agar route customer payment/review biasa kembali memakai CSRF normal.
+- [x] Response customer order/payment disanitasi agar tidak mengekspos `raw_response`, `raw_webhook`, provider payload, atau field transaksi internal.
+- [x] `OrderService::getOrderStatistics()` menghitung `revenue_today` hanya dari order `completed` dengan `payment_status=paid`.
+- [x] `/realtime/auth` diberi throttle ringan tanpa mengubah private channel authorization.
+- [x] Python `__pycache__/*.pyc` dibersihkan dari Git tracking dan tetap di-ignore.
+- [x] Payment idempotency diperkuat dengan unique index provider reference/payment method dan Midtrans transaction/payment method.
+- [x] Pakasir create payment memakai update-or-create berdasarkan provider reference agar retry tidak membuat duplikasi payment.
+- [x] `docker-compose.yml` tidak lagi publish PostgreSQL/Redis ke host dari compose utama.
+- [x] Pagination admin tidak lagi render label melalui `dangerouslySetInnerHTML`.
+- [x] Policy AI artifact/cache dan Docker host-port override dicatat di deployment docs.
+
+Next priorities:
+
+1. Jalankan UAT production-like penuh dengan PostgreSQL, Redis, Reverb, queue, scheduler, FastAPI, dan Pakasir sandbox/production sesuai target.
+2. Tambahkan payment expiry/reconciliation job untuk Pakasir unpaid/expired transaction.
+3. Tambahkan observability nyata: health checks, alerting, failed jobs monitor, log retention, dan backup freshness alert.
+4. Putuskan cleanup final untuk legacy `StaffDashboardController.php`.
 4. Lanjut Form Request terbatas untuk controller admin/staff lain yang masih aman.
 
 ---

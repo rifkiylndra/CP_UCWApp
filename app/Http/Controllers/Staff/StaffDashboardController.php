@@ -7,6 +7,10 @@ use Inertia\Inertia;
 
 class StaffDashboardController extends Controller
 {
+    // Legacy prototype controller with static demo data.
+    // Active staff routes use App\Http\Controllers\Staff\DashboardController.
+    // Keep until a separate cleanup confirms no external references depend on it.
+
     /**
      * Tampilkan halaman utama Staff Dashboard (Kanban Live Orders).
      */

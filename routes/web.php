@@ -55,7 +55,7 @@ Route::post('/realtime/auth', function (Request $request) {
     }
 
     return Broadcast::auth($request);
-});
+})->middleware('throttle:60,1');
 
 // ==================== STAFF ROUTES ====================
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {

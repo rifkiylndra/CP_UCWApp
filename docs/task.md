@@ -4,7 +4,7 @@
 - [x] Analisis Figma selesai (26 halaman, 3 section)
 - [x] Scaffold Laravel 11 project
 - [x] Install & konfigurasi Inertia.js v2
-- [x] Install React 18 + TypeScript
+- [x] Install React 19 + TypeScript
 - [x] Install & konfigurasi Tailwind CSS
 - [x] Install Laravel Echo + Pusher
 - [x] Setup base layout & routing

@@ -221,6 +221,7 @@ class OrderService
                 ->whereDate('created_at', $today)
                 ->count(),
             'revenue_today' => Order::where('order_status', 'completed')
+                ->where('payment_status', 'paid')
                 ->whereDate('created_at', $today)
                 ->sum('total_price'),
         ];

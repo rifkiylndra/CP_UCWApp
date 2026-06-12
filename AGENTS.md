@@ -21,12 +21,12 @@ Dokumen ref : CP300-TA2026.08.00X (tersedia di /docs/CP300.pdf)
 | ---------- | ------------------------------- |
 | Backend    | Laravel 12                      |
 | Bridge     | Inertia.js v2                   |
-| Frontend   | React 18 (functional component) |
+| Frontend   | React 19 (functional component) |
 | Styling    | Tailwind CSS                    |
 | Realtime   | Laravel Reverb + Laravel Echo   |
 | AI Service | Python FastAPI (port 8000)      |
 | Database   | PostgreSQL                      |
-| Payment    | Midtrans (Snap.js)              |
+| Payment    | Pakasir production; Midtrans future gateway |
 | Auth       | Laravel Breeze (multi-role)     |
 
 ---
@@ -117,7 +117,7 @@ Tidak ada registrasi customer — langsung akses via QR.
 
 UC-01 Akses menu via QR code
 UC-02 Buat pesanan (dine-in / takeaway)
-UC-02 Pembayaran (Midtrans atau tunai)
+UC-02 Pembayaran (Pakasir QRIS/BRI VA atau tunai; Midtrans disimpan untuk migrasi masa depan)
 UC-03 Pantau status pesanan realtime
 UC-07 Submit review setelah pesanan selesai
 
@@ -201,7 +201,8 @@ Desktop : Staff & Admin dashboard
 - [x] Customer flow (order & payment)
 - [ ] Staff dashboard realtime
 - [ ] Admin dashboard & CRUD
-- [ ] Midtrans payment integration
+- [x] Pakasir payment integration
+- [ ] Midtrans future gateway integration
 - [ ] Laravel Reverb realtime
 - [ ] FastAPI AI microservice
 - [ ] Testing & QA

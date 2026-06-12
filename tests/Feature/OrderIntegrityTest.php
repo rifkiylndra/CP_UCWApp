@@ -100,6 +100,34 @@ class OrderIntegrityTest extends TestCase
             ->assertJsonPath('order_status', 'preparing');
     }
 
+    public function test_revenue_today_only_counts_paid_completed_orders(): void
+    {
+        Order::factory()->completed()->create([
+            'payment_status' => 'paid',
+            'total_price' => 30000,
+            'created_at' => now(),
+        ]);
+        Order::factory()->completed()->create([
+            'payment_status' => 'unpaid',
+            'total_price' => 50000,
+            'created_at' => now(),
+        ]);
+        Order::factory()->pending()->create([
+            'payment_status' => 'paid',
+            'total_price' => 70000,
+            'created_at' => now(),
+        ]);
+        Order::factory()->completed()->create([
+            'payment_status' => 'paid',
+            'total_price' => 90000,
+            'created_at' => now()->subDay(),
+        ]);
+
+        $statistics = app(OrderService::class)->getOrderStatistics();
+
+        $this->assertSame(30000.0, (float) $statistics['revenue_today']);
+    }
+
     private function createMenu(string $name, int $price): Menu
     {
         $category = Category::create(['name' => 'Coffee']);

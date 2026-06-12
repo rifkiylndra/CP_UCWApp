@@ -54,6 +54,8 @@ Core production services:
 docker compose up -d postgres redis app nginx queue scheduler reverb ai-service
 ```
 
+PostgreSQL and Redis are exposed only to the internal Docker network in the main compose file. Do not publish `5432` or `6379` from the production compose stack unless there is a specific private-network operations requirement. For local debugging from the host machine, create a separate untracked `docker-compose.override.yml` that maps those ports only in a trusted development environment.
+
 Development-only service:
 
 ```bash
@@ -153,6 +155,13 @@ Minimum alerting:
 ## Dev And Simulation Routes
 
 Pakasir simulation is routed at `/api/dev/pakasir/payments/{order}/simulate`, but the controller blocks it outside local/testing or non-production sandbox mode. Keep `PAKASIR_MODE=production` and `APP_ENV=production` in production.
+
+## AI Artifact And Cache Policy
+
+- Python `__pycache__` and `*.pyc` files must stay untracked. They are generated runtime artifacts and are ignored by `.gitignore`.
+- `ai_service/saved_models/*.pkl` and related model metadata may stay tracked only when the model files are trusted, needed for demo/UAT, and reviewed as project-owned artifacts.
+- Do not load `.pkl` model files from untrusted sources. Pickle can execute code during deserialization.
+- Future production hardening should add model checksums, provenance notes, or a model registry/artifact store before replacing bundled models.
 
 ## Production Smoke Test
 

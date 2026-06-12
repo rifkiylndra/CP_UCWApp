@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\CreateOrderRequest;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Table;
 use App\Services\CustomerOrderAccessService;
 use App\Services\OrderService;
@@ -96,7 +97,7 @@ class OrderController extends Controller
         $latestPayment = $order->payments()->latest()->first();
 
         return Inertia::render('Customer/OrderStatus', [
-            'order' => $order,
+            'order' => $this->formatPublicOrder($order),
             'tableId' => $order->table_id ?? '',
             'tableNumber' => $order->table?->table_number ?? '',
             'orderId' => (string) $order->id,
@@ -112,16 +113,7 @@ class OrderController extends Controller
             'paymentNumber' => $latestPayment?->payment_number,
             'totalPayment' => $latestPayment?->total_payment,
             'expiredAt' => $latestPayment?->expired_at?->toIso8601String(),
-            'items' => $order->orderDetails->map(function ($detail) {
-                return [
-                    'id' => (string) $detail->id,
-                    'menuId' => (string) $detail->menu_id,
-                    'name' => $detail->menu_name ?? $detail->menu?->name,
-                    'quantity' => $detail->quantity,
-                    'note' => $detail->note,
-                    'subtotal' => (float) $detail->subtotal,
-                ];
-            })->toArray(),
+            'items' => $this->formatItems($order),
         ]);
     }
 
@@ -132,7 +124,7 @@ class OrderController extends Controller
     {
         $order = $this->findCustomerOrder($request, $orderRef, ['table', 'orderDetails.menu', 'payments']);
 
-        return response()->json($order);
+        return response()->json($this->formatPublicOrder($order));
     }
 
     /**
@@ -140,12 +132,13 @@ class OrderController extends Controller
      */
     public function getTableOrders(Request $request, $tableId)
     {
-        $orders = Order::with(['orderDetails.menu'])
+        $orders = Order::with(['table', 'orderDetails.menu'])
             ->where('table_id', $tableId)
             ->whereIn('order_status', Order::activeQueueStatuses())
             ->orderBy('created_at', 'desc')
             ->get()
             ->filter(fn (Order $order) => $this->orderAccess->canAccess($request, $order))
+            ->map(fn (Order $order) => $this->formatPublicOrder($order))
             ->values();
 
         return response()->json($orders);
@@ -216,6 +209,95 @@ class OrderController extends Controller
             'bri_va_pakasir' => 'bri_va',
             default => null,
         };
+    }
+
+    private function formatPublicOrder(Order $order): array
+    {
+        return [
+            'id' => $order->id,
+            'order_ref' => $order->order_ref,
+            'table_id' => $order->table_id,
+            'table_number' => $order->table?->table_number,
+            'order_type' => $order->order_type,
+            'order_status' => Order::customerStatus($order->order_status),
+            'payment_status' => $order->payment_status,
+            'payment_method' => $order->payment_method,
+            'estimated_serve_time' => $order->estimated_serve_time,
+            'total_price' => (float) $order->total_price,
+            'created_at' => $order->created_at?->toIso8601String(),
+            'updated_at' => $order->updated_at?->toIso8601String(),
+            'order_details' => $order->relationLoaded('orderDetails')
+                ? $order->orderDetails->map(fn ($detail) => [
+                    'id' => $detail->id,
+                    'menu_id' => $detail->menu_id,
+                    'menu_name' => $detail->menu_name,
+                    'unit_price' => $detail->unit_price !== null ? (float) $detail->unit_price : null,
+                    'quantity' => $detail->quantity,
+                    'note' => $detail->note,
+                    'subtotal' => (float) $detail->subtotal,
+                    'menu' => $this->formatPublicMenu($detail),
+                ])->values()->all()
+                : [],
+            'payments' => $order->relationLoaded('payments')
+                ? $order->payments->map(fn (Payment $payment) => $this->formatPublicPayment($payment))->values()->all()
+                : [],
+        ];
+    }
+
+    private function formatPublicMenu($detail): ?array
+    {
+        if ($detail->menu) {
+            return [
+                'id' => $detail->menu->id,
+                'name' => $detail->menu->name,
+                'description' => $detail->menu->description,
+                'image' => $detail->menu->image,
+                'image_url' => $detail->menu->image_url,
+            ];
+        }
+
+        if ($detail->menu_name === null) {
+            return null;
+        }
+
+        return [
+            'id' => $detail->menu_id ?? $detail->id,
+            'name' => $detail->menu_name,
+            'description' => null,
+            'image' => null,
+            'image_url' => null,
+        ];
+    }
+
+    private function formatPublicPayment(Payment $payment): array
+    {
+        return [
+            'id' => $payment->id,
+            'payment_method' => $payment->payment_method,
+            'payment_status' => $payment->payment_status,
+            'amount' => (float) $payment->amount,
+            'fee' => $payment->fee !== null ? (float) $payment->fee : null,
+            'total_payment' => $payment->total_payment !== null ? (float) $payment->total_payment : null,
+            'payment_number' => $payment->payment_number,
+            'expired_at' => $payment->expired_at?->toIso8601String(),
+            'paid_at' => $payment->paid_at?->toIso8601String(),
+            'completed_at' => $payment->completed_at?->toIso8601String(),
+            'created_at' => $payment->created_at?->toIso8601String(),
+        ];
+    }
+
+    private function formatItems(Order $order): array
+    {
+        return $order->orderDetails->map(function ($detail) {
+            return [
+                'id' => (string) $detail->id,
+                'menuId' => (string) $detail->menu_id,
+                'name' => $detail->menu_name ?? $detail->menu?->name,
+                'quantity' => $detail->quantity,
+                'note' => $detail->note,
+                'subtotal' => (float) $detail->subtotal,
+            ];
+        })->toArray();
     }
 
     private function findCustomerOrder(Request $request, string $orderRef, array $with = []): Order

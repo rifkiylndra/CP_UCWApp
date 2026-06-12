@@ -5,6 +5,7 @@ namespace Tests\Feature\Customer;
 use App\Models\Category;
 use App\Models\Menu;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Table;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,6 +73,52 @@ class CustomerOrderAccessTest extends TestCase
 
         $this->get("/customer/order/{$orderRef}/status")->assertOk();
         $this->getJson("/customer/order/{$orderRef}/payment/status")->assertOk();
+    }
+
+    public function test_customer_order_responses_do_not_expose_raw_payment_payloads(): void
+    {
+        $order = Order::factory()->pending()->create([
+            'payment_method' => 'qris_pakasir',
+            'payment_status' => 'unpaid',
+        ]);
+
+        Payment::create([
+            'order_id' => $order->id,
+            'provider' => 'pakasir',
+            'provider_reference' => 'internal-provider-ref',
+            'payment_method' => 'qris_pakasir',
+            'payment_status' => 'unpaid',
+            'amount' => 25000,
+            'raw_response' => ['secret' => 'provider-secret'],
+            'raw_webhook' => ['signature' => 'provider-signature'],
+            'midtrans_transaction_id' => 'future-midtrans-id',
+        ]);
+
+        $this->withCustomerOrderAccess($order)
+            ->getJson("/customer/order/{$order->order_ref}")
+            ->assertOk()
+            ->assertJsonMissingPath('payments.0.provider')
+            ->assertJsonMissingPath('payments.0.provider_reference')
+            ->assertJsonMissingPath('payments.0.raw_response')
+            ->assertJsonMissingPath('payments.0.raw_webhook')
+            ->assertJsonMissingPath('payments.0.midtrans_transaction_id')
+            ->assertDontSee('provider-secret')
+            ->assertDontSee('provider-signature')
+            ->assertDontSee('internal-provider-ref')
+            ->assertDontSee('future-midtrans-id');
+
+        $this->withCustomerOrderAccess($order)
+            ->getJson("/customer/order/{$order->order_ref}/payment/status")
+            ->assertOk()
+            ->assertJsonMissingPath('payments.0.provider')
+            ->assertJsonMissingPath('payments.0.provider_reference')
+            ->assertJsonMissingPath('payments.0.raw_response')
+            ->assertJsonMissingPath('payments.0.raw_webhook')
+            ->assertJsonMissingPath('payments.0.midtrans_transaction_id')
+            ->assertDontSee('provider-secret')
+            ->assertDontSee('provider-signature')
+            ->assertDontSee('internal-provider-ref')
+            ->assertDontSee('future-midtrans-id');
     }
 
     public function test_customer_can_access_review_for_owned_completed_order(): void

@@ -1,6 +1,7 @@
 import React, { FormEvent, useMemo, useState } from "react";
 import { Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Components/Layout/AdminLayout";
+import { formatPaginationLabel } from "@/lib/pagination";
 import type { AdminUser } from "@/types/admin";
 import {
   ChevronLeft,
@@ -472,7 +473,7 @@ function PaginationFooter({ data }: { data?: PaginatedFeedback }) {
       {hasLaravelLinks && (
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {data.links?.map((link, index) => {
-            let label: React.ReactNode = link.label;
+            let label: React.ReactNode = formatPaginationLabel(link.label);
 
             if (String(label).includes("Previous")) {
               label = <ChevronLeft size={17} />;
@@ -494,22 +495,14 @@ function PaginationFooter({ data }: { data?: PaginatedFeedback }) {
                     : "bg-white text-[#5A4A47]"
                 }`}
               >
-                {typeof label === "string" ? (
-                  <span dangerouslySetInnerHTML={{ __html: label }} />
-                ) : (
-                  label
-                )}
+                {label}
               </Link>
             ) : (
               <span
                 key={index}
                 className="flex h-9 min-w-9 items-center justify-center rounded-[9px] bg-white/60 px-3 text-[13px] font-extrabold text-[#A69D9A]"
               >
-                {typeof label === "string" ? (
-                  <span dangerouslySetInnerHTML={{ __html: label }} />
-                ) : (
-                  label
-                )}
+                {label}
               </span>
             );
           })}

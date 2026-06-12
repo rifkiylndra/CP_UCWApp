@@ -1,5 +1,6 @@
 import { Link } from "@inertiajs/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { formatPaginationLabel } from "@/lib/pagination";
 import type { Paginated, PaginationLink } from "@/types/shared";
 
 interface PaginationFooterProps<T> {
@@ -70,6 +71,8 @@ function PaginationLinkItem({
     variant,
     compact,
     linkData,
+    preserveScroll,
+    preserveState,
 }: {
     link: PaginationLink;
     variant: "table" | "panel";
@@ -130,10 +133,12 @@ function FallbackControls() {
 }
 
 function getPaginationLabel(label: string) {
-    if (String(label).includes("Previous")) return <ChevronLeft size={17} />;
-    if (String(label).includes("Next")) return <ChevronRight size={17} />;
+    const safeLabel = formatPaginationLabel(String(label));
 
-    return label;
+    if (safeLabel.includes("Previous") || safeLabel.includes("«")) return <ChevronLeft size={17} />;
+    if (safeLabel.includes("Next") || safeLabel.includes("»")) return <ChevronRight size={17} />;
+
+    return safeLabel;
 }
 
 function getInactiveLinkClass(variant: "table" | "panel") {
@@ -145,5 +150,5 @@ function getInactiveLinkClass(variant: "table" | "panel") {
 function renderPaginationLabel(label: string | JSX.Element) {
     if (typeof label !== "string") return label;
 
-    return <span dangerouslySetInnerHTML={{ __html: label }} />;
+    return <span>{label}</span>;
 }

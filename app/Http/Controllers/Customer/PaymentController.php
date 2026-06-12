@@ -46,7 +46,7 @@ class PaymentController extends Controller
         $latestPayment = $order->payments()->latest()->first();
         
         return Inertia::render('Customer/ChoosePayment', [
-            'order' => $order,
+            'order' => $this->formatPublicOrder($order),
             'tableId' => $order->table_id ?? '',
             'tableNumber' => $order->table ? $order->table->table_number : '',
             'total' => $order->total_price,
@@ -369,7 +369,7 @@ class PaymentController extends Controller
         $order = $this->findCustomerOrder($request, $orderRef, ['orderDetails.menu']);
         
         return Inertia::render('Customer/PaymentSuccess', [
-            'order' => $order,
+            'order' => $this->formatPublicOrder($order),
         ]);
     }
 
@@ -385,7 +385,7 @@ class PaymentController extends Controller
         $order = $this->findCustomerOrder($request, $orderRef);
         
         return Inertia::render('Customer/PaymentError', [
-            'order' => $order,
+            'order' => $this->formatPublicOrder($order),
         ]);
     }
 
@@ -455,26 +455,39 @@ class PaymentController extends Controller
 
         $paymentData = $result['payment'] ?? [];
         $paymentMethod = $this->pakasirService->paymentMethodForPakasirMethod($method);
+        $providerReference = $paymentData['order_id'] ?? $order->order_ref;
 
-        $payment = DB::transaction(function () use ($order, $paymentData, $paymentMethod, $result) {
-            $payment = Payment::create([
-                'order_id' => $order->id,
+        $payment = DB::transaction(function () use ($order, $paymentData, $paymentMethod, $providerReference, $result) {
+            $payment = Payment::where([
                 'provider' => 'pakasir',
-                'provider_reference' => $paymentData['order_id'] ?? $order->order_ref,
+                'provider_reference' => $providerReference,
                 'payment_method' => $paymentMethod,
-                'payment_status' => 'unpaid',
-                'amount' => $paymentData['amount'] ?? $order->total_price,
-                'fee' => $paymentData['fee'] ?? null,
-                'total_payment' => $paymentData['total_payment'] ?? ($paymentData['amount'] ?? $order->total_price),
-                'payment_number' => $paymentData['payment_number'] ?? null,
-                'expired_at' => isset($paymentData['expired_at']) ? Carbon::parse($paymentData['expired_at']) : null,
-                'raw_response' => $result['raw'] ?? null,
-            ]);
+            ])->first();
 
-            $order->update([
-                'payment_method' => $paymentMethod,
-                'payment_status' => 'unpaid',
-            ]);
+            if (!$payment || $payment->payment_status !== 'paid') {
+                $payment = Payment::updateOrCreate(
+                    [
+                        'provider' => 'pakasir',
+                        'provider_reference' => $providerReference,
+                        'payment_method' => $paymentMethod,
+                    ],
+                    [
+                        'order_id' => $order->id,
+                        'payment_status' => 'unpaid',
+                        'amount' => $paymentData['amount'] ?? $order->total_price,
+                        'fee' => $paymentData['fee'] ?? null,
+                        'total_payment' => $paymentData['total_payment'] ?? ($paymentData['amount'] ?? $order->total_price),
+                        'payment_number' => $paymentData['payment_number'] ?? null,
+                        'expired_at' => isset($paymentData['expired_at']) ? Carbon::parse($paymentData['expired_at']) : null,
+                        'raw_response' => $result['raw'] ?? null,
+                    ]
+                );
+
+                $order->update([
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => 'unpaid',
+                ]);
+            }
 
             return $payment;
         });
@@ -498,7 +511,6 @@ class PaymentController extends Controller
     {
         return [
             'id' => $payment->id,
-            'provider' => $payment->provider,
             'payment_method' => $payment->payment_method,
             'payment_status' => $payment->payment_status,
             'amount' => (float) $payment->amount,
@@ -509,6 +521,64 @@ class PaymentController extends Controller
             'paid_at' => $payment->paid_at?->toIso8601String(),
             'completed_at' => $payment->completed_at?->toIso8601String(),
             'created_at' => $payment->created_at?->toIso8601String(),
+        ];
+    }
+
+    private function formatPublicOrder(Order $order): array
+    {
+        return [
+            'id' => $order->id,
+            'order_ref' => $order->order_ref,
+            'table_id' => $order->table_id,
+            'table_number' => $order->table?->table_number,
+            'order_type' => $order->order_type,
+            'order_status' => Order::customerStatus($order->order_status),
+            'payment_status' => $order->payment_status,
+            'payment_method' => $order->payment_method,
+            'estimated_serve_time' => $order->estimated_serve_time,
+            'total_price' => (float) $order->total_price,
+            'created_at' => $order->created_at?->toIso8601String(),
+            'updated_at' => $order->updated_at?->toIso8601String(),
+            'order_details' => $order->relationLoaded('orderDetails')
+                ? $order->orderDetails->map(fn ($detail) => [
+                    'id' => $detail->id,
+                    'menu_id' => $detail->menu_id,
+                    'menu_name' => $detail->menu_name,
+                    'unit_price' => $detail->unit_price !== null ? (float) $detail->unit_price : null,
+                    'quantity' => $detail->quantity,
+                    'note' => $detail->note,
+                    'subtotal' => (float) $detail->subtotal,
+                    'menu' => $this->formatPublicMenu($detail),
+                ])->values()->all()
+                : [],
+            'payments' => $order->relationLoaded('payments')
+                ? $order->payments->map(fn (Payment $payment) => $this->formatPublicPayment($payment))->values()->all()
+                : [],
+        ];
+    }
+
+    private function formatPublicMenu($detail): ?array
+    {
+        if ($detail->menu) {
+            return [
+                'id' => $detail->menu->id,
+                'name' => $detail->menu->name,
+                'description' => $detail->menu->description,
+                'image' => $detail->menu->image,
+                'image_url' => $detail->menu->image_url,
+            ];
+        }
+
+        if ($detail->menu_name === null) {
+            return null;
+        }
+
+        return [
+            'id' => $detail->menu_id ?? $detail->id,
+            'name' => $detail->menu_name,
+            'description' => null,
+            'image' => null,
+            'image_url' => null,
         ];
     }
 

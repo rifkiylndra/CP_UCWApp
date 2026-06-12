@@ -42,7 +42,7 @@ Observed in repository:
 
 - Backend: Laravel 12 according to `composer.json` (`laravel/framework ^12.0`).
 - Frontend bridge: Inertia Laravel and `@inertiajs/react`.
-- Frontend: React with TypeScript. `package.json` currently uses React 19 packages, even though project docs mention React 18.
+- Frontend: React 19 with TypeScript. `package.json` is the source of truth for the active frontend version.
 - Styling: Tailwind CSS v4.
 - Realtime: Laravel Reverb, Laravel Echo, Pusher JS client.
 - Database: PostgreSQL for production/deployment. SQLite may still be used in local/test contexts where configured, but production must not default to SQLite.
@@ -51,13 +51,13 @@ Observed in repository:
 - Queue: Laravel database queue.
 - Export: Maatwebsite Excel for staff export; CSV streaming for finance/staff transactions.
 
-Important version mismatch:
+Important version notes:
 
 - User context mentioned Laravel 11.
 - AGENTS/README mention Laravel 12.
 - Actual `composer.json` uses Laravel 12.
-- User context mentioned React 18.
-- Actual `package.json` uses React 19 package versions.
+- Legacy notes may mention older frontend versions.
+- Actual `package.json` uses React 19 package versions, and current documentation should treat React 19 as active.
 
 ## Main Project Structure
 
@@ -501,18 +501,17 @@ Build:
 
 ## Known Issues
 
-- Actual stack versions differ from some project instructions.
-- React package version is currently 19.x while legacy docs/instructions still mention React 18.
+- React 19 is the active frontend version and has been aligned in the main project instructions.
 - Production examples and compose files should stay placeholder-only; any historical real secrets must be considered rotated outside the repo.
 - Admin Settings still needs a focused verification pass.
 - Pakasir webhook still lacks signature/replay hardening if Pakasir supports it, although payload validation and idempotency are now present.
-- Pakasir simulation route remains registered, although production execution is guarded.
-- Public settings/review/menu APIs need a data exposure audit.
-- Explicit rate limiting for login, order creation, payment creation, and webhook traffic is incomplete.
+- Pakasir simulation route is not registered for production routing and remains guarded for non-production sandbox/local usage.
+- Public settings/review/menu APIs should be re-audited whenever new fields are added.
+- Login, customer order creation, customer payment creation, Pakasir webhook, and realtime auth now have explicit lightweight throttle coverage.
 - Customer cart may retain old items after successful checkout.
 - Admin menu availability toggle is not wired to backend.
-- Admin AI Analytics still needs type/interface cleanup, inline style cleanup, and mock/static data review.
-- `ReviewController::getStatistics` raw SQL string quoting should be checked/fixed for PostgreSQL.
+- Admin AI Analytics has been cleaned up, but remaining inline styles and backend analytics portability should continue to be reviewed.
+- Payment reliability still needs scheduled Pakasir expiry/reconciliation for stale unpaid transactions.
 - There may be duplicate or legacy staff dashboard controller code.
 - Some admin/staff validation is not yet Form Request based.
 - Default seed passwords must not be used in production.
@@ -552,14 +551,13 @@ Before production:
 
 ## Next Priorities
 
-1. Stage 8A quick wins: PostgreSQL-safe `ReviewController::getStatistics`, public API exposure audit, and route hardening for dev/simulation/debug endpoints.
-2. Rate limiting: login, order creation, payment creation, and Pakasir webhook.
-3. Admin AI Analytics cleanup: shared types, remove avoidable `any`, reduce inline styles, and review mock/static model data.
-4. Production observability: backup plan, alerting, log retention, failed job monitoring, and operational runbook.
-5. Payment reliability: scheduled reconciliation and expiry handling for stale Pakasir transactions.
-6. UAT: full customer/staff/admin end-to-end test on production-like PostgreSQL, Redis, Reverb, queue, scheduler, and FastAPI setup.
-7. Frontend maintainability: continue removing inline style and standardize remaining local types.
-8. Documentation alignment: resolve React 19 vs React 18 mismatch in project instructions.
+1. UAT: full customer/staff/admin end-to-end test on production-like PostgreSQL, Redis, Reverb, queue, scheduler, FastAPI, and Pakasir setup.
+2. Production observability: backup restore drill, alerting, log retention, failed job monitoring, and operational runbook.
+3. Payment reliability: scheduled reconciliation and expiry handling for stale Pakasir transactions.
+4. Security hardening: add Pakasir signature/replay validation if the provider exposes a supported mechanism.
+5. Legacy cleanup: decide whether `App\Http\Controllers\Staff\StaffDashboardController` can be deleted after external reference confirmation.
+6. Frontend maintainability: continue removing inline style and standardize remaining local types.
+7. Admin analytics backend: make remaining analytics queries portable across SQLite/PostgreSQL.
 
 ## How To Run The Project Locally
 
@@ -717,9 +715,9 @@ You are working on UCW App, a Laravel 12 + Inertia + React TypeScript coffee sho
 
 Important constraints: do not change tech stack without confirmation; do not alter database destructively; use Laravel services for business logic; use Form Requests for validation; use Inertia routing for internal frontend navigation; React components are functional.
 
-Current state after stages 1-7F: Customer flow is safe for demo and now protects order/payment/status/review access with session-backed ownership. Pakasir is the active production payment gateway through PAYMENT_GATEWAY=pakasir; Midtrans remains as future/legacy code and should only run when PAYMENT_GATEWAY=midtrans. Pakasir webhook has project/order/amount/status validation, transaction detail checking, duplicate webhook idempotency, and production simulation guard. Broadcast channels are private with polling fallback. Database integrity has order detail snapshots, safer menu delete behavior, unique review per order, useful indexes, and customer-safe processing/preparing status mapping. FastAPI AI service uses safe model loading, /health status, and fallback responses; Laravel AiService also falls back gracefully. Frontend has been modularized through shared formatters/status helpers/types/components/hooks, customer component extraction, shared order Kanban, and admin/staff table helpers, but it is not fully finished.
+Current state after stages 1-8B and Week 1 hardening: Customer flow is safe for demo and now protects order/payment/status/review access with session-backed ownership. Pakasir is the active production payment gateway through PAYMENT_GATEWAY=pakasir; Midtrans remains as future/legacy code and should only run when PAYMENT_GATEWAY=midtrans. Pakasir webhook has project/order/amount/status validation, transaction detail checking, duplicate webhook idempotency, production simulation guard, and database-backed provider reference idempotency. Broadcast channels are private with polling fallback and realtime auth throttle. Database integrity has order detail snapshots, safer menu delete behavior, unique review per order, useful indexes, payment idempotency indexes, and customer-safe processing/preparing status mapping. FastAPI AI service uses safe model loading, /health status, and fallback responses; Laravel AiService also falls back gracefully. Frontend has been modularized through shared formatters/status helpers/types/components/hooks, customer component extraction, shared order Kanban, admin/staff table helpers, and safe pagination label rendering, but it is not fully finished.
 
-Known priorities: stage 8A quick wins, PostgreSQL-safe ReviewController statistics, public API exposure audit, explicit rate limiting, Pakasir signature/replay hardening if supported, payment expiry/reconciliation, Admin AI Analytics cleanup, production observability/backup/alerting/log retention, full production-like UAT, and resolving React 19 vs React 18 documentation mismatch.
+Known priorities: production-like UAT, Pakasir signature/replay hardening if supported, payment expiry/reconciliation, production observability/backup/alerting/log retention, backup restore drill, and remaining analytics query portability.
 
 Start by reading docs/PROJECT_HANDOVER.md, docs/ARCHITECTURE.md, docs/PROGRESS_CHECKPOINT.md, and docs/DEPLOYMENT.md, then inspect the relevant files before changing anything.
 ```

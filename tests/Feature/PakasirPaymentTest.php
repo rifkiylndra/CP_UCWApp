@@ -274,6 +274,40 @@ class PakasirPaymentTest extends TestCase
         ]);
     }
 
+    public function test_duplicate_pakasir_create_reuses_provider_reference_payment(): void
+    {
+        $order = $this->createOrderWithTable(22000);
+
+        Http::fake([
+            'https://app.pakasir.com/api/transactioncreate/qris' => Http::sequence()
+                ->push([
+                    'payment' => $this->pakasirPaymentPayload($order, 'qris', 'QR-FIRST'),
+                ])
+                ->push([
+                    'payment' => $this->pakasirPaymentPayload($order, 'qris', 'QR-SECOND'),
+                ]),
+        ]);
+
+        $firstResponse = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+            'method' => 'qris',
+        ]);
+        $secondResponse = $this->withCustomerOrderAccess($order)->postJson("/customer/order/{$order->order_ref}/payments/pakasir", [
+            'method' => 'qris',
+        ]);
+
+        $firstResponse->assertOk()->assertJsonPath('success', true);
+        $secondResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('paymentNumber', 'QR-SECOND');
+
+        $this->assertSame($firstResponse->json('payment_id'), $secondResponse->json('payment_id'));
+        $this->assertSame(1, Payment::where([
+            'provider' => 'pakasir',
+            'provider_reference' => $order->order_ref,
+            'payment_method' => 'qris_pakasir',
+        ])->count());
+    }
+
     public function test_webhook_valid_qris_completed_marks_payment_paid(): void
     {
         $order = $this->createOrderWithPayment('qris_pakasir', 22000);

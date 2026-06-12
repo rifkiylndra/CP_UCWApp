@@ -18,16 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Tambahkan ini:
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'customer/order/*/review',
-            'customer/order/*/payments/pakasir',
-            'customer/payment/pakasir/webhook',
-            'payment/midtrans/callback'
+            'api/webhooks/pakasir',
+            'api/payment/callback',
+            'customer/payment/callback',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

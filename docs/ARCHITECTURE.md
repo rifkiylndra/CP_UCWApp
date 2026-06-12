@@ -29,7 +29,7 @@ v
 Customer, Staff, Admin UI Updates
 ```
 
-## Current Architecture Snapshot After Stage 1-7F
+## Current Architecture Snapshot After Stage 1-8B And Week 1 Hardening
 
 This section reflects the latest implementation state after the security, payment, database, deployment, AI hardening, and frontend maintainability passes.
 
@@ -47,12 +47,13 @@ Readiness score from the latest audit:
 Readiness summary:
 
 - Demo: safe with normal smoke testing.
-- UAT: reasonably safe, but quick wins from stage 8A should be completed first.
-- Production: not fully recommended yet. Rate limiting, observability, backup, route hardening, and production-like end-to-end UAT are still required.
+- UAT: reasonably safe after stage 8A/8B and Week 1 quick wins, but still needs production-like end-to-end validation.
+- Production: not fully recommended yet. Observability, backup drills, alerting, payment expiry/reconciliation, and full production-like UAT are still required.
 
 Important architecture decisions now in effect:
 
 - Production online payment gateway is Pakasir. Midtrans code is intentionally retained as a future/legacy gateway and must not be used when `PAYMENT_GATEWAY=pakasir`.
+- Payment idempotency is enforced at application level for Pakasir create/webhook flows and is backed by database-level unique indexes for provider references.
 - Customer access to order, payment, status, and review pages is no longer based on `order_ref` alone. `CustomerOrderAccessService` validates session-backed customer ownership.
 - Order, payment, and staff realtime channels now use private broadcast channels with authorization in `routes/channels.php` and the custom realtime auth route.
 - Polling fallback remains in the customer and staff/admin UI so the app still updates if Reverb/Echo is unavailable.
@@ -63,16 +64,13 @@ Important architecture decisions now in effect:
 
 Remaining risks that are deliberately not hidden:
 
-- `ReviewController::getStatistics` still uses raw SQL string quoting that should be checked against PostgreSQL.
-- Admin AI Analytics still needs type/interface cleanup, removal of remaining `any`, inline style cleanup, and mock/static data review.
-- Pakasir simulation route is still registered, although controller guards block production execution.
-- Public API settings/review/menu endpoints still need a data exposure audit.
-- Explicit rate limiting is still incomplete for login, order creation, payment creation, and webhook traffic.
+- Payment expiry/reconciliation is not yet a scheduled production process.
+- Public API settings/review/menu endpoints should continue to be reviewed when new fields are added.
 - Some frontend components still contain inline style usage.
 - There may be duplicate or legacy staff dashboard controller code.
 - Some admin/staff validation remains inline instead of Form Request based.
-- Production observability, backup, alerting, and log retention are not fully specified.
-- React package version is currently 19.x while some legacy project instructions still mention React 18.
+- Production observability, alerting automation, and backup restore drills still need operational proof.
+- React package version is 19.x and should be treated as the active frontend version.
 
 ## Frontend Structure
 
