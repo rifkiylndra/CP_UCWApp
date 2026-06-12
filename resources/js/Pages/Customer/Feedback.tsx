@@ -35,6 +35,7 @@ export default function Feedback({
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [submitted, setSubmitted] = useState(false);
 
@@ -45,13 +46,25 @@ export default function Feedback({
     }, [orderStatus, orderRef]);
 
     async function handleSubmit() {
+        if (isSubmitting) return;
+
         setErrorMessage("");
+        setIsSubmitting(true);
+        const csrfToken = getCsrfToken();
 
         try {
-            await axios.post(`/customer/order/${encodeURIComponent(orderRef)}/complete-transaction`, {
-                rating: rating > 0 ? rating : null,
-                comment: comment.trim() || null,
-            });
+            await axios.post(
+                `/customer/order/${encodeURIComponent(orderRef)}/complete-transaction`,
+                {
+                    _token: csrfToken,
+                    rating: rating > 0 ? rating : null,
+                    comment: comment.trim() || null,
+                },
+                {
+                    headers: csrfToken ? { "X-CSRF-TOKEN": csrfToken } : undefined,
+                    withCredentials: true,
+                },
+            );
 
             setSubmitted(true);
 
@@ -60,9 +73,15 @@ export default function Feedback({
             }, 2200);
         } catch (error: unknown) {
             let message = "Feedback could not be submitted. Please try again.";
-            if (typeof error === "object" && error !== null && "response" in error) {
-                const responseData = (error as any).response?.data;
-                if (responseData?.errors && typeof responseData.errors === "object") {
+            if (axios.isAxiosError(error)) {
+                const responseData = error.response?.data as {
+                    errors?: Record<string, string[]>;
+                    message?: string;
+                } | undefined;
+
+                if (error.response?.status === 419) {
+                    message = "Your session token expired. Please refresh the page and submit again.";
+                } else if (responseData?.errors && typeof responseData.errors === "object") {
                     const firstErrorKey = Object.keys(responseData.errors)[0];
                     message = responseData.errors[firstErrorKey][0];
                 } else if (typeof responseData?.message === "string") {
@@ -75,11 +94,19 @@ export default function Feedback({
             }
 
             setErrorMessage(message);
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
     function handleReturnHome() {
         router.visit(route("customer.landing"));
+    }
+
+    function getCsrfToken() {
+        return document
+            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.content ?? "";
     }
 
     if (submitted) {
@@ -159,6 +186,7 @@ export default function Feedback({
                             hasFeedback={rating > 0 || comment.trim().length > 0}
                             onSubmit={handleSubmit}
                             onReturnHome={handleReturnHome}
+                            isSubmitting={isSubmitting}
                             className="mt-9"
                         />
                     </div>
@@ -269,6 +297,7 @@ export default function Feedback({
                                         hasFeedback={rating > 0 || comment.trim().length > 0}
                                         onSubmit={handleSubmit}
                                         onReturnHome={handleReturnHome}
+                                        isSubmitting={isSubmitting}
                                     />
                                 </aside>
                             </div>

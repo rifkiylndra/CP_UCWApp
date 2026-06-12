@@ -243,27 +243,29 @@ export function SubmitSection({
     hasFeedback,
     onSubmit,
     onReturnHome,
+    isSubmitting = false,
     className = "",
 }: {
     hasFeedback: boolean;
     onSubmit: () => void;
     onReturnHome: () => void;
+    isSubmitting?: boolean;
     className?: string;
 }) {
     return (
         <div className={className}>
             <button
                 onClick={onSubmit}
-                className="w-full rounded-full font-bold text-white transition-all active:scale-[0.98]"
+                disabled={isSubmitting}
+                className="w-full rounded-full font-bold text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
                 style={{
                     height: "62px",
                     fontSize: "16px",
                     backgroundColor: "var(--color-ucw-dark)",
                     boxShadow: "0 16px 30px rgba(45,26,14,0.22)",
-                    cursor: "pointer",
                 }}
             >
-                {hasFeedback ? "Submit Feedback" : "Skip Feedback"}
+                {isSubmitting ? "Submitting..." : hasFeedback ? "Submit Feedback" : "Skip Feedback"}
             </button>
 
             <p

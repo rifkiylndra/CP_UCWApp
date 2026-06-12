@@ -164,6 +164,36 @@ Next priorities:
 
 ---
 
+## Checkpoint UAT Feedback CSRF
+
+Hasil UAT sementara:
+
+- Customer: flow utama aman. Bug feedback/review CSRF ditemukan saat submit feedback dan sudah diperbaiki.
+- Staff: aman pada UAT sementara.
+- Admin: AI Analytics belum bisa dibuka dan akan ditangani rekan; area ini sengaja tidak disentuh pada checkpoint ini.
+
+Perubahan feedback CSRF:
+
+- `resources/js/bootstrap.js` memperkuat axios same-origin request dengan `withCredentials`, `withXSRFToken`, nama cookie/header XSRF Laravel, dan interceptor yang membaca meta `csrf-token` terbaru sebelum request.
+- `resources/js/Pages/Customer/Feedback.tsx` sekarang mengirim `_token` dan header `X-CSRF-TOKEN` eksplisit pada submit feedback.
+- `resources/js/Components/customer/feedback/FeedbackBlocks.tsx` menonaktifkan tombol submit saat request berjalan untuk mencegah double-submit.
+- Route customer feedback/review tetap tidak dimasukkan ke CSRF exception.
+
+Hasil verifikasi:
+
+- `npm.cmd run build`: lulus.
+- `php -l` untuk file PHP yang masih modified di worktree: lulus.
+- `php artisan test --filter=CustomerOrderAccessTest`: lulus.
+- `php artisan test --filter=ReviewStatisticsTest`: lulus.
+- `git diff --check`: lulus.
+
+Next step:
+
+1. Re-test feedback customer langsung di browser/UAT device untuk memastikan tidak ada lagi 419/CSRF mismatch.
+2. Follow up Admin AI Analytics dengan rekan yang menangani area tersebut.
+
+---
+
 ## Ringkasan Status Akhir
 
 - [x] Customer app utama selesai dan sudah diperbaiki beberapa bug penting.

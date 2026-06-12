@@ -2,12 +2,32 @@ import axios from 'axios';
 window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
+window.axios.defaults.withXSRFToken = true;
+window.axios.defaults.xsrfCookieName = 'XSRF-TOKEN';
+window.axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
-const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+const csrfToken = () => document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-if (csrfToken) {
-    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+if (csrfToken()) {
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken();
 }
+
+window.axios.interceptors.request.use((config) => {
+    const token = csrfToken();
+
+    if (token) {
+        config.headers = config.headers || {};
+
+        if (typeof config.headers.set === 'function') {
+            config.headers.set('X-CSRF-TOKEN', token);
+        } else {
+            config.headers['X-CSRF-TOKEN'] = token;
+        }
+    }
+
+    return config;
+});
 
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
@@ -24,8 +44,8 @@ window.Echo = new Echo({
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
     auth: {
-        headers: csrfToken ? {
-            'X-CSRF-TOKEN': csrfToken,
+        headers: csrfToken() ? {
+            'X-CSRF-TOKEN': csrfToken(),
         } : {},
     },
 });
