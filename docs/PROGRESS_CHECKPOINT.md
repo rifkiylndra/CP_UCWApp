@@ -488,29 +488,6 @@ Catatan:
 
 ---
 
-## Checkpoint Analisis & Rencana Sinkronisasi Timer (Sesi Terbaru)
-
-Pada sesi ini, beberapa analisis masalah operasional telah dilakukan dan direncanakan solusinya:
-
-### Analisis Bug & Kendala
-1. **Gambar Menu Tidak Muncul**: 
-   - Diidentifikasi bahwa setelah impor data menu, gambar tidak muncul di halaman detail live order dan order status. Folder `menu-ucw` berisi data gambar disarankan untuk tidak dihapus, dan disarankan penggunaan `.gitignore` jika ukurannya terlalu besar untuk push ke repository.
-2. **Bug Konfirmasi Pembayaran**:
-   - Terdapat kendala saat konfirmasi pembayaran pada dashboard admin/staff yang telah dianalisis.
-3. **Sentimen AI Rating 2 Bintang (Neutral)**:
-   - Ditemukan bahwa AI model mengklasifikasikan rating 2 bintang sebagai "neutral", bukan "negative". Analisis model telah dilakukan untuk memperbaiki akurasi klasifikasi sentimen ini.
-
-### Rencana Sinkronisasi Timer Pembuatan Pesanan
-- **Masalah**: Waktu pada halaman pelacakan pesanan pelanggan (`remainingSeconds`) berjalan dari waktu pembuatan pesanan (`created_at`), sementara pada dashboard Live Order Admin/Staff perlu penyesuaian yang sinkron.
-- **Solusi yang Direncanakan (Disetujui)**:
-  - Hitung mundur pelanggan akan dijeda (menampilkan "Estimasi: X menit") saat status masih `pending` atau `confirmed` (baru selesai bayar).
-  - Waktu mulai berjalan (**countdown aktif**) HANYA setelah Staff/Barista mengonfirmasi **"Start Processing"** (status berubah menjadi `processing`/`preparing`).
-  - Kartu pesanan (Kanban Card) Barista akan menampilkan hitung mundur waktu persiapan yang identik dengan pelanggan, dihitung dari `updated_at` saat pesanan mulai diproses.
-  - Kartu Barista akan berkedip merah jika waktu habis (`00:00`) sebagai peringatan keterlambatan pesanan.
-  - *Implementation plan* lengkap dalam Bahasa Indonesia telah disetujui.
-
----
-
 ## Next Priorities
 
 1. Selesaikan Admin Settings.
