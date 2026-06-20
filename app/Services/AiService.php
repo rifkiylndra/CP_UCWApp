@@ -12,7 +12,7 @@ class AiService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.ai.base_url', 'http://127.0.0.1:8000');
+        $this->baseUrl = rtrim(config('services.ai.base_url', 'http://127.0.0.1:8000'), '/');
     }
 
     /**
