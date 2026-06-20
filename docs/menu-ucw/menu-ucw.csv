@@ -1,0 +1,41 @@
+Kategori,Nama Menu,Harga (Rp),Waktu Pembuatan Menu (Menit/Porsi),Deskripsi menu,Kategori Menu Sistem
+Coffee Base,Americano,20.000,1,Kopi hitam pekat yang dibuat dengan mencampurkan espresso dan air panas.,coffe
+,Cafe Latte,21.000,2,Paduan sempurna antara espresso dan susu hangat dengan lapisan busa tipis di atasnya.,coffe
+,Cappucino,21.000,2,"Kopi klasik dengan takaran seimbang antara espresso, susu panas, dan busa susu yang tebal.",coffe
+,Sanger,22.000,3,Kopi saring khas Aceh yang dicampur dengan sedikit susu kental manis untuk rasa yang unik.,coffe
+,Kopi Susu Workspace,20.000,2,Es kopi susu kekinian dengan racikan spesial khas Workspace yang menyegarkan.,coffe
+,Kopi SUsu Aren,20.000,2,"Perpaduan espresso, susu segar, dan manisnya gula aren alami yang legit.",coffe
+,Espresso,15.000,1,Ekstrak kopi murni yang pekat dan kuat sebagai dasar berbagai minuman kopi.,coffe
+Manual Brew,V60,21.000,7,Kopi seduh manual menggunakan metode tuang (pour-over) yang menghasilkan rasa yang bersih dan kompleks.,coffe
+,Vietnam Drip,22.000,5,Kopi seduh perlahan ala Vietnam yang disajikan dengan susu kental manis di dasar gelas.,coffe
+,Japanese,23.000,7,Es kopi seduh manual yang didinginkan seketika untuk menjaga aroma dan kesegaran rasa.,coffe
+Flavour Latte,Caramel Macchiato,22.000,2,Paduan espresso dan susu dengan sentuhan sirup karamel manis dan saus karamel di atasnya.,coffe
+,Hazelnut Latte,22.000,2,Kopi susu hangat dengan tambahan sirup hazelnut yang memberikan aroma kacang yang khas.,coffe
+,Vanilla Latte,22.000,2,Kopi susu klasik yang diperkaya dengan kelembutan rasa dan aroma vanilla.,coffe
+Tea Base,Thai Tea,21.000,2,Teh susu khas Thailand dengan warna oranye cerah dan rasa manis rempah yang unik.,non-coffe
+,Lemon Tea,22.000,2,Teh segar yang dipadukan dengan perasan jeruk lemon yang asam dan menyegarkan.,non-coffe
+,Lychee Tea,23.000,2,Teh manis segar dengan tambahan buah leci asli yang memberikan sensasi tropis.,non-coffe
+Milkshake,Caramel Milkshake,20.000,2,Minuman susu kocok dingin yang kental dengan rasa karamel yang manis dan gurih.,non-coffe
+,Chocolate Milkshake,20.000,2,"Susu kocok rasa cokelat yang kaya dan creamy, cocok untuk pecinta cokelat.",non-coffe
+,Hazelnut Milkshake,19.000,2,Susu kocok dingin dengan perpaduan rasa susu dan kacang hazelnut yang lezat.,non-coffe
+,Matcha Milkshake,20.000,2,Minuman susu kocok dengan campuran bubuk teh hijau matcha Jepang yang khas.,non-coffe
+,Oreo Milkshake,20.000,2,Susu kocok manis yang diblender bersama biskuit Oreo renyah favorit semua orang.,non-coffe
+,Red Velvet Milkshake,19.000,2,Susu kocok unik dengan rasa kue red velvet yang manis dan warna merah menggoda.,non-coffe
+,Taro Milkshake,19.000,2,"Susu kocok dengan rasa ubi ungu (taro) yang manis, creamy, dan berwarna ungu cantik.",non-coffe
+,Vanilla Milkshake,20.000,2,Susu kocok klasik dengan rasa vanilla yang lembut dan menyegarkan.,non-coffe
+Premium Tea,Black Tea,22.000,2,Teh hitam premium yang diseduh sempurna untuk menghasilkan rasa dan aroma yang kuat.,non-coffe
+,Green Tea,20.000,2,Teh hijau berkualitas dengan rasa yang ringan dan menenangkan.,non-coffe
+,Blackcurent Tea,25.000,2,"Teh buah dengan rasa blackcurrant yang manis, asam, dan sangat menyegarkan.",non-coffe
+,Strawberry Tea,25.000,2,Teh segar dengan paduan rasa stroberi yang manis dan aroma buah yang wangi.,non-coffe
+Smoothies,Avocado Smoothies,19.000,3,"Minuman buah alpukat yang diblender halus hingga menjadi kental, lembut, dan mengenyangkan.",non-coffe
+,Banana Smoothies,19.000,3,Minuman pisang segar yang diblender menjadi tekstur yang kental dan kaya rasa.,non-coffe
+,Mango Smoothies,19.000,3,Minuman mangga manis yang diblender halus memberikan sensasi segar buah tropis.,non-coffe
+,Strawberry Smoothies,19.000,3,Minuman stroberi segar yang diblender kental dengan rasa manis asam yang pas.,non-coffe
+911 Dish,Lava Toast,25.000,10,Roti panggang lezat dengan isian lumer yang meleleh saat dipotong.,snack
+,Avocado Smoothies Bowl,22.000,5,Semangkuk smoothies alpukat kental yang disajikan dengan berbagai topping sehat di atasnya.,food
+,Banana Smoothies Bowl,22.000,5,Semangkuk smoothies pisang lembut dengan taburan topping buah dan biji-bijian.,food
+,Mango Smoothies Bowl,22.000,5,Semangkuk smoothies mangga segar yang dilengkapi dengan topping bertekstur renyah.,food
+,Strawberry Smoothies Bowl,22.000,5,Semangkuk smoothies stroberi asam manis dengan tambahan topping yang menggugah selera.,food
+All Time Dish,Korean Bulgogi Toast,20.000,13,Roti panggang gurih dengan isian daging sapi bumbu bulgogi khas Korea yang lezat.,food
+,French Fries,15.000,5,Kentang goreng renyah yang disajikan hangat sebagai camilan pendamping yang sempurna.,snack
+,Mix Platter,20.000,7,Piring berisi berbagai macam camilan gorengan lezat yang cocok untuk dinikmati bersama.,snack
