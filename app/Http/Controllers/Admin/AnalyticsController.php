@@ -197,8 +197,9 @@ class AnalyticsController extends Controller
     private function checkAiServiceStatus(): array
     {
         try {
+            $baseUrl = rtrim(config('services.ai.base_url'), '/');
             $response = \Illuminate\Support\Facades\Http::timeout(5)
-                ->get(config('services.ai.base_url') . '/health');
+                ->get($baseUrl . '/health');
                 
             if ($response->successful()) {
                 return [
