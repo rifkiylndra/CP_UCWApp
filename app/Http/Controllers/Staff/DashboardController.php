@@ -56,7 +56,7 @@ class DashboardController extends Controller
             
             return [
                 'id' => (string)$order->id,
-                'orderId' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'orderId' => $order->order_ref,
                 'customerName' => $order->customer_name ?? 'Walk-in Customer',
                 'time' => $order->created_at->format('H:i'),
                 'totalPrice' => (float)$order->total_price,
@@ -97,9 +97,9 @@ class DashboardController extends Controller
         return $orders->map(function ($order) {
             return [
                 'id' => (string)$order->id,
-                'orderId' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'orderId' => $order->order_ref,
                 'tableLabel' => $order->order_type === 'dine_in' 
-                    ? 'Table ' . ($order->table?->table_number ?? 'N/A')
+                    ? ($order->table?->table_number ?? 'N/A')
                     : ($order->customer_name ?? 'Takeaway'),
                 'orderType' => $order->order_type === 'dine_in' ? 'dine-in' : 'takeaway',
                 'items' => $order->orderDetails->map(function ($detail) {
@@ -236,7 +236,7 @@ class DashboardController extends Controller
                 $paymentMethod = $order->payments->first()?->payment_method ?? 'cash';
                 fputcsv($file, [
                     $order->created_at->format('H:i'),
-                    '#ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    $order->order_ref,
                     $order->customer_name ?? 'Walk-in Customer',
                     $order->total_price,
                     ucfirst($paymentMethod),

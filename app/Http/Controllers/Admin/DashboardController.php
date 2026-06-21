@@ -72,9 +72,9 @@ class DashboardController extends Controller
         return $orders->map(function ($order) {
             return [
                 'id' => (string)$order->id,
-                'orderId' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'orderId' => $order->order_ref,
                 'tableLabel' => $order->order_type === 'dine_in' 
-                    ? 'Table ' . ($order->table?->table_number ?? 'N/A')
+                    ? ($order->table?->table_number ?? 'N/A')
                     : ($order->customer_name ?? 'Takeaway'),
                 'orderType' => $order->order_type === 'dine_in' ? 'dine-in' : 'takeaway',
                 'items' => $order->orderDetails->map(function ($detail) {
