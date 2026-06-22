@@ -180,6 +180,7 @@ class PaymentController extends Controller
     public function pakasirWebhook(Request $request)
     {
         $payload = $request->all();
+        $rawBody = $request->getContent();
 
         $order = Order::with(['payments'])->where('order_ref', $payload['order_id'] ?? null)->first();
 
@@ -190,7 +191,7 @@ class PaymentController extends Controller
             ], 404);
         }
 
-        if (!$this->pakasirService->validateWebhook($payload, $order)) {
+        if (!$this->pakasirService->validateWebhook($payload, $order, $rawBody)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Payload webhook Pakasir tidak valid',

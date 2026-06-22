@@ -180,28 +180,85 @@ class PakasirService
         }
     }
 
-    public function validateWebhook(array $payload, Order $order): bool
+    public function validateWebhook(array $payload, Order $order, ?string $rawBody = null): bool
     {
+        // 1. HMAC Signature validation (if PAKASIR_WEBHOOK_SECRET is configured)
+        if (!$this->validateWebhookSignature($rawBody, $payload)) {
+            return false;
+        }
+
         $project = config('services.pakasir.project');
         $method = $payload['payment_method'] ?? null;
 
+        // 2. Project slug must match
         if (($payload['project'] ?? null) !== $project) {
             return false;
         }
 
+        // 3. Order reference must match
         if (($payload['order_id'] ?? null) !== $order->order_ref) {
             return false;
         }
 
+        // 4. Status must be completed
         if (($payload['status'] ?? null) !== 'completed') {
             return false;
         }
 
+        // 5. Payment method must be supported
         if (!in_array($method, self::METHODS, true)) {
             return false;
         }
 
+        // 6. Amount must match (prevents tampered webhook)
         return (int) ($payload['amount'] ?? 0) === $this->orderAmount($order);
+    }
+
+    /**
+     * Validate HMAC-SHA256 webhook signature from Pakasir.
+     *
+     * If PAKASIR_WEBHOOK_SECRET is not configured, validation is skipped (permissive).
+     * If it IS configured, the incoming signature must match — otherwise reject.
+     *
+     * Pakasir is expected to send the signature in the X-Pakasir-Signature header
+     * as: sha256=<hex_digest> computed over the raw request body.
+     */
+    public function validateWebhookSignature(?string $rawBody, array $payload = []): bool
+    {
+        $secret = config('services.pakasir.webhook_secret');
+
+        // If no secret is configured, skip signature check (backward-compatible)
+        if (empty($secret)) {
+            return true;
+        }
+
+        // Try header-based signature first (preferred, more secure)
+        $headerSignature = request()->header('X-Pakasir-Signature')
+            ?? request()->header('X-Signature')
+            ?? null;
+
+        if ($headerSignature !== null && $rawBody !== null) {
+            $expected = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
+
+            return hash_equals($expected, $headerSignature);
+        }
+
+        // Fallback: check signature field inside payload body
+        $payloadSignature = $payload['signature'] ?? $payload['sign'] ?? null;
+
+        if ($payloadSignature !== null && $rawBody !== null) {
+            $expected = hash_hmac('sha256', $rawBody, $secret);
+
+            return hash_equals($expected, $payloadSignature);
+        }
+
+        // If secret is set but no signature was provided at all, reject
+        Log::warning('Pakasir webhook received without signature, but PAKASIR_WEBHOOK_SECRET is configured.', [
+            'has_header' => $headerSignature !== null,
+            'has_payload_sign' => $payloadSignature !== null,
+        ]);
+
+        return false;
     }
 
     public function paymentMethodForPakasirMethod(string $method): string

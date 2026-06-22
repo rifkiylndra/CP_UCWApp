@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Staff\RefundPaymentRequest;
+use App\Http\Requests\Staff\VerifyCashPaymentRequest;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\PaymentService;
@@ -21,11 +23,8 @@ class PaymentController extends Controller
     /**
      * Verify cash payment
      */
-    public function verifyCashPayment(Request $request, $orderId)
+    public function verifyCashPayment(VerifyCashPaymentRequest $request, $orderId)
     {
-        $request->validate([
-            'amount_received' => 'required|numeric|min:0',
-        ]);
 
         $order = Order::findOrFail($orderId);
         
@@ -124,12 +123,8 @@ class PaymentController extends Controller
     /**
      * Refund payment
      */
-    public function refundPayment(Request $request, $paymentId)
+    public function refundPayment(RefundPaymentRequest $request, $paymentId)
     {
-        $request->validate([
-            'refund_amount' => 'required|numeric|min:0',
-            'reason' => 'required|string|max:255',
-        ]);
 
         $payment = Payment::with('order')->findOrFail($paymentId);
         

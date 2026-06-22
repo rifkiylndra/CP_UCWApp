@@ -53,10 +53,13 @@ return [
     ],
 
     'pakasir' => [
-        'project' => env('PAKASIR_PROJECT'),
-        'api_key' => env('PAKASIR_API_KEY'),
-        'mode' => env('PAKASIR_MODE', 'sandbox'),
-        'base_url' => env('PAKASIR_BASE_URL', 'https://app.pakasir.com'),
+        'project'        => env('PAKASIR_PROJECT'),
+        'api_key'        => env('PAKASIR_API_KEY'),
+        'mode'           => env('PAKASIR_MODE', 'sandbox'),
+        'base_url'       => env('PAKASIR_BASE_URL', 'https://app.pakasir.com'),
+        // Optional HMAC secret for webhook signature validation.
+        // Leave empty to skip signature check (backward-compatible).
+        'webhook_secret' => env('PAKASIR_WEBHOOK_SECRET'),
     ],
 
 ];

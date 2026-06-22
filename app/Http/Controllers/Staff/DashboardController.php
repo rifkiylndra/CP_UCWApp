@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Staff\UpdateOrderStatusRequest;
 use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
@@ -146,12 +147,8 @@ class DashboardController extends Controller
     /**
      * Update order status
      */
-    public function updateOrderStatus(Request $request, $orderId)
+    public function updateOrderStatus(UpdateOrderStatusRequest $request, $orderId)
     {
-        $request->validate([
-            'status' => 'required|in:incoming,pending,confirmed,processing,preparing,ready,completed,cancelled',
-        ]);
-
         try {
             $status = $request->status === 'incoming' ? 'pending' : $request->status;
             $order = $this->orderService->updateOrderStatus($orderId, $status);
