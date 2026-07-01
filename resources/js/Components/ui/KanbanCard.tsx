@@ -130,14 +130,9 @@ export default function KanbanCard({
     return (
         <article
             onClick={() => {
-                if (!readOnly && onViewDetail) onViewDetail(order);
+                if (onViewDetail) onViewDetail(order);
             }}
-            className={[
-                "relative w-full shrink-0 overflow-hidden rounded-[22px] border border-[#EEEAE7] bg-white p-4 shadow-[0_4px_18px_rgba(39,19,16,0.04)] lg:rounded-[26px] lg:p-5",
-                readOnly
-                    ? ""
-                    : "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(39,19,16,0.08)]",
-            ].join(" ")}
+            className="relative w-full shrink-0 overflow-hidden rounded-[22px] border border-[#EEEAE7] bg-white p-4 shadow-[0_4px_18px_rgba(39,19,16,0.04)] lg:rounded-[26px] lg:p-5 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(39,19,16,0.08)]"
         >
             <div
                 className="absolute bottom-0 left-0 top-0 w-[4px] rounded-l-[22px] lg:w-[5px] lg:rounded-l-[26px]"

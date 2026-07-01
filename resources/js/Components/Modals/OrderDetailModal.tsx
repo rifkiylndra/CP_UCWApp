@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { KanbanOrder } from "@/types/staff";
-import { X } from "lucide-react";
+import { X, Clock, Printer, Smartphone, AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
 import { firstImageUrl, MENU_IMAGE_PLACEHOLDER, useFallbackImage } from "@/lib/images";
+import { printViaBluetooth, printViaBrowser } from "@/lib/thermalPrinter";
 
 interface Props {
     order: KanbanOrder | null;
@@ -18,6 +19,11 @@ export default function OrderDetailModal({
     onUpdateStatus,
     onOpenPaymentModal,
 }: Props) {
+    const [timeLeft, setTimeLeft] = useState<number>(0);
+    const [pendingAction, setPendingAction] = useState<{ action: () => void; message: string } | null>(null);
+    const [printStatus, setPrintStatus] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+    // Escape key listener to close modal
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
@@ -26,6 +32,29 @@ export default function OrderDetailModal({
         if (isOpen) window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onClose]);
+
+    // Service Countdown Logic
+    useEffect(() => {
+        if (!order || !isOpen || order.status === "completed") {
+            setTimeLeft(0);
+            return;
+        }
+
+        const getRemainingSecs = () => {
+            const placedTime = new Date(order.placedAt || order.createdAt || new Date()).getTime();
+            const avgWaitMins = order.avgWaitMins || 15;
+            const targetTime = placedTime + avgWaitMins * 60 * 1000;
+            return Math.floor((targetTime - Date.now()) / 1000);
+        };
+
+        setTimeLeft(getRemainingSecs());
+
+        const timer = setInterval(() => {
+            setTimeLeft(getRemainingSecs());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [order, isOpen]);
 
     if (!isOpen || !order) return null;
 
@@ -40,22 +69,50 @@ export default function OrderDetailModal({
     const formatRupiah = (value: number) =>
         new Intl.NumberFormat("id-ID").format(value);
 
+    const formatCountdown = (secs: number) => {
+        const absoluteSecs = Math.abs(secs);
+        const m = String(Math.floor(absoluteSecs / 60)).padStart(2, "0");
+        const s = String(absoluteSecs % 60).padStart(2, "0");
+        if (secs < 0) {
+            return `Late: -${m}:${s}`;
+        }
+        return `${m}:${s}`;
+    };
+
     const handleMainAction = () => {
         if (!order.isPaid) {
-            onClose();
-            onOpenPaymentModal();
+            setPendingAction({
+                action: () => {
+                    onClose();
+                    onOpenPaymentModal();
+                    setPendingAction(null);
+                },
+                message: `Apakah Anda yakin ingin memverifikasi pembayaran tunai untuk order #${order.orderId} senilai Rp ${formatRupiah(order.totalAmount)}?`
+            });
             return;
         }
 
         if (order.status === "incoming") {
-            onUpdateStatus(order.id, "processing");
-            onClose();
+            setPendingAction({
+                action: () => {
+                    onUpdateStatus(order.id, "processing");
+                    onClose();
+                    setPendingAction(null);
+                },
+                message: `Apakah Anda yakin ingin mulai memproses pesanan #${order.orderId} (Meja ${order.tableLabel})?`
+            });
             return;
         }
 
         if (order.status === "processing") {
-            onUpdateStatus(order.id, "completed");
-            onClose();
+            setPendingAction({
+                action: () => {
+                    onUpdateStatus(order.id, "completed");
+                    onClose();
+                    setPendingAction(null);
+                },
+                message: `Apakah Anda yakin ingin menyelesaikan pesanan #${order.orderId}? Pesanan akan dipindahkan ke daftar Completed.`
+            });
         }
     };
 
@@ -68,6 +125,28 @@ export default function OrderDetailModal({
 
     const actionLabel = getActionLabel();
 
+    const handlePrintBluetooth = async () => {
+        setPrintStatus({ message: "Menghubungkan printer...", type: "info" });
+        try {
+            await printViaBluetooth(order);
+            setPrintStatus({ message: "Berhasil cetak via Bluetooth!", type: "success" });
+            setTimeout(() => setPrintStatus(null), 3000);
+        } catch (error: any) {
+            console.error("Bluetooth printing failed:", error);
+            setPrintStatus({ message: error.message || "Gagal mencetak. Gunakan Print Browser.", type: "error" });
+        }
+    };
+
+    const handlePrintBrowser = () => {
+        try {
+            printViaBrowser(order);
+            setPrintStatus({ message: "Membuka print dialog browser...", type: "success" });
+            setTimeout(() => setPrintStatus(null), 3000);
+        } catch (error: any) {
+            setPrintStatus({ message: "Gagal mencetak via Browser.", type: "error" });
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-end justify-center font-['Manrope'] lg:items-center lg:p-6">
             <div
@@ -76,6 +155,36 @@ export default function OrderDetailModal({
             />
 
             <div className="relative flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[30px] bg-white shadow-2xl lg:h-[620px] lg:max-w-[900px] lg:flex-row lg:rounded-[30px]">
+                
+                {/* Confirmation overlay card */}
+                {pendingAction && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+                        <div className="w-full max-w-[350px] rounded-[26px] bg-white p-6 shadow-2xl border border-[#ECE8E4] text-center animate-in fade-in zoom-in-95 duration-200">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FDF2F2] text-[#B91C1C] mb-4">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <h4 className="text-[17px] font-black text-[#271310] mb-2">Konfirmasi Tindakan</h4>
+                            <p className="text-[13px] font-semibold text-[#8A7B77] leading-relaxed mb-6">
+                                {pendingAction.message}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setPendingAction(null)}
+                                    className="flex-1 py-3.5 rounded-xl border border-[#ECE8E4] text-[12.5px] font-extrabold text-[#5A4A47] hover:bg-[#F9F9F8] transition active:scale-[0.97]"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={pendingAction.action}
+                                    className="flex-1 py-3.5 rounded-xl bg-[#271310] text-[12.5px] font-extrabold text-white hover:bg-[#3D2521] transition active:scale-[0.97]"
+                                >
+                                    Lanjutkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <button
                     onClick={onClose}
                     className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#271310] shadow-sm transition hover:bg-white lg:right-6 lg:top-6"
@@ -164,6 +273,7 @@ export default function OrderDetailModal({
                             </div>
                         </div>
 
+                        {/* Customization Details */}
                         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4">
                             <InfoBox
                                 label="Milk Choice"
@@ -174,6 +284,31 @@ export default function OrderDetailModal({
                                 value={primaryItem?.sweetener || "Default"}
                             />
                         </div>
+
+                        {/* Real-time Countdown Timer */}
+                        {order.status !== "completed" && (
+                            <div className={`mb-5 rounded-[18px] p-4 lg:p-5 flex items-center justify-between border ${timeLeft < 0 ? "bg-[#FFF5F5] border-[#FFE2E2] text-[#B91C1C]" : "bg-[#F7F9F6] border-[#EEF2ED] text-[#2E422D]"}`}>
+                                <div>
+                                    <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8A7B77]">
+                                        Sisa Waktu Pelayanan
+                                    </p>
+                                    <p className="text-[15px] font-black flex items-center gap-1.5">
+                                        <Clock size={16} className={timeLeft < 0 ? "animate-pulse" : ""} />
+                                        <span>{formatCountdown(timeLeft)}</span>
+                                    </p>
+                                </div>
+                                {timeLeft < 0 ? (
+                                    <span className="text-[9px] font-black bg-red-100 text-[#B91C1C] px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                        Terlambat
+                                    </span>
+                                ) : (
+                                    <span className="text-[9px] font-black bg-green-100 text-[#4F654D] px-2.5 py-1 rounded-md uppercase tracking-wider flex items-center gap-1">
+                                        <Sparkles size={10} />
+                                        On Time
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {order.specialRequest && (
                             <div className="relative mb-5 overflow-hidden rounded-[18px] bg-[#FFF8E8] p-4 lg:p-5">
@@ -213,6 +348,11 @@ export default function OrderDetailModal({
                                                             .join(", ")}
                                                     </p>
                                                 )}
+                                                {item.notes && (
+                                                    <p className="mt-1 text-[11px] font-bold italic text-amber-700">
+                                                        * {item.notes}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -223,14 +363,46 @@ export default function OrderDetailModal({
 
                     {/* Sticky Footer */}
                     <div className="sticky bottom-0 border-t border-[#ECE8E4] bg-white p-5 lg:p-6 lg:px-10">
+                        
+                        {/* Print Receipt Section */}
+                        <div className="mb-4">
+                            {printStatus && (
+                                <p className={[
+                                    "mb-2.5 text-center text-[11px] font-extrabold",
+                                    printStatus.type === "success" ? "text-green-600" : printStatus.type === "error" ? "text-red-600" : "text-[#271310]/70"
+                                ].join(" ")}>
+                                    {printStatus.message}
+                                </p>
+                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={handlePrintBluetooth}
+                                    className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-[#271310]/5 text-[12.5px] font-black text-[#271310] hover:bg-[#271310]/10 transition active:scale-[0.98] lg:h-[50px]"
+                                    title="Cetak struk secara langsung via Bluetooth (thermal 58mm)"
+                                >
+                                    <Smartphone size={15} strokeWidth={2.5} />
+                                    <span>Print Bluetooth</span>
+                                </button>
+                                <button
+                                    onClick={handlePrintBrowser}
+                                    className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-[#271310]/5 text-[12.5px] font-black text-[#271310] hover:bg-[#271310]/10 transition active:scale-[0.98] lg:h-[50px]"
+                                    title="Cetak struk menggunakan browser print / PDF"
+                                >
+                                    <Printer size={15} strokeWidth={2.5} />
+                                    <span>Print PDF/Web</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Main Status Actions */}
                         {actionLabel && (
                             <button
                                 onClick={handleMainAction}
                                 className={[
                                     "mb-4 h-13 w-full rounded-[18px] py-4 text-[15px] font-extrabold text-white transition active:scale-[0.98]",
                                     order.status === "processing" && order.isPaid
-                                        ? "bg-[#5E735B]"
-                                        : "bg-[#271310]",
+                                        ? "bg-[#5E735B] hover:bg-[#4E614B]"
+                                        : "bg-[#271310] hover:bg-[#3B201B]",
                                 ].join(" ")}
                             >
                                 {actionLabel}
