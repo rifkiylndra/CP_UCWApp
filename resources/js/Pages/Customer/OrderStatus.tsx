@@ -199,8 +199,14 @@ export default function OrderStatusPage({
 
     // Request notification permission on mount
     useEffect(() => {
-        if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
+        try {
+            if (typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined") {
+                if (Notification.permission === "default") {
+                    Notification.requestPermission().catch(() => {});
+                }
+            }
+        } catch (e) {
+            console.warn("Notifications are not supported in this environment:", e);
         }
     }, []);
 
@@ -208,16 +214,38 @@ export default function OrderStatusPage({
         if (status === "ready" || status === "completed") {
             setShowReadyPopup(true);
 
-            if ("vibrate" in navigator) {
-                navigator.vibrate([100, 60, 100, 60, 200]);
+            // Trigger device vibration if supported
+            if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                try {
+                    navigator.vibrate([100, 60, 100, 60, 200]);
+                } catch (e) {
+                    console.warn("Vibration not allowed or supported:", e);
+                }
             }
 
-            // System push notification
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("Pesanan Siap Diambil! ☕", {
-                    body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
-                    icon: "/assets/images/logo.png"
-                });
+            // Play a notification sound for customer
+            try {
+                const audio = new Audio("/assets/audio/payment-paid.mp3");
+                audio.volume = 0.8;
+                audio.play().catch(err => console.log("Audio play blocked by browser autoplay policy:", err));
+            } catch (audioErr) {
+                console.warn("Failed to play notification audio:", audioErr);
+            }
+
+            // System push notification with try-catch protection
+            try {
+                if (typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined") {
+                    if (Notification.permission === "granted") {
+                        // Some mobile browsers throw 'Illegal constructor' when constructing Notification in main thread.
+                        // Wrapping this prevents app crashes (white screen).
+                        new Notification("Pesanan Siap Diambil! ☕", {
+                            body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
+                            icon: "/assets/images/logo.png"
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not display system push notification (usually not allowed in mobile main thread):", e);
             }
         }
     }, [status, resolvedOrderRef]);
