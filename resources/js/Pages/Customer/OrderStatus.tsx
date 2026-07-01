@@ -197,6 +197,13 @@ export default function OrderStatusPage({
         return () => window.clearInterval(timer);
     }, [status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime]);
 
+    // Request notification permission on mount
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }, []);
+
     useEffect(() => {
         if (status === "ready" || status === "completed") {
             setShowReadyPopup(true);
@@ -204,8 +211,16 @@ export default function OrderStatusPage({
             if ("vibrate" in navigator) {
                 navigator.vibrate([100, 60, 100, 60, 200]);
             }
+
+            // System push notification
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Pesanan Siap Diambil! ☕", {
+                    body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
+                    icon: "/assets/images/logo.png"
+                });
+            }
         }
-    }, [status]);
+    }, [status, resolvedOrderRef]);
 
     const isReady = status === "ready" || status === "completed";
 

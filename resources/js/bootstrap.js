@@ -29,6 +29,16 @@ window.axios.interceptors.request.use((config) => {
     return config;
 });
 
+window.axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 419) {
+            window.location.reload();
+        }
+        return Promise.reject(error);
+    }
+);
+
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 

@@ -18,7 +18,7 @@ class StaffExportTest extends TestCase
             'username' => 'adminuser',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
-            'role' => 'admin',
+            'role' => 'super_admin',
             'is_active' => true,
         ]);
     }

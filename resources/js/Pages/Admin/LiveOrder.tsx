@@ -6,6 +6,7 @@ import OrderSearchInput from "@/Components/ui/OrderSearchInput";
 import OrderDetailModal from "@/Components/Modals/OrderDetailModal";
 import CashPaymentModal from "@/Components/Modals/CashPaymentModal";
 import OrderKanbanBoard from "@/Components/shared/order-kanban/OrderKanbanBoard";
+import Toast from "@/Components/ui/Toast";
 import {
   countKanbanOrders,
   filterOrdersByQuery,
@@ -30,16 +31,60 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders);
   }, [initialOrders]);
 
-  // Real-time polling
+  // Real-time Echo listeners & sound alerts
+  useEffect(() => {
+    const echo = (window as any).Echo;
+    if (echo) {
+      echo.private("staff-orders")
+        .listen(".order.placed", (event: any) => {
+          const audio = new Audio("/assets/audio/new-order.mp3");
+          audio.play().catch(e => console.log("Audio play failed:", e));
+
+          setToast({
+            message: `Pesanan Baru Masuk! Meja/Nama: ${event.table_number || event.customer_name || 'Takeaway'}`,
+            type: "info"
+          });
+
+          router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
+        })
+        .listen(".order.status.updated", () => {
+          router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
+        });
+
+      echo.private("staff-payments")
+        .listen(".payment.status.updated", (event: any) => {
+          if (event.payment_status === "paid") {
+            const audio = new Audio("/assets/audio/payment-paid.mp3");
+            audio.play().catch(e => console.log("Audio play failed:", e));
+
+            setToast({
+              message: `Pembayaran order #${event.order_id} BERHASIL!`,
+              type: "success"
+            });
+          }
+          router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
+        });
+    }
+
+    return () => {
+      if (echo) {
+        echo.leave("staff-orders");
+        echo.leave("staff-payments");
+      }
+    };
+  }, []);
+
+  // Real-time polling fallback (longer duration since we have Echo)
   useEffect(() => {
     const interval = setInterval(() => {
       router.reload({ only: ['orders'], preserveScroll: true, preserveState: true });
-    }, 10000); // Polling setiap 10 detik
+    }, 20000); // Polling every 20 seconds as fallback
 
     return () => clearInterval(interval);
   }, []);
@@ -138,10 +183,18 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
         processing: prev.processing,
         completed: prev.completed,
       }));
+
+      setToast({
+        message: "Pembayaran berhasil diverifikasi!",
+        type: "success"
+      });
       
     } catch (error) {
       console.error('Payment verification failed', error);
-      alert("Gagal memverifikasi pembayaran.");
+      setToast({
+        message: "Gagal memverifikasi pembayaran.",
+        type: "error"
+      });
     }
   };
 
@@ -217,6 +270,14 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
         }}
         onConfirmPayment={handleConfirmPayment}
       />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       <style>{`
         .styled-scrollbar::-webkit-scrollbar {

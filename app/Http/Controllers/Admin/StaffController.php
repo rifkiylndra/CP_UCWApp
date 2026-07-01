@@ -12,16 +12,31 @@ use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
-class StaffController extends Controller
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+
+class StaffController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                if (!auth()->check() || !auth()->user()->isSuperAdmin()) {
+                    abort(403, 'Akses ditolak. Hanya Super Admin yang dapat mengelola user internal.');
+                }
+                return $next($request);
+            }),
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = User::query();
 
-        if ($request->has('role') && in_array($request->role, ['admin', 'staff'])) {
+        if ($request->has('role') && in_array($request->role, ['admin', 'staff', 'super_admin'])) {
             $query->where('role', $request->role);
         } else {
-            $query->whereIn('role', ['admin', 'staff']);
+            $query->whereIn('role', ['admin', 'staff', 'super_admin']);
         }
 
         $staff = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -50,7 +65,6 @@ class StaffController extends Controller
 
     public function update(UpdateStaffRequest $request, User $staff)
     {
-        // Cegah menghapus/edit diri sendiri (optional) atau biarkan saja
         $validated = $request->validated();
 
         $updateData = [
@@ -71,8 +85,10 @@ class StaffController extends Controller
 
     public function destroy(User $staff)
     {
-        // Mencegah admin menghapus dirinya sendiri jika dibutuhkan,
-        // tapi untuk saat ini izinkan saja.
+        if ($staff->isSuperAdmin()) {
+            return redirect()->back()->withErrors(['error' => 'Akun Super Admin tidak dapat dihapus.']);
+        }
+
         if (auth()->id() === $staff->id) {
             return redirect()->back()->withErrors(['error' => 'You cannot delete yourself.']);
         }
