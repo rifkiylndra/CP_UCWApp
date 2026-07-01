@@ -197,16 +197,23 @@ export default function OrderStatusPage({
         return () => window.clearInterval(timer);
     }, [status, currentCreatedAt, currentUpdatedAt, currentEstimatedServeTime]);
 
-    // Request notification permission on mount
+    // Request notification permission and register service worker on mount
     useEffect(() => {
         try {
+            // Register Service Worker for background push notifications
+            if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+                navigator.serviceWorker.register("/sw.js")
+                    .then((reg) => console.log("Service Worker registered successfully with scope:", reg.scope))
+                    .catch((err) => console.error("Service Worker registration failed:", err));
+            }
+
             if (typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined") {
                 if (Notification.permission === "default") {
                     Notification.requestPermission().catch(() => {});
                 }
             }
         } catch (e) {
-            console.warn("Notifications are not supported in this environment:", e);
+            console.warn("Notifications or Service Workers are not supported in this environment:", e);
         }
     }, []);
 
@@ -232,20 +239,39 @@ export default function OrderStatusPage({
                 console.warn("Failed to play notification audio:", audioErr);
             }
 
-            // System push notification with try-catch protection
+            // System push notification with Service Worker support
             try {
                 if (typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined") {
                     if (Notification.permission === "granted") {
-                        // Some mobile browsers throw 'Illegal constructor' when constructing Notification in main thread.
-                        // Wrapping this prevents app crashes (white screen).
-                        new Notification("Pesanan Siap Diambil! ☕", {
-                            body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
-                            icon: "/assets/images/logo.png"
-                        });
+                        if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+                            navigator.serviceWorker.ready.then((registration) => {
+                                registration.showNotification("Pesanan Siap Diambil! ☕", {
+                                    body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
+                                    icon: "/assets/images/logo.png",
+                                    badge: "/assets/images/logo.png",
+                                    vibrate: [100, 60, 100, 60, 200],
+                                    tag: `order-ready-${resolvedOrderRef}`,
+                                    renotify: true
+                                });
+                            }).catch((swErr) => {
+                                console.warn("Service Worker ready error, falling back to legacy Notification:", swErr);
+                                // Fallback ke Legacy Notification
+                                new Notification("Pesanan Siap Diambil! ☕", {
+                                    body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
+                                    icon: "/assets/images/logo.png"
+                                });
+                            });
+                        } else {
+                            // Fallback jika serviceWorker tidak tersedia
+                            new Notification("Pesanan Siap Diambil! ☕", {
+                                body: `Pesanan #${resolvedOrderRef} Anda sudah siap. Silakan ambil di meja bar.`,
+                                icon: "/assets/images/logo.png"
+                            });
+                        }
                     }
                 }
             } catch (e) {
-                console.warn("Could not display system push notification (usually not allowed in mobile main thread):", e);
+                console.warn("Could not display system push notification:", e);
             }
         }
     }, [status, resolvedOrderRef]);
