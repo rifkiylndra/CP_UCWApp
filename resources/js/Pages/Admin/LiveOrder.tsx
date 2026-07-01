@@ -33,6 +33,17 @@ export default function LiveOrder({ auth, orders: initialOrders }: LiveOrderProp
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
+  // Synchronize URL search parameters to local search state on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const searchParam = params.get("search");
+      if (searchParam !== null) {
+        setSearchQuery(searchParam);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders);
   }, [initialOrders]);
