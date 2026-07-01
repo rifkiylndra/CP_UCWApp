@@ -16,38 +16,22 @@ export default function CustomerBrand({
     return (
         <div className={align === 'center' ? 'flex flex-col items-center' : 'flex flex-col items-start'}>
             <div
-                className="flex items-center justify-center mb-5"
+                className="flex items-center justify-center mb-5 overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.18)]"
                 style={{
                     width: logoSize,
                     height: logoSize,
-                    borderRadius: logoSize * 0.29,
-                    background: dark
-                        ? 'rgba(20,16,10,0.08)'
-                        : 'rgba(255,255,255,0.14)',
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    borderRadius: '50%',
+                    background: dark ? '#2A1712' : '#ffffff',
                     border: dark
-                        ? '1px solid rgba(20,16,10,0.12)'
-                        : '1px solid rgba(255,255,255,0.22)',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                        ? '2px solid rgba(42,23,18,0.2)'
+                        : '2px solid rgba(255,255,255,0.4)',
                 }}
             >
-                <svg
-                    width={iconSize}
-                    height={iconSize}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={dark ? 'var(--color-ucw-dark)' : 'white'}
-                    strokeWidth="1.65"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                    <line x1="6" y1="1" x2="6" y2="4" />
-                    <line x1="10" y1="1" x2="10" y2="4" />
-                    <line x1="14" y1="1" x2="14" y2="4" />
-                </svg>
+                <img 
+                    src="/assets/images/logo.png" 
+                    alt="UCW Logo" 
+                    className="h-full w-full object-cover" 
+                />
             </div>
 
             {showText && (

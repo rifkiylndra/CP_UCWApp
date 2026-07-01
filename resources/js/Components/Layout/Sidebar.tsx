@@ -39,12 +39,19 @@ export default function Sidebar({ user, currentRoute }: SidebarProps) {
   return (
     <aside className="hidden h-full w-[254px] flex-shrink-0 flex-col border-r border-[#E9E6E4] bg-[#F9F9F8] md:flex">
       <div className="px-8 pb-8 pt-9">
-        <h1 className="max-w-[150px] text-[18px] font-extrabold uppercase leading-[1.22] tracking-[0.12em] text-[#271310]">
-          UNAND CO-WORKSPACE
-        </h1>
-        <p className="mt-2 text-[12px] font-medium text-[#50444299]">
-          Editorial Barista Admin
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-[#271310]/15">
+            <img src="/assets/images/logo.png" alt="UCW Logo" className="h-full w-full object-cover" />
+          </div>
+          <div>
+            <h1 className="text-[14px] font-extrabold uppercase leading-[1.15] tracking-[0.05em] text-[#271310]">
+              UNAND CO-WORKSPACE
+            </h1>
+            <p className="mt-0.5 text-[11px] font-medium text-[#50444299]">
+              Barista Admin
+            </p>
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 px-4">

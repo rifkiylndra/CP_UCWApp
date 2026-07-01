@@ -22,9 +22,14 @@ export default function StaffLayout({
             {title && <Head title={title} />}
 
             <header className="fixed left-0 top-0 z-40 flex h-[68px] w-full items-center justify-between border-b border-[#ECE8E4] bg-[#F9F9F8] px-4 lg:h-[76px] lg:px-8">
-                <h1 className="text-[17px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[22px]">
-                    UNAND Co-Workspace
-                </h1>
+                <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 overflow-hidden rounded-full border border-[#271310]/10 lg:h-9 lg:w-9">
+                        <img src="/assets/images/logo.png" alt="UCW Logo" className="h-full w-full object-cover" />
+                    </div>
+                    <h1 className="text-[16px] font-extrabold tracking-[-0.03em] text-[#271310] lg:text-[20px]">
+                        UNAND Co-Workspace
+                    </h1>
+                </div>
 
                 <div className="flex items-center gap-2 lg:gap-3">
                     <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4F4F3] text-[#271310] lg:h-11 lg:w-11">

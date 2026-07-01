@@ -24,9 +24,9 @@ export default function AdminLogin() {
       <div className="pointer-events-none fixed right-0 top-0 hidden h-full w-[38%] bg-[radial-gradient(circle_at_center,#ffffff_0%,#f3eee8_45%,transparent_75%)] opacity-80 md:block" />
 
       <div className="relative z-10 flex w-full max-w-[460px] flex-col items-center rounded-[22px] bg-white px-8 py-9 shadow-[0_18px_60px_rgba(42,23,18,0.08)] sm:px-12 sm:py-10">
-        {/* Icon */}
-        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#2A1712] text-white">
-          <Coffee size={20} strokeWidth={2.2} />
+        {/* Logo */}
+        <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-[#2A1712] bg-white shadow-sm">
+          <img src="/assets/images/logo.png" alt="UCW Logo" className="h-full w-full object-cover" />
         </div>
 
         {/* Title */}
